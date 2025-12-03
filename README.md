@@ -30,17 +30,17 @@ The final UI framework decision will be made after testing both approaches. Both
 ┌─────────────────────────┐
 │  Desktop App            │
 │                         │
-│  ┌────────────────┐    │
-│  │ AppKit/SwiftUI │    │  ← UI Layer (both versions)
-│  └────────┬───────┘    │
+│  ┌────────────────┐     │
+│  │ AppKit/SwiftUI │     │  ← UI Layer (both versions)
+│  └────────┬───────┘     │
 │           ↓             │
-│  ┌────────────────┐    │
-│  │  MCPClient     │    │  ← From cupertino package
-│  └────────┬───────┘    │
+│  ┌────────────────┐     │
+│  │  MCPClient     │     │  ← From cupertino package
+│  └────────┬───────┘     │
 │           ↓             │
-│  ┌────────────────┐    │
-│  │cupertino serve │    │  ← Spawned subprocess
-│  └────────────────┘    │
+│  ┌────────────────┐     │
+│  │cupertino serve │     │  ← Spawned subprocess
+│  └────────────────┘     │
 └─────────────────────────┘
 ```
 

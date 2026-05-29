@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-If you believe you have found a security issue in Tiledown, please report it
+If you believe you have found a security issue in CupertinoDesktop, please report it
 privately. Do not open a public issue for security problems.
 
 Email **mihaelamj@me.com** with:
@@ -17,12 +17,12 @@ publicly with credit to the reporter if desired.
 
 ## Supported versions
 
-Tiledown is pre-1.0 and under active development. Security fixes are applied to
+CupertinoDesktop is pre-1.0 and under active development. Security fixes are applied to
 the `main` branch. Until a stable release exists, only the latest `main` is
 supported.
 
 ## Scope
 
-Tiledown generates static sites. The generated output is plain HTML, CSS, and
+CupertinoDesktop generates static sites. The generated output is plain HTML, CSS, and
 client-side JavaScript for rich tiles. Reports about generated output (for
 example, missing output escaping that enables script injection) are in scope.

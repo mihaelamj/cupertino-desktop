@@ -1,6 +1,6 @@
 # App Colors Architecture Rules
 
-Color-system rules for the planned Tiledown native editor. Build the colors package with HSV-based color management, dynamic light/dark support, and semantic naming. The colors package is independent from the theme package, which combines colors + fonts.
+Color-system rules for the planned CupertinoDesktop native editor. Build the colors package with HSV-based color management, dynamic light/dark support, and semantic naming. The colors package is independent from the theme package, which combines colors + fonts.
 
 ## Core rules
 
@@ -420,7 +420,7 @@ let customColors = AppColors(
 )
 
 @main
-struct TiledownApp: App {
+struct CupertinoDesktopApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

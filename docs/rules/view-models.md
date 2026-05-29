@@ -1,6 +1,6 @@
 # SwiftUI ViewModel Architecture Rules
 
-ViewModel rules for the planned Tiledown native editor. ViewModels are thin coordination layers between Views and Services. They orchestrate business logic without containing it, maintain reactive UI state via `@Observable`, and stay testable through dependency injection.
+ViewModel rules for the planned CupertinoDesktop native editor. ViewModels are thin coordination layers between Views and Services. They orchestrate business logic without containing it, maintain reactive UI state via `@Observable`, and stay testable through dependency injection.
 
 ## Mental model
 

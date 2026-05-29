@@ -1,13 +1,13 @@
-# Contributing to Tiledown
+# Contributing to CupertinoDesktop
 
-Thanks for your interest in Tiledown. This guide covers how to set up, the
+Thanks for your interest in CupertinoDesktop. This guide covers how to set up, the
 conventions the project follows, and how to land a change.
 
 By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Language policy
 
-Tiledown is a **Swift** project. All engine and tooling code is Swift.
+CupertinoDesktop is a **Swift** project. All engine and tooling code is Swift.
 
 The one exception is **JavaScript**, and only where it is intrinsic to the
 output: client-side tile rendering (Mermaid diagrams, charts, forms, polls) emits
@@ -17,14 +17,14 @@ be Swift instead.
 
 ## Project status
 
-Tiledown is at the documentation and design stage. The engine package is not yet
+CupertinoDesktop is at the documentation and design stage. The engine package is not yet
 committed, so the `swift` commands below describe the intended workflow once the
 package lands; they will not run against the repo until then. The architecture is
 in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Getting started
 
-Will require a recent Swift toolchain (Swift 6.1+). Tiledown is a monorepo: a
+Will require a recent Swift toolchain (Swift 6.1+). CupertinoDesktop is a monorepo: a
 workspace at the root, a single `Package.swift` under `Packages/`, and `Apps/`
 for app targets. Once the package is in:
 
@@ -32,7 +32,7 @@ for app targets. Once the package is in:
 cd Packages
 swift build
 swift test
-swift run tile-down            # renders a demo page to stdout
+swift run cupertino-desktop            # renders a demo page to stdout
 ```
 
 Install the project git hooks once after cloning:

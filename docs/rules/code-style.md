@@ -10,7 +10,7 @@ For the narrower question "should the anchor be `enum`, `struct`, or `class`?", 
 
 **Every public type lives under a struct or enum namespace that mirrors its folder on disk.** No public type stays at file scope. The qualified name carries module + folder + role; reading `Module.Sub.Leaf` should be enough to know where the type lives and what it does.
 
-This applies to every Swift project. The TileDown-style root + sub-namespace pattern below is one specific instance of this discipline.
+This applies to every Swift project. The CupertinoDesktop-style root + sub-namespace pattern below is one specific instance of this discipline.
 
 ### Core rules
 
@@ -121,14 +121,14 @@ If renaming is genuinely not worth it (e.g. the two roots have stable independen
 Multiple SwiftPM targets MAY contribute additional concrete types under the same shared root namespace via extensions:
 
 ```text
-TileDown.Parser.Model.Token          // from TileKitCore
-TileDown.Generator.Command           // from TileKitCLI
-TileDown.Parser.Scanning.Scanner     // from TileKitTools
+CupertinoDesktop.Parser.Model.Token          // from TileKitCore
+CupertinoDesktop.Generator.Command           // from TileKitCLI
+CupertinoDesktop.Parser.Scanning.Scanner     // from TileKitTools
 ```
 
 Targets MUST NOT redefine conflicting namespace trees, and the root namespace meaning MUST be identical across all modules.
 
-## Root + sub-namespace pattern (TileDown style)
+## Root + sub-namespace pattern (CupertinoDesktop style)
 
 This is one specific instance of the namespacing discipline above. Use it as the canonical example when designing a new project's namespace tree.
 
@@ -145,8 +145,8 @@ The root namespace file MUST define the full tree of namespace enums, and MUST c
 Example:
 
 ```swift
-/// Root namespace for all TileDown types across all modules
-public enum TileDown {
+/// Root namespace for all CupertinoDesktop types across all modules
+public enum CupertinoDesktop {
     /// Model types for tile metadata and structure
     public enum Model {}
 
@@ -178,7 +178,7 @@ public enum TileDown {
 
 Rules:
 
-- Root namespace = one file (e.g. `TileDown.swift`)
+- Root namespace = one file (e.g. `CupertinoDesktop.swift`)
 - Only namespace enums inside (no concrete logic)
 - No stored properties, no methods, no initializers, no nested concrete types
 - Doc comments are allowed and encouraged
@@ -196,7 +196,7 @@ Example:
 import Foundation
 import Models
 
-extension TileDown.Parser.Model {
+extension CupertinoDesktop.Parser.Model {
     /// Represents a parsed piece of tile content
     public enum Token: Equatable, Sendable {
         case text(String)
@@ -204,7 +204,7 @@ extension TileDown.Parser.Model {
     }
 }
 
-extension TileDown.Parser.Model.Token: CustomStringConvertible {
+extension CupertinoDesktop.Parser.Model.Token: CustomStringConvertible {
     public var description: String {
         switch self {
         case .text(let str): return "Text(\"\(str)\")"
@@ -218,32 +218,32 @@ Rules:
 
 - Implementation and conformances MUST be extensions
 - Type lives under the correct semantic path, e.g.:
-  - `TileDown.Model`
-  - `TileDown.Parser.Model`
-  - `TileDown.Parser.Metadata`
-  - `TileDown.Generator`
+  - `CupertinoDesktop.Model`
+  - `CupertinoDesktop.Parser.Model`
+  - `CupertinoDesktop.Parser.Metadata`
+  - `CupertinoDesktop.Generator`
 - Conformances (`Codable`, `Sendable`, `CustomStringConvertible`, etc.) MAY be separate extensions
 
-### File layout for TileDown-style namespacing
+### File layout for CupertinoDesktop-style namespacing
 
 Files SHOULD be placed to reflect the namespace tree. Two equivalent conventions:
 
 **Folder-based approach**: the folder tree mirrors the namespace tree, one file per leaf type:
 
 ```text
-TileDown/
-    TileDown.swift                       // namespace anchor: public enum TileDown {}
-    Parser/Model/Token.swift             // extension TileDown.Parser.Model { public enum Token {} }
-    Parser/Scanning/Scanner.swift        // extension TileDown.Parser.Scanning { public struct Scanner {} }
-    Generator/Writer.swift               // extension TileDown.Generator { public struct Writer {} }
+CupertinoDesktop/
+    CupertinoDesktop.swift                       // namespace anchor: public enum CupertinoDesktop {}
+    Parser/Model/Token.swift             // extension CupertinoDesktop.Parser.Model { public enum Token {} }
+    Parser/Scanning/Scanner.swift        // extension CupertinoDesktop.Parser.Scanning { public struct Scanner {} }
+    Generator/Writer.swift               // extension CupertinoDesktop.Generator { public struct Writer {} }
 ```
 
 **`<Namespace>.<Type>.swift` approach**: flat folder, file name encodes the namespace path with dots:
 
 ```text
-TileDown.swift                              // namespace anchor: public enum TileDown {}
-TileDown.Parser.Model.Token.swift           // extension TileDown.Parser.Model { public enum Token {} }
-TileDown.Parser.Metadata.Header.swift       // extension TileDown.Parser.Metadata { public struct Header {} }
+CupertinoDesktop.swift                              // namespace anchor: public enum CupertinoDesktop {}
+CupertinoDesktop.Parser.Model.Token.swift           // extension CupertinoDesktop.Parser.Model { public enum Token {} }
+CupertinoDesktop.Parser.Metadata.Header.swift       // extension CupertinoDesktop.Parser.Metadata { public struct Header {} }
 ```
 
 Within a single SPM target, pick ONE pattern and stay with it.
@@ -269,7 +269,7 @@ Why uniformity even when not strictly needed:
 
 The only file in a namespace folder that does NOT carry `.<Type>` is the **namespace anchor**:
 
-- `TileDown.swift` declaring `public enum TileDown { /* sub-namespaces */ }`
+- `CupertinoDesktop.swift` declaring `public enum CupertinoDesktop { /* sub-namespaces */ }`
 - `Tile.swift` declaring `public enum Tile { public enum Parse {} public enum Core {} ... }`
 
 Anchor files contain only namespace enums, never concrete types.

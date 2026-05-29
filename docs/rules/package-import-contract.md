@@ -1,6 +1,6 @@
 # Per-Package Import Contract
 
-The rule for what each SPM target may `import`. Tiledown is a monorepo from day one with many targets in one package, and the engine (`TileKit`) and CLI (`tile-down`) are already two targets, so this contract applies now and governs every target added to the manifest.
+The rule for what each SPM target may `import`. CupertinoDesktop is a monorepo from day one with many targets in one package, and the engine (`TileKit`) and CLI (`cupertino-desktop`) are already two targets, so this contract applies now and governs every target added to the manifest.
 
 This is the operational companion to [dependency-injection.md](dependency-injection.md) and [shared-protocols.md](shared-protocols.md). Read those first for the underlying principles (no singletons, constructor injection, protocol seams).
 
@@ -31,7 +31,7 @@ Priority order: target name > public type > file name > folder layout.
 Before adding an `import X` line to a producer target, ask:
 
 1. Is `X` external (Foundation, a system framework, ArgumentParser, Testing, a vetted third-party dependency)? Allowed.
-2. Is the target an `executableTarget` / composition root (for example the `tile-down` CLI)? Allowed; the composition root wires the universe.
+2. Is the target an `executableTarget` / composition root (for example the `cupertino-desktop` CLI)? Allowed; the composition root wires the universe.
 3. Is `X` a foundation-tier target that is foundation-only by construction (shared constants, value types, read-only diagnostics)? Allowed.
 4. Is `X` a protocol-seam package (foundation-only by contract, carrying only protocols and value types)? Allowed.
 5. Otherwise: **STOP.** Surface the situation; do not proceed. Importing another producer's concrete target is forbidden. Route the dependency through a protocol seam; the composition root supplies the concrete via injection.

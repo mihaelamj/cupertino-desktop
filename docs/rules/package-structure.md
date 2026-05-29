@@ -1,10 +1,10 @@
 # Package and Repository Structure
 
-How the repository is laid out. Tiledown is a monorepo from day one: a workspace, a single `Package.swift` under `Packages/`, many single-responsibility targets in that one package, and `Apps/` for app targets. Sources live in `Packages/Sources/`, tests in `Packages/Tests/`. The `TileKit` library and the `tile-down` executable are already two targets in that package, so the layout rules below apply now.
+How the repository is laid out. CupertinoDesktop is a monorepo from day one: a workspace, a single `Package.swift` under `Packages/`, many single-responsibility targets in that one package, and `Apps/` for app targets. Sources live in `Packages/Sources/`, tests in `Packages/Tests/`. The `TileKit` library and the `cupertino-desktop` executable are already two targets in that package, so the layout rules below apply now.
 
 ## What this covers
 
-Tiledown ships as one SPM package with many targets, not one package per library. There is a single `Package.swift` under `Packages/`; the `TileKit` library and the `tile-down` CLI are two targets in it today, and new targets join the same manifest as responsibilities separate out. The workspace and `Apps/` directory are part of the structure from the start; `Apps/` holds app targets (such as the planned native macOS/iOS editor) while the CLI executable target stays in `Package.swift`.
+CupertinoDesktop ships as one SPM package with many targets, not one package per library. There is a single `Package.swift` under `Packages/`; the `TileKit` library and the `cupertino-desktop` CLI are two targets in it today, and new targets join the same manifest as responsibilities separate out. The workspace and `Apps/` directory are part of the structure from the start; `Apps/` holds app targets (such as the planned native macOS/iOS editor) while the CLI executable target stays in `Package.swift`.
 
 Reach for additional targets in the single package when one of these is true:
 
@@ -72,7 +72,7 @@ Keep views and view controllers in packages, not in app targets:
 ## Directory structure
 
 ```
-TileDownRoot/
+CupertinoDesktopRoot/
 ├── Main.xcworkspace/              # Hosts the package and any Apps/ projects
 │   └── contents.xcworkspacedata
 ├── Packages/                      # Single SPM package
@@ -80,15 +80,15 @@ TileDownRoot/
 │   ├── Package.resolved
 │   ├── Sources/
 │   │   ├── TileKit/               # the engine library
-│   │   ├── TileDownCLI/           # the tile-down CLI target
+│   │   ├── CupertinoDesktopCLI/           # the cupertino-desktop CLI target
 │   │   └── ...                    # additional focused libraries
 │   └── Tests/
 │       ├── TileKitTests/
 │       └── ...
 ├── Apps/                          # App targets (planned native editor)
-│   └── TileDownApp/
-│       ├── TileDownApp.xcodeproj/
-│       └── TileDownApp/
+│   └── CupertinoDesktopApp/
+│       ├── CupertinoDesktopApp.xcodeproj/
+│       └── CupertinoDesktopApp/
 ├── docs/
 └── README.md
 ```
@@ -107,7 +107,7 @@ import PackageDescription
 let baseProducts: [Product] = [
     .singleTargetLibrary("TileKit"),
     .singleTargetLibrary("TileCore"),
-    .executable(name: "tile-down", targets: ["TileDownCLI"]),
+    .executable(name: "cupertino-desktop", targets: ["CupertinoDesktopCLI"]),
 ]
 
 // ---------- Apple-Only Products ----------

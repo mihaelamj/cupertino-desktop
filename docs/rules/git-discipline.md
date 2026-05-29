@@ -1,6 +1,6 @@
 # GitHub and Git Discipline
 
-Conventions for issues, labels, pull requests, branches, commits, and remotes in the Tiledown repo. Commit-message format lives in docs/rules/commits.md; this file covers everything else.
+Conventions for issues, labels, pull requests, branches, commits, and remotes in the CupertinoDesktop repo. Commit-message format lives in docs/rules/commits.md; this file covers everything else.
 
 The repo ships issue forms, a PR template, a label set, and git hooks that enforce most of these rules mechanically. The rules below are the durable conventions those mechanisms encode.
 

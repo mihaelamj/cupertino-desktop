@@ -1,6 +1,6 @@
 # Dependency Injection Rules
 
-Canonical dependency-injection principles for TileKit and the wider Tiledown codebase: no singletons, constructor injection, protocol seams.
+Canonical dependency-injection principles for TileKit and the wider CupertinoDesktop codebase: no singletons, constructor injection, protocol seams.
 
 These are standing rules for every change and every PR. They are grounded in *Design Patterns* (Gamma, Helm, Johnson, Vlissides, 1994) and Mark Seemann's *Dependency Injection in .NET* (2011).
 
@@ -40,7 +40,7 @@ public struct TileRenderer {
 - Code that crosses a module boundary depends on a **named protocol**, not on a concrete type imported from another module.
 - The composition root (the executable target / app entry point) is the only place that holds concretes from multiple modules and wires them together.
 
-If and when Tiledown grows into multiple SPM packages:
+If and when CupertinoDesktop grows into multiple SPM packages:
 
 - A feature/producer package may **not** `import` another feature/producer package.
 - Cross-package seams are **named protocols**, either declared in a small foundation-only `*Models` package or inlined per package.
@@ -69,7 +69,7 @@ Reasons: a named protocol is discoverable (you can find all conformers), it forc
 
 ## 5. Every module lifts out cleanly.
 
-If and when Tiledown is split into multiple packages, each package should lift out of the repo without modification:
+If and when CupertinoDesktop is split into multiple packages, each package should lift out of the repo without modification:
 
 - If a package needs a dependency to function, that dependency is **named in its public API**.
 - Hidden dependencies (ambient singletons, reach-into-shared-state, undeclared transitive imports) are violations even if they currently build.
@@ -77,7 +77,7 @@ If and when Tiledown is split into multiple packages, each package should lift o
 
 ## 6. Composition root: binary name stays clean.
 
-If Tiledown ships multiple binaries, the **executable target name** stays normal (no `Impl` suffix). The binary's external identity (filename on disk, `which` output) stays clean.
+If CupertinoDesktop ships multiple binaries, the **executable target name** stays normal (no `Impl` suffix). The binary's external identity (filename on disk, `which` output) stays clean.
 
 Use an `*Impl` namespace for the source files **inside** that target where each module is concretely glued together:
 
@@ -95,7 +95,7 @@ The `*Impl` namespace says "this file is where we wire concretes." Composition r
 
 ## 7. Keep the import contract explicit.
 
-If Tiledown grows into multiple packages, keep a checked-in `docs/package-import-contract.md`: one row per target listing target name, allowed imports, and current state. Anything outside the allowed column is a **violation** and must be fixed in the same change. Back it with a CI script that greps `^import` per target and fails on disallowed imports.
+If CupertinoDesktop grows into multiple packages, keep a checked-in `docs/package-import-contract.md`: one row per target listing target name, allowed imports, and current state. Anything outside the allowed column is a **violation** and must be fixed in the same change. Back it with a CI script that greps `^import` per target and fails on disallowed imports.
 
 ## 8. Foundation-only is the end state for producer packages.
 

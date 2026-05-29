@@ -1,5 +1,5 @@
 name: Feature request
-description: A new feature, refactor, or design proposal for Tiledown.
+description: A new feature, refactor, or design proposal for CupertinoDesktop.
 labels: ["enhancement"]
 body:
   - type: input

@@ -3,7 +3,7 @@
 ## Our pledge
 
 We are committed to providing a friendly, safe, and welcoming environment for
-everyone who takes part in the Tiledown project, regardless of background or
+everyone who takes part in the CupertinoDesktop project, regardless of background or
 identity. We pledge to act and interact in ways that contribute to an open,
 respectful, and healthy community.
 

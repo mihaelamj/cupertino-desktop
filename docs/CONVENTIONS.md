@@ -1,6 +1,6 @@
-# Tiledown Conventions
+# CupertinoDesktop Conventions
 
-The coding conventions for Tiledown. They keep the codebase consistent,
+The coding conventions for CupertinoDesktop. They keep the codebase consistent,
 testable, and portable. Read this before opening a PR. When in doubt, read the
 surrounding files and match what is already there: consistency with existing code
 outranks personal preference.
@@ -73,7 +73,7 @@ tooling.
 
 ## Cross-platform
 
-Tiledown builds and runs on macOS and Linux.
+CupertinoDesktop builds and runs on macOS and Linux.
 
 - Guard platform-divergent code and abstract platform-specific dependencies behind
   a protocol seam: one implementation per platform, wired by the composition root.

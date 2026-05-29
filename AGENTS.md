@@ -1,6 +1,6 @@
 # Agent Guide
 
-Guidance for anyone (human or coding agent) writing code in Tiledown.
+Guidance for anyone (human or coding agent) writing code in CupertinoDesktop.
 
 ## Rule loading (read this first)
 
@@ -11,11 +11,11 @@ hand. If you cannot name them, you have not loaded the rules. The mechanical gat
 (hooks and CI) enforce the checkable rules regardless, but the judgment rules
 depend on you having read them.
 
-## What Tiledown is
+## What CupertinoDesktop is
 
 A tile-native static site generator. The canonical document is a tree of typed
 **tiles** (not Markdown), rendered to static HTML for publishing to GitHub Pages.
-The engine library is `TileKit`; the CLI is `tile-down`. The engine targets macOS
+The engine library is `TileKit`; the CLI is `cupertino-desktop`. The engine targets macOS
 and Linux. A native macOS and iOS editor app over the same tile model is a separate,
 future concern. See [docs/DESIGN.md](docs/DESIGN.md).
 
@@ -45,7 +45,7 @@ writing code and match what is there.
 **Load the rest on demand**: testing-discipline, documentation, linux-server,
 point-free-dependencies, systematic-debugging, file-naming, folder-grouping,
 commits, git-discipline, and (for the planned native app) views, view-models,
-components, colors, fonts, and (if Tiledown becomes multi-package) the package
+components, colors, fonts, and (if CupertinoDesktop becomes multi-package) the package
 architecture set. The index is [docs/rules/README.md](docs/rules/README.md).
 
 ## Working with the maintainer
@@ -96,7 +96,7 @@ Which fits [the concern driving this choice]?
 ```sh
 swift build
 swift test
-swift run tile-down
+swift run cupertino-desktop
 ```
 
 (The engine package is not yet committed; these are the intended commands once it

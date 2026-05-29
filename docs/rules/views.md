@@ -1,6 +1,6 @@
 # SwiftUI View Rules
 
-SwiftUI view rules for the planned Tiledown native editor: purely presentational, performant, accessible, reusable. Views observe ViewModels but contain ZERO business logic.
+SwiftUI view rules for the planned CupertinoDesktop native editor: purely presentational, performant, accessible, reusable. Views observe ViewModels but contain ZERO business logic.
 
 ## Core rules
 

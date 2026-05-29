@@ -1,6 +1,6 @@
 # Linux-server Swift
 
-Operational rules for Tiledown code that runs on Linux in production: HTTP client, logging, database, crypto, signals, resources, POSIX interop, file I/O, and Docker CI.
+Operational rules for CupertinoDesktop code that runs on Linux in production: HTTP client, logging, database, crypto, signals, resources, POSIX interop, file I/O, and Docker CI.
 
 Load on demand. Triggers: Linux, server, Vapor, Hummingbird, AsyncHTTPClient, swift-log, swift-crypto, FluentSQLite, FluentPostgres, NIO, SIGTERM, graceful shutdown, Docker, `swift:6.0-jammy`, `swift:6.0-noble`, Bundle.module, FoundationNetworking on a server, isatty, BoringSSL.
 
@@ -48,7 +48,7 @@ let session = URLSession(configuration: .ephemeral)
 // session goes out of scope here → crash
 
 // Correct option 1: final class with deinit (preferred, automatic for all callers)
-public final class TileDownloader: @unchecked Sendable {
+public final class CupertinoDownloader: @unchecked Sendable {
     private let session: URLSession
     init() { session = URLSession(configuration: .ephemeral) }
     deinit { session.invalidateAndCancel() }
@@ -75,7 +75,7 @@ LoggingSystem.bootstrap { label in
     return handler
 }
 
-let logger = Logger(label: "com.example.tiledown")
+let logger = Logger(label: "com.example.cupertinodesktop")
 logger.info("server starting")
 ```
 
@@ -323,12 +323,12 @@ For testing, add a parallel job that runs `swift test --filter <LinuxBuildableSu
 FROM swift:6.0-jammy as build
 WORKDIR /src
 COPY . .
-RUN swift build -c release --product tiledownserver
+RUN swift build -c release --product cupertinodesktopserver
 
 FROM swift:6.0-jammy-slim
-COPY --from=build /src/.build/release/tiledownserver /usr/local/bin/
+COPY --from=build /src/.build/release/cupertinodesktopserver /usr/local/bin/
 EXPOSE 8080
-CMD ["tiledownserver"]
+CMD ["cupertinodesktopserver"]
 ```
 
 Multi-stage builds keep the runtime image small. The Docker production path can catch catastrophic failures, but it is not a substitute for PR-time Linux CI; deploy-time discovery means broken builds reach main.
@@ -341,14 +341,14 @@ If your repo is the Apple-clients-plus-Linux-server split (`cross-platform.md` T
 let baseProducts: [Product] = [
     .singleTargetLibrary("TileKit"),
     .singleTargetLibrary("TileServer"),
-    .executable(name: "tiledownserver", targets: ["TileServerApp"]),
+    .executable(name: "cupertinodesktopserver", targets: ["TileServerApp"]),
     // ... unconditional, Linux-buildable
 ]
 
 #if os(iOS) || os(macOS)
 let appleOnlyProducts: [Product] = [
-    .singleTargetLibrary("TileDownUI"),
-    .singleTargetLibrary("TileDownComponents"),
+    .singleTargetLibrary("CupertinoDesktopUI"),
+    .singleTargetLibrary("CupertinoDesktopComponents"),
     // ... Apple-only UI
 ]
 #else
@@ -360,7 +360,7 @@ let products = baseProducts + appleOnlyProducts
 
 Same shape for targets. Server-side products and targets stay unconditional. UI-side wraps in the conditional array.
 
-Document the Linux-buildable surface in the repo's `README.md`: name the product (`tiledownserver`), name the build command (`swift build -c release --product tiledownserver`), name the supported Docker image. Otherwise new developers running plain `swift build` on Linux hit Apple-target compile errors.
+Document the Linux-buildable surface in the repo's `README.md`: name the product (`cupertinodesktopserver`), name the build command (`swift build -c release --product cupertinodesktopserver`), name the supported Docker image. Otherwise new developers running plain `swift build` on Linux hit Apple-target compile errors.
 
 ## 13. Cross-references
 

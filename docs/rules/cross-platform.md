@@ -1,6 +1,6 @@
 # Cross-platform Swift (Apple + Linux + Windows)
 
-How to structure Tiledown's Swift so the same sources build and run on Apple platforms, Linux, and Windows without silent breakage.
+How to structure CupertinoDesktop's Swift so the same sources build and run on Apple platforms, Linux, and Windows without silent breakage.
 
 Load on demand. Triggers: `canImport`, `Linux`, `FoundationNetworking`, `Darwin`, `Glibc`, `swift-system`, `swift-foundation`, cross-platform, manifest, `.when(platforms:)`, `os(Linux)`, `os(iOS)`, `os(macOS)`, `os(visionOS)`, `os(tvOS)`, Vapor, AsyncHTTPClient, Hummingbird.
 
@@ -47,8 +47,8 @@ Apple-only products and targets go in conditional arrays so non-Apple builds see
 ```swift
 #if os(iOS) || os(macOS)
 let appleOnlyProducts: [Product] = [
-    .singleTargetLibrary("TileDownUI"),
-    .singleTargetLibrary("TileDownComponents"),
+    .singleTargetLibrary("CupertinoDesktopUI"),
+    .singleTargetLibrary("CupertinoDesktopComponents"),
     // ...
 ]
 #else
@@ -99,7 +99,7 @@ Linux UI is out of scope (no SwiftUI on Linux).
 A SwiftUI file that has no Linux meaning gets a file-level gate:
 
 ```swift
-// TileDownUI/MainTabs.swift
+// CupertinoDesktopUI/MainTabs.swift
 import SwiftUI
 
 #if os(iOS) || os(macOS)
@@ -467,7 +467,7 @@ If your repo ships an Apple-clients-plus-Linux-server split:
 
 1. **Declare Apple platforms in `platforms:`**. There is no stable Linux entry in the SPM platforms enum; Linux support is implicit when the package builds on a Linux toolchain. For the engine (macOS + Linux), declare macOS only: `platforms: [.macOS(.v15)]`. A repo that also ships an Apple UI app tier adds `.iOS(.v18)` for that tier.
 
-2. **Document the Linux-buildable surface.** In the repo's `README.md` / `AGENTS.md`, name the products that build to Linux: e.g. "On Linux, build the server product only: `swift build --product tiledownserver`." Otherwise a new developer running `swift build` on Linux hits confusing errors from Apple-only targets.
+2. **Document the Linux-buildable surface.** In the repo's `README.md` / `AGENTS.md`, name the products that build to Linux: e.g. "On Linux, build the server product only: `swift build --product cupertinodesktopserver`." Otherwise a new developer running `swift build` on Linux hits confusing errors from Apple-only targets.
 
 3. **Wrap Apple-only products and targets in conditional arrays** (Layer A pattern above). This is the load-bearing rule that makes Layer-A discipline work.
 
@@ -481,13 +481,13 @@ Bad (User-Agent header reports "unknown" on Linux even though we ship there):
 
 ```swift
 #if os(iOS)
-return "Tiledown/iOS/\(version)"
+return "CupertinoDesktop/iOS/\(version)"
 #elseif os(macOS)
-return "Tiledown/macOS/\(version)"
+return "CupertinoDesktop/macOS/\(version)"
 #elseif os(visionOS)
-return "Tiledown/visionOS/\(version)"
+return "CupertinoDesktop/visionOS/\(version)"
 #else
-return "Tiledown/unknown/\(version)"  // Linux falls into "unknown"
+return "CupertinoDesktop/unknown/\(version)"  // Linux falls into "unknown"
 #endif
 ```
 
@@ -495,15 +495,15 @@ Good:
 
 ```swift
 #if os(iOS)
-return "Tiledown/iOS/\(version)"
+return "CupertinoDesktop/iOS/\(version)"
 #elseif os(macOS)
-return "Tiledown/macOS/\(version)"
+return "CupertinoDesktop/macOS/\(version)"
 #elseif os(visionOS)
-return "Tiledown/visionOS/\(version)"
+return "CupertinoDesktop/visionOS/\(version)"
 #elseif os(Linux)
-return "Tiledown/Linux/\(version)"
+return "CupertinoDesktop/Linux/\(version)"
 #else
-return "Tiledown/unknown/\(version)"  // truly unknown future platform
+return "CupertinoDesktop/unknown/\(version)"  // truly unknown future platform
 #endif
 ```
 

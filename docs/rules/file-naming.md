@@ -1,6 +1,6 @@
 # File Naming Rules
 
-Conventions for naming committed files in the Tiledown repo: lowercase, dash-separated, ASCII, ISO dates.
+Conventions for naming committed files in the CupertinoDesktop repo: lowercase, dash-separated, ASCII, ISO dates.
 
 Every file committed must follow these conventions.
 

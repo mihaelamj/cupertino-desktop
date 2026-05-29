@@ -1,5 +1,5 @@
 name: Bug report
-description: Something ships incorrectly in Tiledown.
+description: Something ships incorrectly in CupertinoDesktop.
 labels: ["bug"]
 body:
   - type: input
@@ -56,6 +56,6 @@ body:
     id: version
     attributes:
       label: Version or commit
-      description: The Tiledown version or commit SHA where you saw this.
+      description: The CupertinoDesktop version or commit SHA where you saw this.
     validations:
       required: false

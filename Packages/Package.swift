@@ -149,15 +149,16 @@ let package = Package(
     ],
     products: products,
     dependencies: [
-        // The extracted MCP client kit. Local path: this repo is the kit's first
-        // consumer; both are public siblings. From this manifest's root (Packages/)
-        // the kit is two levels up.
-        .package(name: "CupertinoMCPClientKit", path: "../../CupertinoMCPClientKit"),
-        // Local path to the cupertino monorepo's package, via the `CupertinoUpstream`
-        // symlink (-> ../../cupertino/Packages) so the path-dependency identity is
-        // unique. Kept for the FUTURE in-process embedded path (Mobile); the
-        // subprocess path no longer depends on cupertino's `MCPCore`.
-        .package(name: "Cupertino", path: "CupertinoUpstream"),
+        // The extracted MCP client kit, pinned to a commit on its `main` so CI
+        // resolves it reproducibly. Re-pin this SHA (a one-line bump) to pick up kit
+        // changes during co-development; switch to a tagged release once the kit
+        // stabilizes. The `cupertino` package dependency is intentionally absent: the
+        // subprocess path no longer needs cupertino's `MCPCore`, and the future
+        // in-process embedded path (Mobile) will re-add it when it is actually built.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoMCPClientKit.git",
+            revision: "d13541036e2c18b3edd2b61050a986c5be166919",
+        ),
     ],
     targets: targets,
 )

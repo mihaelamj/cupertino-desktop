@@ -1,8 +1,10 @@
 name: CI
 
 # The mechanical gates, run on GitHub as the backstop to the local git hooks.
-# Style runs now (docs). The Swift gates are guarded on Packages/Package.swift,
-# so they stay green and skip until the engine package lands, then activate.
+# cupertino-desktop is an Apple-only app (macOS + iOS UI packages), so there is no
+# Linux Swift job here; the cross-platform CupertinoMCPClientKit it depends on is
+# Linux-tested in its own CI. The package is swift-tools 6.2, so the macOS job
+# selects the latest stable Xcode (the runner default can lag a release).
 
 on:
   push:
@@ -25,30 +27,16 @@ jobs:
 
   swift-macos:
     name: Swift (macOS)
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
       - name: Format, lint, build, test
         run: |
-          if [ ! -f Packages/Package.swift ]; then
-            echo "No Packages/Package.swift yet; skipping Swift gates."
-            exit 0
-          fi
           brew install swiftformat swiftlint
           swiftformat . --config .swiftformat --lint
           swiftlint --config .swiftlint.yml --strict
-          cd Packages && swift build && swift test
-
-  swift-linux:
-    name: Swift (Linux)
-    runs-on: ubuntu-latest
-    container: swift:6.1
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and test
-        run: |
-          if [ ! -f Packages/Package.swift ]; then
-            echo "No Packages/Package.swift yet; skipping Swift gates."
-            exit 0
-          fi
           cd Packages && swift build && swift test

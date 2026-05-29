@@ -15,6 +15,9 @@ excluded:
   - Packages/.build
   # Vendored dependency reached via symlink; not our code to lint.
   - Packages/CupertinoUpstream
+  # Xcode build output (dependency checkouts live under here); git-ignored, but
+  # swiftlint scans the filesystem, not .gitignore.
+  - "**/DerivedData"
 force_unwrapping: error
 force_try: error
 force_cast: error

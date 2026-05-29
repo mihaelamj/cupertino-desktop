@@ -6,8 +6,9 @@
 
 --swiftversion 6.1
 
-# Never format build output or the vendored cupertino dependency (symlink).
---exclude .build,Packages/.build,Packages/CupertinoUpstream
+# Never format build output, Xcode DerivedData (holds dependency checkouts), or
+# the vendored cupertino dependency (symlink).
+--exclude .build,Packages/.build,Packages/CupertinoUpstream,**/DerivedData
 
 # House style.
 --indent 4

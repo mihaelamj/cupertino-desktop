@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# pre-push hook: run the mechanical gates locally before a push reaches GitHub.
+# These mirror the CI workflow (.github/workflows/ci.yml) so red is caught here
+# first. Swift gates are guarded on Packages/Package.swift and skip until the
+# engine package lands.
+#
+# Install (per repo): git config core.hooksPath .githooks
+
+set -u
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo .)
+cd "$ROOT" || exit 1
+
+FAIL=0
+
+# Always: repo-wide style and namespacing gates.
+bash scripts/check-style.sh || FAIL=1
+bash scripts/check-namespacing.sh || FAIL=1
+
+# Swift gates, only when the package exists.
+if [ -f Packages/Package.swift ]; then
+  if command -v swiftformat >/dev/null 2>&1; then
+    swiftformat . --config .swiftformat --lint || FAIL=1
+  else
+    echo "pre-push: swiftformat not installed, skipping format check" >&2
+  fi
+  if command -v swiftlint >/dev/null 2>&1; then
+    swiftlint --config .swiftlint.yml --strict || FAIL=1
+  else
+    echo "pre-push: swiftlint not installed, skipping lint check" >&2
+  fi
+  ( cd Packages && swift build && swift test ) || FAIL=1
+fi
+
+if [ "$FAIL" -ne 0 ]; then
+  echo "pre-push: one or more gates failed; push aborted." >&2
+  exit 1
+fi

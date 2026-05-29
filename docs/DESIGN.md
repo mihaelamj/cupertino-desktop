@@ -7,7 +7,7 @@ Status: design draft. Target the cupertino MCP backend as it exists on `cupertin
 **Goals**
 
 - Native Apple app for browsing Apple developer docs, Swift Evolution, and sample code offline. macOS first (macOS 15+, Swift 6.2+, Xcode 16+); iOS (iPhone/iPad) is an explicit design target, not a someday-maybe.
-- Be a thin **MCP client** over the `cupertino` server. Do **not** reimplement search, indexing, or storage. We consume the same JSON-RPC tool surface a web-service client would, over a transport we can swap.
+- Be a thin client over the `cupertino` corpus, reached through one backend seam with several implementations. Do **not** reimplement search, indexing, or storage. We are **not** "an MCP app": MCP is merely the wire that one local conformer happens to speak to a `cupertino serve` subprocess (section 5), one option among several, not the system's identity.
 - The backend is reached through one protocol seam, and **how** it connects (local subprocess, embedded in-process, future remote) is itself chosen by protocol, per platform.
 - Ship parallel UI targets that differ only in framework: macOS SwiftUI + macOS AppKit now; iOS SwiftUI + iOS UIKit as the same exercise on iOS. All consume the identical backend seam.
 - Follow the ExtremePackaging monorepo convention: `Main.xcworkspace` at root, single `Package.swift` in `Packages/`, app targets in `Apps/`, layered packages. Every package depends only on protocol (seam) packages; concrete packages never import each other; `*Impl` packages are the only place concretes are composed.
@@ -20,7 +20,7 @@ Status: design draft. Target the cupertino MCP backend as it exists on `cupertin
 
 ## 2. Backend reality (what we actually build against)
 
-cupertino is an MCP server. It exposes its capabilities as JSON-RPC tools over a transport. We consume those tools as a client, exactly like a web-service consumer: send a request, get a (mostly markdown) string back.
+There are, from first principles, three ways to reach cupertino, and locality is the axis: **in-process** (embedded, no protocol at all), **out-of-process on this machine** (a `cupertino serve` subprocess), and **remote** (future, over the network). Only the out-of-process paths need a wire protocol, and the one cupertino happens to expose to a separate process is MCP (JSON-RPC tools): send a request, get a (mostly markdown) string back. So MCP is real, but it is a property of *one mechanism of one conformer*, not of the system.
 
 What the cupertino package gives us, and what it does not:
 
@@ -102,8 +102,8 @@ cupertino-desktop/
 │   │   ├── MCPClientKit/            # JSON-RPC client over `any Transport` (+ MCPCore types)
 │   │   ├── SubprocessTransport/     # Transport: spawns `cupertino serve` (macOS)
 │   │   ├── RemoteTransport/         # Transport: HTTP/SSE to a remote MCP server (future)
-│   │   ├── MCPBackend/              # DocumentationBackend conformer over MCPClientKit; maps -> AppModels
-│   │   ├── EmbeddedBackend/         # DocumentationBackend conformer via direct cupertino calls (future, iOS+mac)
+│   │   ├── LocalSubprocessBackend/              # DocumentationBackend conformer over MCPClientKit; maps -> AppModels
+│   │   ├── LocalEmbeddedBackend/         # DocumentationBackend conformer via direct cupertino calls (future, iOS+mac)
 │   │   ├── BundledCatalogStore/     # CatalogStore: DBs shipped as app resources         [future]
 │   │   ├── DownloadableCatalogStore/# CatalogStore: fetch + cache DBs on first run        [future]
 │   │   ├── MarkdownRendering/       # markdown string -> display models
@@ -111,21 +111,21 @@ cupertino-desktop/
 │   │   ├── ShellSwiftUI/ ShellAppKit/   # native window/navigation shells
 │   │   └── <Feature>SwiftUI / <Feature>AppKit/   # per-feature screen pairs (added per feature)
 │   │   # --- Impl / composition packages (wire concretes together) ---
-│   │   ├── MacBackendImpl/          # MCPBackend over SubprocessTransport
-│   │   └── EmbeddedBackendImpl/     # EmbeddedBackend + CatalogStore                       [future]
+│   │   ├── MacBackendImpl/          # LocalSubprocessBackend over SubprocessTransport
+│   │   └── LocalEmbeddedBackendImpl/     # LocalEmbeddedBackend + CatalogStore                       [future]
 │   └── Tests/
 ├── Apps/
 │   ├── CupertinoDesktopSwiftUI/     # macOS SwiftUI app  (ShellSwiftUI + MacBackendImpl)
 │   ├── CupertinoDesktopAppKit/      # macOS AppKit app   (ShellAppKit  + MacBackendImpl)
-│   ├── CupertinoMobileSwiftUI/      # iOS SwiftUI app    (iOS shell    + EmbeddedBackendImpl)  [future]
-│   └── CupertinoMobileUIKit/        # iOS UIKit app      (iOS shell    + EmbeddedBackendImpl)  [future]
+│   ├── CupertinoMobileSwiftUI/      # iOS SwiftUI app    (iOS shell    + LocalEmbeddedBackendImpl)  [future]
+│   └── CupertinoMobileUIKit/        # iOS UIKit app      (iOS shell    + LocalEmbeddedBackendImpl)  [future]
 └── docs/
     └── DESIGN.md
 ```
 
 Dependency direction is strictly one-way: **Foundation → Infrastructure → Features → UI → Apps**. Apps depend on one UI package; UI packages depend on Features/Core; nothing depends on Apps.
 
-Types are namespaced under short per-module semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`); there is no project-name root prefix, since the Swift module already namespaces each target. So a type reads `UI.RootModel`, `Backend.MCP`, `Feature.Search`.
+Types are namespaced under short per-module semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`); there is no project-name root prefix, since the Swift module already namespaces each target. So a type reads `UI.RootModel`, `Backend.LocalSubprocess`, `Feature.Search`.
 
 ## 4. Package architecture
 
@@ -136,7 +136,7 @@ Types are namespaced under short per-module semantic anchors (`Model`, `Backend`
 
 ### Infrastructure layer
 
-- **`MCPBackend`**: the single adapter that depends on the `cupertino` package's `MCP.Client`. Implements `DocumentationBackend`. Owns subprocess lifecycle, connection state, retries, and the string→model parsing/JSON extraction. **This is the only module that imports `cupertino`.** Everything above it sees the `DocumentationBackend` protocol, never `MCP.Client`.
+- **`LocalSubprocessBackend`**: the single adapter that depends on the `cupertino` package's `MCP.Client`. Implements `DocumentationBackend`. Owns subprocess lifecycle, connection state, retries, and the string→model parsing/JSON extraction. **This is the only module that imports `cupertino`.** Everything above it sees the `DocumentationBackend` protocol, never `MCP.Client`.
 - **`MarkdownRendering`**: converts server markdown strings to display models (AttributedString for SwiftUI, NSAttributedString for AppKit). Shared by both apps.
 
 ### Features layer (UI-framework-agnostic view models)
@@ -162,7 +162,7 @@ The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view mod
 - **`CupertinoDesktopSwiftUI`**: `@main` App, `WindowGroup`, links `ShellSwiftUI` + `MacBackendImpl`, mounts `UI.LiveRootExperience().makeRoot(model:)`.
 - **`CupertinoDesktopAppKit`**: `NSApplicationMain` + `NSApplicationDelegate`, `NSWindow`, links `ShellAppKit` + `MacBackendImpl`, mounts its `UI.LiveRootExperience().makeRoot(model:)` as the window content controller.
 
-Each app is a pure composition + framework-specific entry point: it picks an Impl package (which fixes the transport) and a UI package (which fixes the framework). All logic is in Features; all views are in the UI packages. The iOS apps follow the same shape with `EmbeddedBackendImpl`.
+Each app is a pure composition + framework-specific entry point: it picks an Impl package (which fixes the transport) and a UI package (which fixes the framework). All logic is in Features; all views are in the UI packages. The iOS apps follow the same shape with `LocalEmbeddedBackendImpl`.
 
 ## 5. The backend seam and its conformers
 
@@ -173,15 +173,15 @@ Features / UI
      │  depends only on
      ▼
 DocumentationBackend          (BackendAPI)   domain verbs, returns AppModels
-     ├── MCPBackend           (macOS now): MCP JSON-RPC over a Transport
+     ├── LocalSubprocessBackend           (macOS now): MCP JSON-RPC over a Transport
      │        └── Transport   (TransportAPI): stdio now, remote later
      │              ├── SubprocessTransport   (spawn `cupertino serve`)
      │              └── RemoteTransport        (future: HTTP/SSE)
-     └── EmbeddedBackend      (iOS / mac, future): calls cupertino's read APIs
+     └── LocalEmbeddedBackend      (iOS / mac, future): calls cupertino's read APIs
               directly in-process. No MCP, no JSON-RPC, no transport. Typed results.
 ```
 
-The two conformers are independent and have nothing in common below `DocumentationBackend`. Adding a remote MCP server later is a new `Transport` under `MCPBackend`; it does not touch `EmbeddedBackend`. The embedded path's fidelity is *higher*, not lower, because it skips the markdown round-trip and reads cupertino's typed results.
+The two conformers are independent and have nothing in common below `DocumentationBackend`. Adding a remote MCP server later is a new `Transport` under `LocalSubprocessBackend`; it does not touch `LocalEmbeddedBackend`. The embedded path's fidelity is *higher*, not lower, because it skips the markdown round-trip and reads cupertino's typed results.
 
 ### 5.1 `DocumentationBackend` (the only universal seam)
 
@@ -215,7 +215,7 @@ extension DependencyValues {
 
 `DocPage` carries the raw markdown plus parsed metadata so `DocReaderFeature` renders without re-fetching.
 
-### 5.2 Conformer A: `MCPBackend` (macOS, MCP over a transport)
+### 5.2 Conformer A: `LocalSubprocessBackend` (local, out-of-process)
 
 This is the conformer that speaks MCP, because the only thing `cupertino serve` exposes to a separate process is the MCP JSON-RPC tool surface. It maps the (mostly markdown) tool results into models per the strategy table in section 6. MCP lives entirely inside this conformer and the packages it uses; nothing above `DocumentationBackend` sees it.
 
@@ -234,22 +234,22 @@ public protocol Transport: Sendable {
 - **`SubprocessTransport`** (macOS): spawns `cupertino serve`, wires stdin/stdout, newline-delimited frames. The macOS production path today.
 - **`RemoteTransport`** (future): HTTP + SSE (or WebSocket) to a remote cupertino MCP server, for a hosted/shared-corpus deployment. Not built in v1; the seam makes it additive.
 
-### 5.3 Conformer B: `EmbeddedBackend` (iOS / mac, direct calls, future)
+### 5.3 Conformer B: `LocalEmbeddedBackend` (local, in-process)
 
-iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to. The honest answer is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `EmbeddedBackend` conforms `DocumentationBackend` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `AppModels`. No MCP, no JSON-RPC, no transport. This is the iOS production path and the higher-fidelity one.
+iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to. The honest answer is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `LocalEmbeddedBackend` conforms `DocumentationBackend` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `AppModels`. No MCP, no JSON-RPC, no transport. This is the iOS production path and the higher-fidelity one.
 
-**Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `EmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work, scheduled before the iOS apps (milestone M8), not a local shim.
+**Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `LocalEmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work, scheduled before the iOS apps (milestone M8), not a local shim.
 
 ### 5.4 Backend selection is itself by protocol
 
 No package hard-codes which conformer it uses. The choice lives only in the `*Impl` composition packages, which an app target picks:
 
-- **`MacBackendImpl`** = `MCPBackend(MCPClient(SubprocessTransport(...)))`.
-- **`EmbeddedBackendImpl`** = `EmbeddedBackend(catalog: ...)` (future).
+- **`MacBackendImpl`** = `LocalSubprocessBackend(MCPClient(SubprocessTransport(...)))`.
+- **`LocalEmbeddedBackendImpl`** = `LocalEmbeddedBackend(catalog: ...)` (future).
 
 ### 5.5 Where the databases live on iOS (`CatalogStore`)
 
-On macOS the corpus sits in the user's home directory, populated by `cupertino fetch`/`save`, and only the subprocess touches it. On iOS, `EmbeddedBackend` opens the DBs itself, so it needs to know where they are. `CatalogStoreAPI` abstracts that; `EmbeddedBackend` asks a `CatalogStore` for the URLs and never knows how they got there.
+On macOS the corpus sits in the user's home directory, populated by `cupertino fetch`/`save`, and only the subprocess touches it. On iOS, `LocalEmbeddedBackend` opens the DBs itself, so it needs to know where they are. `CatalogStoreAPI` abstracts that; `LocalEmbeddedBackend` asks a `CatalogStore` for the URLs and never knows how they got there.
 
 ```swift
 public protocol CatalogStore: Sendable {
@@ -274,15 +274,15 @@ Default lean: bundle a small starter corpus, allow download of the full set. Dec
 | `read_sample_file` | code view | string-as-is | already syntax-highlighted text; show in code component |
 | `get_inheritance` / `search_conformances` | related panel | structured | symbol graph edges |
 
-M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON (strategy B) or only markdown (strategy A parser in `MCPBackend`). No parsing logic leaks above `MCPBackend`. To build the parsers against real shapes, run `cupertino <tool>` (or the raw `tools/call`) and capture the output as a fixture; the server is the source of truth.
+M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON (strategy B) or only markdown (strategy A parser in `LocalSubprocessBackend`). No parsing logic leaks above `LocalSubprocessBackend`. To build the parsers against real shapes, run `cupertino <tool>` (or the raw `tools/call`) and capture the output as a fixture; the server is the source of truth.
 
 ## 7. Connection management
 
 Connection state is observable in either conformer (`ConnectionStatusBadge`): `idle -> connecting -> connected -> failed(reason)`. What "connect" means and how it fails differs by conformer:
 
-- **`MCPBackend` over `SubprocessTransport` (macOS)**: owns one long-lived `MCPClient`; the client `actor` serializes calls, so it adds no extra locking. Discover the `cupertino` executable (explicit path, then `PATH`); surface a clear "cupertino not found / docs not downloaded" empty state linking to install instructions rather than crashing. Reconnect on demand if the subprocess dies (a thrown client error on a call). Confirm App Sandbox entitlements permit spawning a subprocess, or ship non-sandboxed for the v1 dev tool.
-- **`MCPBackend` over `RemoteTransport` (future)**: same client, but network reachability, auth, and latency become the failure modes; same observable state machine.
-- **`EmbeddedBackend` (iOS / mac, future)**: no process and no transport. "Connect" means resolving the corpus via `CatalogStore` and opening the SQLite DBs; failure is a missing/locked/old corpus (first-run download or bundled-corpus error). Startup cost is opening the DBs, not spawning.
+- **`LocalSubprocessBackend` over `SubprocessTransport` (macOS)**: owns one long-lived `MCPClient`; the client `actor` serializes calls, so it adds no extra locking. Discover the `cupertino` executable (explicit path, then `PATH`); surface a clear "cupertino not found / docs not downloaded" empty state linking to install instructions rather than crashing. Reconnect on demand if the subprocess dies (a thrown client error on a call). Confirm App Sandbox entitlements permit spawning a subprocess, or ship non-sandboxed for the v1 dev tool.
+- **`LocalSubprocessBackend` over `RemoteTransport` (future)**: same client, but network reachability, auth, and latency become the failure modes; same observable state machine.
+- **`LocalEmbeddedBackend` (iOS / mac, future)**: no process and no transport. "Connect" means resolving the corpus via `CatalogStore` and opening the SQLite DBs; failure is a missing/locked/old corpus (first-run download or bundled-corpus error). Startup cost is opening the DBs, not spawning.
 
 ## 8. State & view-model design
 
@@ -298,14 +298,14 @@ Connection state is observable in either conformer (`ConnectionStatusBadge`): `i
 ## 10. Testing
 
 - Swift Testing (`@Test`, `@Suite`, `#expect`), `withDependencies` to inject `FakeBackend`.
-- `FakeBackend` returns fixture strings (capture real `cupertino serve` output once, store under `Packages/Tests/Fixtures/`) to test the parsers in `MCPBackend` against real shapes.
+- `FakeBackend` returns fixture strings (capture real `cupertino serve` output once, store under `Packages/Tests/Fixtures/`) to test the parsers in `LocalSubprocessBackend` against real shapes.
 - Each seam is independently fakeable: a fake `Transport` feeds canned frames to test `MCPClient`; a fake `CatalogStore` feeds temp DB URLs to test the embedded path. Concrete packages stay unit-testable in isolation because they import only protocols.
 - Parameterized tests for the markdown/JSON parsers (`@Test(arguments:)`).
 - No tests spawn the real subprocess except one opt-in integration smoke test, gated behind an env flag.
 
 ## 11. Why parallel apps share one backend
 
-The compare-then-decide plan works only if the comparison is fair: identical backend, identical models, identical features, with the **only** variable being the UI framework. The seam layering guarantees that. macOS runs SwiftUI and AppKit side by side over `MacBackendImpl`; iOS will run SwiftUI and UIKit over `EmbeddedBackendImpl`. When a framework decision is made, the losing `Apps/` target is deleted and nothing else changes. Swapping a transport (adding remote, moving iOS from bundled to downloadable corpus) touches one concrete package plus one Impl package, never a feature or a view.
+The compare-then-decide plan works only if the comparison is fair: identical backend, identical models, identical features, with the **only** variable being the UI framework. The seam layering guarantees that. macOS runs SwiftUI and AppKit side by side over `MacBackendImpl`; iOS will run SwiftUI and UIKit over `LocalEmbeddedBackendImpl`. When a framework decision is made, the losing `Apps/` target is deleted and nothing else changes. Swapping a transport (adding remote, moving iOS from bundled to downloadable corpus) touches one concrete package plus one Impl package, never a feature or a view.
 
 ## 12. Open questions (decision log)
 
@@ -320,12 +320,12 @@ The compare-then-decide plan works only if the comparison is fair: identical bac
 ## 13. Milestones
 
 - **M0 (Skeleton)**: `Main.xcworkspace`, `Packages/Package.swift` with empty layered targets, both macOS `Apps/` targets launching an empty `NavigationSplitView` / `NSSplitViewController`. Compiles, runs, does nothing.
-- **M1 (Backend seam + spike)**: `BackendAPI`, `TransportAPI`, `MCPClientKit`, `SubprocessTransport`, `MCPBackend` over the subprocess transport, `MacBackendImpl`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
+- **M1 (Backend seam + spike)**: `BackendAPI`, `TransportAPI`, `MCPClientKit`, `SubprocessTransport`, `LocalSubprocessBackend` over the subprocess transport, `MacBackendImpl`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
 - **M2 (Read path)**: framework browser → doc reader rendering `read_document` markdown in both apps.
 - **M3 (Search)**: debounced `search_docs` with scopes; result rows navigate to reader.
 - **M4 (Samples)**: `list_samples` → `read_sample` tree → `read_sample_file` code viewer.
 - **M5 (Symbols & polish)**: `get_inheritance` / conformances related panel; connection-status UX, empty/first-run states, error handling.
 - **M6 (Compare & decide, macOS)**: evaluate SwiftUI vs AppKit on macOS, pick one or keep both, delete any losing target.
-- **M7 (Embedded backend, macOS)**: `EmbeddedBackend` calling cupertino's read APIs directly in-process (no MCP), proving the same features run with typed results. macOS only; exercises the direct-call mapping before the iOS port.
-- **M8 (iOS, gated on upstream)**: land the cupertino iOS-buildability refactor (section 5.3), add `CatalogStore` conformers, ship `CupertinoMobileSwiftUI` + `CupertinoMobileUIKit` over `EmbeddedBackendImpl`.
-- **M9 (Remote, optional)**: `RemoteTransport` under `MCPBackend` over HTTP/SSE for a hosted-corpus deployment, if a use case appears.
+- **M7 (Embedded backend, macOS)**: `LocalEmbeddedBackend` calling cupertino's read APIs directly in-process (no MCP), proving the same features run with typed results. macOS only; exercises the direct-call mapping before the iOS port.
+- **M8 (iOS, gated on upstream)**: land the cupertino iOS-buildability refactor (section 5.3), add `CatalogStore` conformers, ship `CupertinoMobileSwiftUI` + `CupertinoMobileUIKit` over `LocalEmbeddedBackendImpl`.
+- **M9 (Remote, optional)**: `RemoteTransport` under `LocalSubprocessBackend` over HTTP/SSE for a hosted-corpus deployment, if a use case appears.

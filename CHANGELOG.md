@@ -17,22 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `UI.RootModel`, so each app consumes its framework identically. Launches an
   empty split-view shell.
 - Backend seam scaffold: a transport-agnostic, protocol-only package graph. The
-  ONLY universal seam is `Backend.Documentation` (`BackendAPI`). MCP is confined
-  to one conformer: `Backend.MCP` (`MCPBackend`) talks JSON-RPC via `MCPClient`
-  (`MCPClientKit`, reusing cupertino's cross-platform `MCPCore` types) over a
-  `Transport.Channel` (`TransportAPI`), with `Transport.Subprocess`
-  (`SubprocessTransport`) spawning `cupertino serve`. `MacBackendImpl` is the
-  composition root wiring those together; the future iOS embedded backend will
-  be a separate direct-call conformer with no MCP. Real value types in
+  ONLY universal seam is `Backend.Documentation` (`BackendAPI`); conformers are
+  named by locality, not protocol. `Backend.LocalSubprocess` (`LocalSubprocessBackend`)
+  talks JSON-RPC via its `MCPClient` (`MCPClientKit`, reusing cupertino's
+  cross-platform `MCPCore` types) over a `Transport.Channel` (`TransportAPI`), with
+  `Transport.Subprocess` (`SubprocessTransport`) spawning `cupertino serve`.
+  `MacBackendImpl` is the composition root wiring those together. MCP is not an
+  identity: it is only the wire that conformer's client speaks. Real value types in
   `AppModels`. Method bodies are honest M1 placeholders (throw, never fake).
 - `scripts/generate-xcodeproj.sh` to materialize the per-app Xcode projects from
   their `project.yml` manifests.
 - Mobile (iOS) scaffold: the package now targets iOS 17 alongside macOS 15. New
   `CupertinoMobile` iOS app reuses the `ShellSwiftUI` shell and `AppCore` through
   the same `UI.RootExperience` seam as the macOS SwiftUI app. New
-  `EmbeddedBackend` (`Backend.Embedded`, in-process cupertino, no MCP/subprocess)
-  and `MobileBackendImpl` (`MobileBackend.live`) mirror the Mac path under the
-  shared `Backend.Documentation` seam. Bodies are honest M1 placeholders.
+  `LocalEmbeddedBackend` (`Backend.LocalEmbedded`, in-process cupertino, no
+  MCP/subprocess) and `MobileBackendImpl` (`MobileBackend.live`) mirror the Mac path
+  under the shared `Backend.Documentation` seam. Bodies are honest M1 placeholders.
 
 ### Changed
 
@@ -46,3 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   client and concrete packages no longer import each other.
 - Renamed `MCPTransportAPI` → `TransportAPI`: the transport carries opaque frames
   with no MCP types of its own, so the `MCP` prefix was a misnomer.
+- Renamed the backend conformers by locality, not protocol: `Backend.MCP`
+  (`MCPBackend`) → `Backend.LocalSubprocess` (`LocalSubprocessBackend`) and
+  `Backend.Embedded` (`EmbeddedBackend`) → `Backend.LocalEmbedded`
+  (`LocalEmbeddedBackend`). The first-order axis is local vs remote (remote is
+  future). MCP is not a conformer identity; it survives only on the protocol client
+  (`MCPClientKit` / `MCPClientAPI`), the one component that actually speaks it.

@@ -13,10 +13,12 @@ import PackageDescription
 //   Impl (compose)  the ONLY packages allowed to import multiple concretes
 //   UI / Apps       UI packages + the entry-point app targets
 //
-// The ONLY universal backend seam is `Backend.Documentation` (BackendAPI). MCP
-// is confined to one conformer (`Backend.MCP` + MCPClientKit + the Transport
-// packages); the future embedded backend reaches cupertino directly with no MCP.
-// We reuse cupertino's cross-platform `MCPCore` types, nothing macOS-gated.
+// The ONLY universal seam is `Backend.Documentation` (BackendAPI). Conformers are
+// named by locality, not protocol: `Backend.LocalSubprocess` (out-of-process, talks
+// to a local `cupertino serve` subprocess) and `Backend.LocalEmbedded` (in-process,
+// direct calls, no MCP) are peers; a remote conformer is future. MCP is not an
+// identity here: it is only the wire the subprocess conformer's client (MCPClientKit)
+// speaks, reusing cupertino's cross-platform `MCPCore` types.
 
 extension Product {
     static func singleTargetLibrary(_ name: String) -> Product {
@@ -34,7 +36,7 @@ let products: [Product] = [
     // Concrete
     .singleTargetLibrary("MCPClientKit"),
     .singleTargetLibrary("SubprocessTransport"),
-    .singleTargetLibrary("MCPBackend"),
+    .singleTargetLibrary("LocalSubprocessBackend"),
     .singleTargetLibrary("MarkdownRendering"),
     .singleTargetLibrary("SearchFeature"),
     .singleTargetLibrary("FrameworkBrowserFeature"),
@@ -43,7 +45,7 @@ let products: [Product] = [
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
     // Concrete (Mobile path)
-    .singleTargetLibrary("EmbeddedBackend"),
+    .singleTargetLibrary("LocalEmbeddedBackend"),
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
@@ -54,8 +56,8 @@ let targets: [Target] = {
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
     let transportAPI = Target.target(name: "TransportAPI")
-    // The MCP client contract, in our own types (no MCPCore). Lets MCPBackend
-    // depend on a protocol instead of the concrete MCPClientKit, so Backend.MCP
+    // The MCP client contract, in our own types (no MCPCore). Lets LocalSubprocessBackend
+    // depend on a protocol instead of the concrete MCPClientKit, so Backend.LocalSubprocess
     // is testable with a fake and concrete packages stop importing each other.
     let clientAPI = Target.target(name: "MCPClientAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
@@ -70,7 +72,7 @@ let targets: [Target] = {
         dependencies: ["MCPClientAPI", "TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
     )
     let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["TransportAPI"])
-    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientAPI"])
+    let localSubprocessBackend = Target.target(name: "LocalSubprocessBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientAPI"])
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
     // ---------- Features (framework-agnostic view models) ----------
@@ -89,21 +91,22 @@ let targets: [Target] = {
     // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches
     // cupertino in-process (no MCP, no subprocess), because iOS cannot spawn one.
     // Direct cupertino calls land in a later milestone; this scaffold fixes shape.
-    let embeddedBackend = Target.target(name: "EmbeddedBackend", dependencies: ["BackendAPI", "AppModels"])
+    let localEmbeddedBackend = Target.target(name: "LocalEmbeddedBackend", dependencies: ["BackendAPI", "AppModels"])
 
-    let concrete = [clientKit, subprocessTransport, mcpBackend, markdown] + features + [shellSwiftUI, shellAppKit, embeddedBackend]
+    let concrete = [clientKit, subprocessTransport, localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
-    // MacBackendImpl is the only place the MCP conformer, the client, and the
-    // subprocess transport meet (Desktop). MobileBackendImpl composes the embedded
-    // backend (Mobile). Both vend an opaque `any Backend.Documentation`.
+    // MacBackendImpl is the only place the local-subprocess conformer, its MCP
+    // client, and the subprocess transport meet (Desktop). MobileBackendImpl
+    // composes the local-embedded conformer (Mobile). Both vend an opaque
+    // `any Backend.Documentation`.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
-        dependencies: ["BackendAPI", "MCPBackend", "MCPClientAPI", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
+        dependencies: ["BackendAPI", "LocalSubprocessBackend", "MCPClientAPI", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "EmbeddedBackend"],
+        dependencies: ["BackendAPI", "LocalEmbeddedBackend"],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
 
@@ -111,7 +114,7 @@ let targets: [Target] = {
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "MCPBackend", "MCPClientAPI", "BackendAPI", "AppModels"],
+        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", "MCPClientAPI", "BackendAPI", "AppModels"],
     )
 
     return api + concrete + impl + [coreTests, backendTests]

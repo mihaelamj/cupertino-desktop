@@ -1,5 +1,5 @@
 import BackendAPI
-import EmbeddedBackend
+import LocalEmbeddedBackend
 
 /// Composition root for the Mobile (iOS) backend. Mirrors `MacBackend` but wires
 /// the in-process embedded conformer instead of MCP-over-subprocess. App targets
@@ -8,6 +8,6 @@ import EmbeddedBackend
 public enum MobileBackend {
     /// Build the live iOS backend: cupertino reached in-process, no subprocess.
     public static func live() -> any Backend.Documentation {
-        Backend.Embedded()
+        Backend.LocalEmbedded()
     }
 }

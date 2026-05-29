@@ -3,16 +3,16 @@ import BackendAPI
 import MCPClientAPI
 
 public extension Backend {
-    /// `Backend.Documentation` conformer that talks to cupertino over MCP
-    /// (JSON-RPC) via an injected `MCPClient`. The MCP wire protocol is confined
-    /// to this conformer and the packages it uses; nothing above
-    /// `Backend.Documentation` sees it. This is the macOS path (the client's
-    /// transport spawns `cupertino serve`); a remote transport would reuse this
-    /// same conformer unchanged.
+    /// `Backend.Documentation` conformer for the **local, out-of-process** path:
+    /// it talks to a `cupertino serve` subprocess on the same machine. The fact
+    /// that the boundary is crossed with MCP/JSON-RPC is a detail of the client it
+    /// holds (`Client.MCP`), not of this conformer; nothing above
+    /// `Backend.Documentation` sees MCP. Local-remote is the axis: a future remote
+    /// conformer would talk to a hosted cupertino over the network instead.
     ///
     /// The string/JSON to model mapping per tool (docs/DESIGN.md section 6)
     /// lands in milestone M1; this scaffold fixes the shape and the wiring.
-    actor MCP: Documentation {
+    actor LocalSubprocess: Documentation {
         private let client: any Client.MCP
 
         public init(client: any Client.MCP) {

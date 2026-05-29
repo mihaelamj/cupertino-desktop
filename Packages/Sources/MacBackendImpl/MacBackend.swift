@@ -1,5 +1,5 @@
 import BackendAPI
-import MCPBackend
+import LocalSubprocessBackend
 import MCPClientAPI
 import MCPClientKit
 import SubprocessTransport
@@ -15,6 +15,6 @@ public enum MacBackend {
     public static func live(executable: String = "cupertino") -> any Backend.Documentation {
         let transport = Transport.Subprocess(command: executable, arguments: ["serve"])
         let client = MCPClient(transport: transport)
-        return Backend.MCP(client: client)
+        return Backend.LocalSubprocess(client: client)
     }
 }

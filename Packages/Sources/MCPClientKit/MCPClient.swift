@@ -4,7 +4,7 @@ import TransportAPI
 /// A transport-agnostic MCP client: speaks JSON-RPC (initialize / tools /
 /// resources) over `any Transport.Channel`, reusing cupertino's `MCPCore`
 /// protocol types verbatim on the wire. It conforms to `Client.MCP`, the
-/// dependency-free seam `Backend.MCP` depends on, and translates between our
+/// dependency-free seam `Backend.LocalSubprocess` depends on, and translates between our
 /// `Client.Argument`/`String` payloads and MCPCore's wire types at this boundary.
 /// We deliberately do not build on cupertino's `MCP.Client`, which is
 /// stdio-hardcoded with no transport injection point.
@@ -41,7 +41,7 @@ public actor MCPClient: Client.MCP {
     }
 
     /// Failures local to the client. Wire/transport errors surface as thrown
-    /// `Transport.Channel` errors; backend-level mapping happens in `Backend.MCP`.
+    /// `Transport.Channel` errors; backend-level mapping happens in `Backend.LocalSubprocess`.
     public enum Failure: Error, Sendable {
         case notConnected
         case notImplemented

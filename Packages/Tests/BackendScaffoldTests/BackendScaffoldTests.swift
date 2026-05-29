@@ -1,7 +1,7 @@
 import AppModels
 import BackendAPI
+import LocalSubprocessBackend
 @testable import MacBackendImpl
-import MCPBackend
 import MCPClientAPI
 import Testing
 
@@ -29,13 +29,13 @@ struct BackendScaffoldTests {
         }
     }
 
-    @Test("Backend.MCP is testable with a fake client (no real transport)")
+    @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")
     func backendTakesFakeClient() async throws {
-        // The payoff of the Client.MCP seam: Backend.MCP depends on the protocol,
+        // The payoff of the Client.MCP seam: Backend.LocalSubprocess depends on the protocol,
         // so a fake client can be injected with no subprocess, no MCPCore, no
         // network. connect() forwards to the fake; verbs still fail honestly.
         let fake = FakeClient()
-        let backend = Backend.MCP(client: fake)
+        let backend = Backend.LocalSubprocess(client: fake)
         try await backend.connect()
         #expect(await fake.didConnect)
         await #expect(throws: (any Error).self) {
@@ -54,7 +54,7 @@ struct BackendScaffoldTests {
     }
 }
 
-/// A `Client.MCP` test double. Possible only because `Backend.MCP` depends on the
+/// A `Client.MCP` test double. Possible only because `Backend.LocalSubprocess` depends on the
 /// `Client.MCP` protocol rather than the concrete `MCPClient`.
 private actor FakeClient: Client.MCP {
     private(set) var didConnect = false

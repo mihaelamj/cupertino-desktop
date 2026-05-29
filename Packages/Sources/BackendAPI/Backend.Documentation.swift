@@ -2,9 +2,12 @@ import AppModels
 
 public extension Backend {
     /// The documentation backend contract. Pure domain verbs returning
-    /// `AppModels` value types; no MCP, JSON-RPC, or cupertino types appear
-    /// here. Conformers: `Backend.MCP` (macOS, MCP over a transport) and the
-    /// future `EmbeddedBackend` (iOS/mac, direct calls).
+    /// `AppModels` value types; no MCP, JSON-RPC, or cupertino types appear here.
+    /// Conformers are named by locality, never by protocol:
+    /// `Backend.LocalSubprocess` (out-of-process, talks to a local `cupertino
+    /// serve`) and `Backend.LocalEmbedded` (in-process, direct calls, no MCP). A
+    /// remote conformer is future. How each crosses (or doesn't cross) a process
+    /// boundary is its own business; this contract never reveals it.
     protocol Documentation: Sendable {
         func connect() async throws
         func disconnect() async

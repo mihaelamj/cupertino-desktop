@@ -2,16 +2,18 @@ import AppModels
 import BackendAPI
 
 public extension Backend {
-    /// `Backend.Documentation` conformer for the Mobile (iOS) path. iOS cannot
-    /// spawn a `cupertino serve` subprocess, so instead of MCP-over-transport this
-    /// conformer reaches cupertino's search/services in-process. It shares the
-    /// universal `Backend.Documentation` seam with `Backend.MCP`, so features and
-    /// UI cannot tell the two apart.
+    /// `Backend.Documentation` conformer for the **local, in-process** path: it
+    /// runs cupertino's read path inside this process and calls it directly, with
+    /// no subprocess, no transport, and no MCP at all. This is the only way on iOS
+    /// (which cannot spawn a subprocess) and the higher-fidelity path on macOS,
+    /// because it skips the markdown round-trip and reads typed results. It shares
+    /// the universal `Backend.Documentation` seam with `Backend.LocalSubprocess`,
+    /// so features and UI cannot tell the two apart.
     ///
     /// The direct cupertino wiring (linking its search/services products and
     /// mapping their results to `Model` types) lands in a later milestone; this
     /// scaffold fixes the shape and fails honestly.
-    actor Embedded: Documentation {
+    actor LocalEmbedded: Documentation {
         public init() {}
 
         public func connect() async throws {}

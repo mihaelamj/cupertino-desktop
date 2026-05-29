@@ -21,11 +21,11 @@ struct BackendScaffoldTests {
         }
     }
 
-    @Test("Unimplemented calls fail honestly rather than returning fake data")
+    @Test("Not-yet-implemented verbs fail honestly rather than returning fake data")
     func unimplementedThrows() async {
         let backend = MacBackend.live()
         await #expect(throws: Backend.Failure.self) {
-            _ = try await backend.listFrameworks()
+            _ = try await backend.searchPackages(Model.PackageQuery(text: "swift"))
         }
     }
 

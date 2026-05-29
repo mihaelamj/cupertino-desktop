@@ -42,8 +42,11 @@ let products: [Product] = [
     .singleTargetLibrary("SampleBrowserFeature"),
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
+    // Concrete (Mobile path)
+    .singleTargetLibrary("EmbeddedBackend"),
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
+    .singleTargetLibrary("MobileBackendImpl"),
 ]
 
 let targets: [Target] = {
@@ -83,15 +86,26 @@ let targets: [Target] = {
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
 
-    let concrete = [clientKit, subprocessTransport, mcpBackend, markdown] + features + [shellSwiftUI, shellAppKit]
+    // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches
+    // cupertino in-process (no MCP, no subprocess), because iOS cannot spawn one.
+    // Direct cupertino calls land in a later milestone; this scaffold fixes shape.
+    let embeddedBackend = Target.target(name: "EmbeddedBackend", dependencies: ["BackendAPI", "AppModels"])
+
+    let concrete = [clientKit, subprocessTransport, mcpBackend, markdown] + features + [shellSwiftUI, shellAppKit, embeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
-    // The only place the MCP conformer, the client, and the transport meet.
+    // MacBackendImpl is the only place the MCP conformer, the client, and the
+    // subprocess transport meet (Desktop). MobileBackendImpl composes the embedded
+    // backend (Mobile). Both vend an opaque `any Backend.Documentation`.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
         dependencies: ["BackendAPI", "MCPBackend", "MCPClientAPI", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
     )
-    let impl = [macBackendImpl]
+    let mobileBackendImpl = Target.target(
+        name: "MobileBackendImpl",
+        dependencies: ["BackendAPI", "EmbeddedBackend"],
+    )
+    let impl = [macBackendImpl, mobileBackendImpl]
 
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
@@ -107,6 +121,7 @@ let package = Package(
     name: "CupertinoDesktopPackages",
     platforms: [
         .macOS(.v15),
+        .iOS(.v17),
     ],
     products: products,
     dependencies: [

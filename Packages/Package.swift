@@ -28,7 +28,7 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("DesktopModels"),
     .singleTargetLibrary("BackendAPI"),
-    .singleTargetLibrary("MCPTransportAPI"),
+    .singleTargetLibrary("TransportAPI"),
     .singleTargetLibrary("DesktopCore"),
     // Concrete
     .singleTargetLibrary("MCPClientKit"),
@@ -49,7 +49,7 @@ let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "DesktopModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["DesktopModels"])
-    let transportAPI = Target.target(name: "MCPTransportAPI")
+    let transportAPI = Target.target(name: "TransportAPI")
     // DesktopCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "DesktopCore")
@@ -59,9 +59,9 @@ let targets: [Target] = {
     // The MCP client reuses cupertino's cross-platform MCPCore protocol types.
     let clientKit = Target.target(
         name: "MCPClientKit",
-        dependencies: ["MCPTransportAPI", .product(name: "MCPCore", package: "Cupertino")],
+        dependencies: ["TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
     )
-    let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["MCPTransportAPI"])
+    let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["TransportAPI"])
     let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "DesktopModels", "MCPClientKit"])
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["DesktopModels"])
 
@@ -84,7 +84,7 @@ let targets: [Target] = {
     // The only place the MCP conformer, the client, and the transport meet.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
-        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "MCPTransportAPI", "SubprocessTransport"],
+        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
     )
     let impl = [macBackendImpl]
 

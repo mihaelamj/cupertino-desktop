@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ONLY universal seam is `Backend.Documentation` (`BackendAPI`). MCP is confined
   to one conformer: `Backend.MCP` (`MCPBackend`) talks JSON-RPC via `MCPClient`
   (`MCPClientKit`, reusing cupertino's cross-platform `MCPCore` types) over a
-  `Transport.Channel` (`MCPTransportAPI`), with `Transport.Subprocess`
+  `Transport.Channel` (`TransportAPI`), with `Transport.Subprocess`
   (`SubprocessTransport`) spawning `cupertino serve`. `MacBackendImpl` is the
   composition root wiring those together; the future iOS embedded backend will
   be a separate direct-call conformer with no MCP. Real value types in

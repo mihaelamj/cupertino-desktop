@@ -1,6 +1,6 @@
 import Foundation
 import MCPCore
-import MCPTransportAPI
+import TransportAPI
 
 /// A transport-agnostic MCP client: speaks JSON-RPC (initialize / tools /
 /// resources) over `any Transport.Channel`, reusing cupertino's `MCPCore`

@@ -95,7 +95,7 @@ cupertino-desktop/
 │   │   # --- API / seam packages (protocols + value types only) ---
 │   │   ├── DesktopModels/           # value types (Framework, DocPage, SearchHit, ...)
 │   │   ├── BackendAPI/              # DocumentationBackend protocol + errors (the ONLY universal seam)
-│   │   ├── MCPTransportAPI/         # Transport protocol; internal to the MCP conformer
+│   │   ├── TransportAPI/         # Transport protocol; internal to the MCP conformer
 │   │   ├── CatalogStoreAPI/         # CatalogStore protocol (where the DBs live; embedded path)  [future]
 │   │   ├── DesktopCore/             # UI namespace + framework-agnostic RootModel
 │   │   # --- Concrete packages (depend only on API packages) ---
@@ -174,7 +174,7 @@ Features / UI
      ▼
 DocumentationBackend          (BackendAPI)   domain verbs, returns DesktopModels
      ├── MCPBackend           (macOS now): MCP JSON-RPC over a Transport
-     │        └── Transport   (MCPTransportAPI): stdio now, remote later
+     │        └── Transport   (TransportAPI): stdio now, remote later
      │              ├── SubprocessTransport   (spawn `cupertino serve`)
      │              └── RemoteTransport        (future: HTTP/SSE)
      └── EmbeddedBackend      (iOS / mac, future): calls cupertino's read APIs
@@ -222,7 +222,7 @@ This is the conformer that speaks MCP, because the only thing `cupertino serve` 
 Internally it owns an `MCPClient` (`MCPClientKit`) that speaks JSON-RPC over a `Transport`. `MCPClientKit` reuses cupertino's cross-platform `MCPCore` types (we do not re-invent JSON-RPC), but does **not** use upstream `MCP.Client`, which is stdio-hardcoded with no injection point. The transport is the only swap point:
 
 ```swift
-// MCPTransportAPI: the seam internal to the MCP conformer (NOT a universal layer)
+// TransportAPI: the seam internal to the MCP conformer (NOT a universal layer)
 public protocol Transport: Sendable {
     func start() async throws
     func stop() async
@@ -320,7 +320,7 @@ The compare-then-decide plan works only if the comparison is fair: identical bac
 ## 13. Milestones
 
 - **M0 (Skeleton)**: `Main.xcworkspace`, `Packages/Package.swift` with empty layered targets, both macOS `Apps/` targets launching an empty `NavigationSplitView` / `NSSplitViewController`. Compiles, runs, does nothing.
-- **M1 (Backend seam + spike)**: `BackendAPI`, `MCPTransportAPI`, `MCPClientKit`, `SubprocessTransport`, `MCPBackend` over the subprocess transport, `MacBackendImpl`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
+- **M1 (Backend seam + spike)**: `BackendAPI`, `TransportAPI`, `MCPClientKit`, `SubprocessTransport`, `MCPBackend` over the subprocess transport, `MacBackendImpl`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
 - **M2 (Read path)**: framework browser → doc reader rendering `read_document` markdown in both apps.
 - **M3 (Search)**: debounced `search_docs` with scopes; result rows navigate to reader.
 - **M4 (Samples)**: `list_samples` → `read_sample` tree → `read_sample_file` code viewer.

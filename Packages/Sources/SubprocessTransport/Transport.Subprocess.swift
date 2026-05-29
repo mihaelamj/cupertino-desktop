@@ -1,6 +1,6 @@
 #if os(macOS)
     import Foundation
-    import MCPTransportAPI
+    import TransportAPI
 
     public extension Transport {
         /// A `Channel` that launches `cupertino serve` and frames JSON-RPC over its

@@ -207,35 +207,24 @@ The adapters are independent and have nothing in common below `Backend.Documenta
 
 ### 5.1 `Backend.Documentation` (our protocol)
 
-We design this protocol, shaped for us: pure domain verbs, returning `AppModels` value types, never leaking MCP, JSON-RPC, or cupertino types. It is the only thing features and UI call. Every adapter honours this exact contract; the differences between adapters are invisible above it.
+We design this protocol, shaped for us: pure domain verbs, returning `AppModels` value types, never leaking MCP, JSON-RPC, or cupertino types. It is the only thing features and UI call, and the only contract adapters implement. The differences between adapters are invisible above it.
 
-```swift
-public protocol DocumentationBackend: Sendable {
-    func connect() async throws
-    func disconnect() async
+**The full contract is canonized in [docs/PROTOCOL.md](PROTOCOL.md)** and is the spec of record for `BackendAPI` + `AppModels`. In brief, it is composed by interface segregation from capability slices, so a feature depends only on what it uses:
 
-    func listFrameworks() async throws -> [Framework]
-    func searchDocs(_ query: String, limit: Int) async throws -> [SearchHit]
-    func readDocument(uri: DocURI) async throws -> DocPage          // markdown string inside
-
-    func listSamples(framework: String?, limit: Int) async throws -> [SampleProject]
-    func readSample(projectId: String) async throws -> SampleProject // includes file tree
-    func readSampleFile(projectId: String, path: String) async throws -> SampleFile
-
-    func searchSymbols(_ query: String, limit: Int) async throws -> [SymbolHit]
-    func inheritance(forSymbol id: String) async throws -> DocPage
-}
-```
+- `Backend.Connecting` (lifecycle), `Backend.FrameworkBrowsing`, `Backend.DocumentReading`
+- `Backend.Searching` (result-faithful: `searchDocs -> [DocHit]`, `searchSamples -> SampleResults`, `searchPackages -> [PackageHit]`, `searchEverything -> UnifiedResults`; we do not flatten distinct natures into one list)
+- `Backend.SampleBrowsing`, `Backend.CodeIntelligence` (symbols, conformances, property wrappers, concurrency, generics, inheritance)
+- `Backend.Documentation` = the composition of all of the above; one adapter implements it because one cupertino answers all of it.
 
 Registered as a Point-Free `DependencyKey` so features inject it uniformly and tests swap a fake:
 
 ```swift
 extension DependencyValues {
-    var backend: any DocumentationBackend { ... } // live = the Impl's adapter, test = FakeBackend()
+    var backend: any Backend.Documentation { ... } // live = the Impl's adapter, test = FakeBackend()
 }
 ```
 
-`DocPage` carries the raw markdown plus parsed metadata so `DocReaderFeature` renders without re-fetching.
+`DocPage` carries structured fields plus the raw markdown body so `DocReaderFeature` renders without re-fetching. See [docs/PROTOCOL.md](PROTOCOL.md) §2 for every value type and §4 for the adapter mapping.
 
 ### 5.2 Adapter A: `LocalSubprocessBackend` (local, out-of-process)
 
@@ -260,7 +249,7 @@ public protocol Transport: Sendable {
 
 **Embedded is mobile-only.** iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to; the only way to read the corpus is in-process. (And the desktop deliberately does *not* use this path: the macOS app's purpose is to exercise the real Homebrew binary over the subprocess, section 5.2, so embedding there would defeat the point.) The honest answer for iOS is **not** to run an in-process MCP server and talk to ourselves over a fake channel. But "in-process" does **not** mean "call cupertino freely": `LocalEmbeddedBackend` is still an **adapter behind our protocol**. It implements `Backend.Documentation` by wrapping cupertino's typed read services (`ReadService`, `UnifiedSearchService`, `DocsSearchService`, `PackageIndex`, ...), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping their typed results into `AppModels`. Those cupertino services are named **only here**, inside this one adapter; everything above it makes protocol calls and never sees them. No MCP, no JSON-RPC, no transport, and no leakage.
 
-**Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `LocalEmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work (milestone M7), landing before the M8 iOS apps, not a local shim.
+**Hard upstream constraint (precise).** The cupertino *read code itself is largely portable*: the read services (`Services`, `SearchSQLite`, `SampleIndexSQLite`, the `*Models`) are SQLite-based and carry no `#if os(macOS)` on the read path. What blocks iOS is the **package manifest and target graph**: cupertino declares `platforms: [.macOS(.v13)]`, and the read targets sit alongside macOS-only crawler/indexer/WebKit producers, so an iOS target cannot link them as the package stands. So `LocalEmbeddedBackend` is **not buildable for iOS today**, but the fix is *additive packaging*, not a rewrite: in the cupertino repo, add the `.iOS` platform and **split the read targets out from the macOS-only producers** so the read path links cleanly on iOS (paths are already injected via `Shared.Paths`). This is real cross-repo work (milestone M7), landing before the M8 iOS apps, not a local shim.
 
 ### 5.4 Backend selection is itself by protocol
 

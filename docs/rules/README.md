@@ -9,7 +9,7 @@ area. This is the source of truth for the public rule set; the drop-in kit at
 sample tile-based static site generator; replace the example names with your
 project's when you adopt these.
 
-## Always relevant (engine, today)
+## Always relevant
 
 - [engineering.md](engineering.md) - the engineering bar: progressive
   architecture, impossible states unrepresentable, testable by design.
@@ -21,10 +21,9 @@ project's when you adopt these.
   collaborator through `init`, protocol seams.
 - [concurrency.md](concurrency.md) - Swift 6 strict concurrency: `Sendable`,
   actors, `@MainActor`.
-- [cross-platform.md](cross-platform.md) - the core builds on macOS and Linux;
-  guard platform-divergent code behind a protocol seam.
-- [linux-server.md](linux-server.md) - server-side operational rules for the
-  `serve` command and any networking.
+- [cross-platform.md](cross-platform.md) - Apple-only here (macOS now, iOS later);
+  guard platform-divergent code behind a protocol seam and share logic across the
+  SwiftUI and AppKit targets. The Linux-portability sections are inert for this repo.
 - [testing.md](testing.md) - Swift Testing, `@Test` / `#expect`, test isolation.
 - [testing-discipline.md](testing-discipline.md) - run the suite on every code
   change; write tests where none exist.

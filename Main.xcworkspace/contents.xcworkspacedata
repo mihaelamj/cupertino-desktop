@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef
+      location = "group:README.md">
+   </FileRef>
+   <FileRef
+      location = "group:docs">
+   </FileRef>
+   <FileRef
+      location = "group:Packages">
+   </FileRef>
+   <FileRef
+      location = "group:Apps/CupertinoDesktopSwiftUI/CupertinoDesktopSwiftUI.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Apps/CupertinoDesktopAppKit/CupertinoDesktopAppKit.xcodeproj">
+   </FileRef>
+</Workspace>

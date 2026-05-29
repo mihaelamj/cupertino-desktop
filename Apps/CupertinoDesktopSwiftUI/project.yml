@@ -1,0 +1,37 @@
+name: CupertinoDesktopSwiftUI
+options:
+  bundleIdPrefix: com.mihaelamj.cupertinodesktop
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.0.1"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+packages:
+  CupertinoDesktopPackages:
+    path: ../../Packages
+targets:
+  CupertinoDesktopSwiftUI:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources
+    dependencies:
+      - package: CupertinoDesktopPackages
+        product: DesktopUI
+      - package: CupertinoDesktopPackages
+        product: SwiftUIFlow
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.swiftui
+        PRODUCT_NAME: CupertinoDesktopSwiftUI
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""

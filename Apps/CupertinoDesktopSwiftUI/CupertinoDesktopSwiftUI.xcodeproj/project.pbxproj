@@ -1,0 +1,347 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		21A73289F8DD85CD544B6892 /* SwiftUIFlow in Frameworks */ = {isa = PBXBuildFile; productRef = 61111DAE70ACD497F9B73929 /* SwiftUIFlow */; };
+		561E90B439EA0A01754CD669 /* DesktopUI in Frameworks */ = {isa = PBXBuildFile; productRef = B785EE1BE1CAA87B15A2C477 /* DesktopUI */; };
+		D36E6F3442AFA9340625E9A3 /* CupertinoDesktopSwiftUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0675ABB4AC3782FB2E76B38C /* CupertinoDesktopSwiftUIApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0675ABB4AC3782FB2E76B38C /* CupertinoDesktopSwiftUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CupertinoDesktopSwiftUIApp.swift; sourceTree = "<group>"; };
+		38FF50EC60B5613574B4528B /* Packages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Packages; path = ../../Packages; sourceTree = SOURCE_ROOT; };
+		FFB4391D1E2F7134FFFC7521 /* CupertinoDesktopSwiftUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CupertinoDesktopSwiftUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C687511F493BE06957310D58 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				561E90B439EA0A01754CD669 /* DesktopUI in Frameworks */,
+				21A73289F8DD85CD544B6892 /* SwiftUIFlow in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5AF65F65B18D59D68C9DD831 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				0675ABB4AC3782FB2E76B38C /* CupertinoDesktopSwiftUIApp.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		701DFA453CC20AB57F476C46 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FFB4391D1E2F7134FFFC7521 /* CupertinoDesktopSwiftUI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B4FD9F0A72A90A44C87F7740 = {
+			isa = PBXGroup;
+			children = (
+				C5FB33E345C626DDB9A4BF41 /* Packages */,
+				5AF65F65B18D59D68C9DD831 /* Sources */,
+				701DFA453CC20AB57F476C46 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C5FB33E345C626DDB9A4BF41 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				38FF50EC60B5613574B4528B /* Packages */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1C64BC01CD21481C40B4CF24 /* CupertinoDesktopSwiftUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EBF89E97AA8BEBCC0AB5B9B4 /* Build configuration list for PBXNativeTarget "CupertinoDesktopSwiftUI" */;
+			buildPhases = (
+				11CF80FFBFDA37B07DE32A4A /* Sources */,
+				C687511F493BE06957310D58 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CupertinoDesktopSwiftUI;
+			packageProductDependencies = (
+				B785EE1BE1CAA87B15A2C477 /* DesktopUI */,
+				61111DAE70ACD497F9B73929 /* SwiftUIFlow */,
+			);
+			productName = CupertinoDesktopSwiftUI;
+			productReference = FFB4391D1E2F7134FFFC7521 /* CupertinoDesktopSwiftUI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1893D1B660FE43AA981E9854 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1C64BC01CD21481C40B4CF24 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D738E28CACAFE30BE762E40D /* Build configuration list for PBXProject "CupertinoDesktopSwiftUI" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = B4FD9F0A72A90A44C87F7740;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				85C8AFAE10AFDDB39EFD8E07 /* XCLocalSwiftPackageReference "../../Packages" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 701DFA453CC20AB57F476C46 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1C64BC01CD21481C40B4CF24 /* CupertinoDesktopSwiftUI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		11CF80FFBFDA37B07DE32A4A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D36E6F3442AFA9340625E9A3 /* CupertinoDesktopSwiftUIApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0B8E8F6DD7261560EFD2844D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mihaelamj.cupertinodesktop.swiftui;
+				PRODUCT_NAME = CupertinoDesktopSwiftUI;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		4DAA3D5425D7A7E1452C87D1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mihaelamj.cupertinodesktop.swiftui;
+				PRODUCT_NAME = CupertinoDesktopSwiftUI;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		8026300A8B71C23BFC9A0FD7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		A07A958BA89E1C125064DBEB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 0.0.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D738E28CACAFE30BE762E40D /* Build configuration list for PBXProject "CupertinoDesktopSwiftUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A07A958BA89E1C125064DBEB /* Debug */,
+				8026300A8B71C23BFC9A0FD7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EBF89E97AA8BEBCC0AB5B9B4 /* Build configuration list for PBXNativeTarget "CupertinoDesktopSwiftUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DAA3D5425D7A7E1452C87D1 /* Debug */,
+				0B8E8F6DD7261560EFD2844D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		85C8AFAE10AFDDB39EFD8E07 /* XCLocalSwiftPackageReference "../../Packages" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../Packages;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		61111DAE70ACD497F9B73929 /* SwiftUIFlow */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftUIFlow;
+		};
+		B785EE1BE1CAA87B15A2C477 /* DesktopUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DesktopUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 1893D1B660FE43AA981E9854 /* Project object */;
+}

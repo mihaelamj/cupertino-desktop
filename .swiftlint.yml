@@ -5,6 +5,14 @@
 # build plus test ships with the engine package.
 opt_in_rules:
   - force_unwrapping
+excluded:
+  - .build
+  - Packages/.build
 force_unwrapping: error
 force_try: error
 force_cast: error
+trailing_comma:
+  mandatory_comma: true
+type_name:
+  excluded:
+    - UI

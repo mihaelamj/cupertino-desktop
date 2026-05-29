@@ -5,9 +5,16 @@
 # build plus test ships with the engine package.
 opt_in_rules:
   - force_unwrapping
+disabled_rules:
+  # The namespace-anchor convention (docs/rules/namespacing.md) deliberately nests
+  # types under caseless-enum anchors (e.g. Transport.Subprocess.Failure,
+  # Backend.MCP, UI.RootExperience), which the default nesting rule rejects.
+  - nesting
 excluded:
   - .build
   - Packages/.build
+  # Vendored dependency reached via symlink; not our code to lint.
+  - Packages/CupertinoUpstream
 force_unwrapping: error
 force_try: error
 force_cast: error

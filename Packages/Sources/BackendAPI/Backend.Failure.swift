@@ -1,7 +1,7 @@
-extension Backend {
+public extension Backend {
     /// Errors surfaced across the backend seam, framework-agnostic so the UI can
     /// present them without knowing which conformer produced them.
-    public enum Failure: Error, Sendable {
+    enum Failure: Error, Sendable {
         case notConnected
         case notImplemented
         case transport(String)

@@ -59,7 +59,7 @@ let targets: [Target] = {
     // The MCP client reuses cupertino's cross-platform MCPCore protocol types.
     let clientKit = Target.target(
         name: "MCPClientKit",
-        dependencies: ["MCPTransportAPI", .product(name: "MCPCore", package: "Cupertino")]
+        dependencies: ["MCPTransportAPI", .product(name: "MCPCore", package: "Cupertino")],
     )
     let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["MCPTransportAPI"])
     let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "DesktopModels", "MCPClientKit"])
@@ -84,7 +84,7 @@ let targets: [Target] = {
     // The only place the MCP conformer, the client, and the transport meet.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
-        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "MCPTransportAPI", "SubprocessTransport"]
+        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "MCPTransportAPI", "SubprocessTransport"],
     )
     let impl = [macBackendImpl]
 
@@ -92,7 +92,7 @@ let targets: [Target] = {
     let coreTests = Target.testTarget(name: "DesktopCoreTests", dependencies: ["DesktopCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "BackendAPI", "DesktopModels"]
+        dependencies: ["MacBackendImpl", "BackendAPI", "DesktopModels"],
     )
 
     return api + concrete + impl + [coreTests, backendTests]
@@ -114,5 +114,5 @@ let package = Package(
         // See docs/DESIGN.md open question 5.
         .package(name: "Cupertino", path: "CupertinoUpstream"),
     ],
-    targets: targets
+    targets: targets,
 )

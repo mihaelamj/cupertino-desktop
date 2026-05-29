@@ -1,11 +1,11 @@
 import Foundation
 
-extension Transport {
+public extension Transport {
     /// Moves one JSON-RPC frame at a time between `MCPClient` and a server.
     /// Conformers: `Transport.Subprocess` (stdio to `cupertino serve`, macOS)
     /// and, later, a remote HTTP/SSE transport. Frames are raw `Data`; the
     /// client owns encoding/decoding.
-    public protocol Channel: Sendable {
+    protocol Channel: Sendable {
         /// Bring the transport up (spawn the process, open the connection).
         func start() async throws
 

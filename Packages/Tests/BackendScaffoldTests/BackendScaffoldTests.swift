@@ -1,7 +1,7 @@
 import BackendAPI
 import DesktopModels
-import Testing
 @testable import MacBackendImpl
+import Testing
 
 @Suite("Backend seam scaffold")
 struct BackendScaffoldTests {

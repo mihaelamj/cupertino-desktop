@@ -6,6 +6,9 @@
 
 --swiftversion 6.1
 
+# Never format build output or the vendored cupertino dependency (symlink).
+--exclude .build,Packages/.build,Packages/CupertinoUpstream
+
 # House style.
 --indent 4
 --maxwidth 180

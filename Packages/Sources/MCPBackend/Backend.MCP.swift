@@ -2,7 +2,7 @@ import BackendAPI
 import DesktopModels
 import MCPClientKit
 
-extension Backend {
+public extension Backend {
     /// `Backend.Documentation` conformer that talks to cupertino over MCP
     /// (JSON-RPC) via an injected `MCPClient`. The MCP wire protocol is confined
     /// to this conformer and the packages it uses; nothing above
@@ -12,7 +12,7 @@ extension Backend {
     ///
     /// The string/JSON to model mapping per tool (docs/DESIGN.md section 6)
     /// lands in milestone M1; this scaffold fixes the shape and the wiring.
-    public actor MCP: Documentation {
+    actor MCP: Documentation {
         private let client: MCPClient
 
         public init(client: MCPClient) {
@@ -31,31 +31,31 @@ extension Backend {
             throw Failure.notImplemented
         }
 
-        public func searchDocs(_ query: String, limit: Int) async throws -> [Model.SearchHit] {
+        public func searchDocs(_: String, limit _: Int) async throws -> [Model.SearchHit] {
             throw Failure.notImplemented
         }
 
-        public func readDocument(uri: Model.DocURI) async throws -> Model.DocPage {
+        public func readDocument(uri _: Model.DocURI) async throws -> Model.DocPage {
             throw Failure.notImplemented
         }
 
-        public func listSamples(framework: String?, limit: Int) async throws -> [Model.SampleProject] {
+        public func listSamples(framework _: String?, limit _: Int) async throws -> [Model.SampleProject] {
             throw Failure.notImplemented
         }
 
-        public func readSample(projectID: String) async throws -> Model.SampleProject {
+        public func readSample(projectID _: String) async throws -> Model.SampleProject {
             throw Failure.notImplemented
         }
 
-        public func readSampleFile(projectID: String, path: String) async throws -> Model.SampleFile {
+        public func readSampleFile(projectID _: String, path _: String) async throws -> Model.SampleFile {
             throw Failure.notImplemented
         }
 
-        public func searchSymbols(_ query: String, limit: Int) async throws -> [Model.SymbolHit] {
+        public func searchSymbols(_: String, limit _: Int) async throws -> [Model.SymbolHit] {
             throw Failure.notImplemented
         }
 
-        public func inheritance(forSymbol id: String) async throws -> Model.DocPage {
+        public func inheritance(forSymbol _: String) async throws -> Model.DocPage {
             throw Failure.notImplemented
         }
     }

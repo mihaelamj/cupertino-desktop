@@ -1,6 +1,6 @@
-extension Model {
+public extension Model {
     /// A symbol search result (`search_symbols` and the symbol-graph tools).
-    public struct SymbolHit: Identifiable, Hashable, Sendable {
+    struct SymbolHit: Identifiable, Hashable, Sendable {
         public let id: String
         public let name: String
         public let kind: String

@@ -2,15 +2,15 @@ import AppKit
 import DesktopCore
 import ShellAppKit
 
-// Entry point only; the window's content comes from the AppKit shell package,
-// consumed through the shared-shape `RootExperience` protocol.
+/// Entry point only; the window's content comes from the AppKit shell package,
+/// consumed through the shared-shape `RootExperience` protocol.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = UI.RootModel()
     private let experience: any UI.RootExperience = UI.LiveRootExperience()
     private var window: NSWindow?
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
@@ -24,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         true
     }
 
@@ -38,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(
             withTitle: "Quit \(appName)",
             action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
+            keyEquivalent: "q",
         )
         appMenuItem.submenu = appMenu
 

@@ -33,13 +33,13 @@ public actor MCPClient {
     }
 
     public func callTool(
-        name: String,
-        arguments: [String: MCP.Core.Protocols.AnyCodable]? = nil
+        name _: String,
+        arguments _: [String: MCP.Core.Protocols.AnyCodable]? = nil,
     ) async throws -> MCP.Core.Protocols.CallToolResult {
         throw Failure.notImplemented
     }
 
-    public func readResource(uri: String) async throws -> MCP.Core.Protocols.ReadResourceResult {
+    public func readResource(uri _: String) async throws -> MCP.Core.Protocols.ReadResourceResult {
         throw Failure.notImplemented
     }
 

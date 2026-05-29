@@ -1,5 +1,5 @@
-import Testing
 @testable import DesktopCore
+import Testing
 
 @Suite("M0 skeleton")
 struct SkeletonTests {

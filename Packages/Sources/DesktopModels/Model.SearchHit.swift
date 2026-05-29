@@ -1,6 +1,6 @@
-extension Model {
+public extension Model {
     /// A single search result row (`search` / `search_docs`).
-    public struct SearchHit: Identifiable, Hashable, Sendable {
+    struct SearchHit: Identifiable, Hashable, Sendable {
         public let id: String
         public let title: String
         public let uri: DocURI

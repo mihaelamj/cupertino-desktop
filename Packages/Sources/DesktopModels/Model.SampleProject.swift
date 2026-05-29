@@ -1,7 +1,7 @@
-extension Model {
+public extension Model {
     /// A sample-code project (`list_samples` / `read_sample`). `filePaths` is
     /// empty until the project is read in full.
-    public struct SampleProject: Identifiable, Hashable, Sendable {
+    struct SampleProject: Identifiable, Hashable, Sendable {
         public let id: String
         public let title: String
         public let framework: String?

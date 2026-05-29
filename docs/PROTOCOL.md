@@ -91,7 +91,7 @@ public extension Model {
         case async, actor, sendable, mainActor, task, asyncSequence
     }
 
-    enum InheritanceDirection: String, Sendable, Codable { case up, down, both }
+    enum InheritanceDirection: String, Sendable, Codable { case ancestors, descendants, both }
 }
 ```
 

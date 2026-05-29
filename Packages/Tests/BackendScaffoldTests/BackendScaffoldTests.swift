@@ -43,14 +43,16 @@ struct BackendScaffoldTests {
         }
     }
 
-    @Test("Value types carry their fields")
-    func modelsHoldData() {
+    @Test("Value types carry their fields and DocURI validates its scheme")
+    func modelsHoldData() throws {
         let framework = Model.Framework(id: "swiftui", name: "SwiftUI", documentCount: 42)
         #expect(framework.id == "swiftui")
         #expect(framework.documentCount == 42)
 
-        let uri = Model.DocURI("apple-docs://swiftui/view")
+        let uri = try #require(Model.DocURI("apple-docs://swiftui/view"))
         #expect(uri.rawValue == "apple-docs://swiftui/view")
+        #expect(Model.DocURI("bogus-scheme://x") == nil) // unknown scheme rejected
+        #expect(Model.DocURI("apple-docs://") == nil) // empty path rejected
     }
 }
 

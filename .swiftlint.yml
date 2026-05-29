@@ -21,6 +21,11 @@ excluded:
 force_unwrapping: error
 force_try: error
 force_cast: error
+# House width is 180 (CLAUDE.md / docs/rules/code-style.md and .swiftformat
+# --maxwidth 180); swiftlint defaults to 120, so align it to avoid a split brain.
+line_length:
+  warning: 180
+  error: 180
 trailing_comma:
   mandatory_comma: true
 type_name:

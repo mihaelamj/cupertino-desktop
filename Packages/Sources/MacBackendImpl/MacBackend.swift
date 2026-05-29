@@ -1,5 +1,6 @@
 import BackendAPI
 import MCPBackend
+import MCPClientAPI
 import MCPClientKit
 import SubprocessTransport
 import TransportAPI

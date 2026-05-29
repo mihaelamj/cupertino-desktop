@@ -1,6 +1,6 @@
 import AppModels
 import BackendAPI
-import MCPClientKit
+import MCPClientAPI
 
 public extension Backend {
     /// `Backend.Documentation` conformer that talks to cupertino over MCP
@@ -13,9 +13,9 @@ public extension Backend {
     /// The string/JSON to model mapping per tool (docs/DESIGN.md section 6)
     /// lands in milestone M1; this scaffold fixes the shape and the wiring.
     actor MCP: Documentation {
-        private let client: MCPClient
+        private let client: any Client.MCP
 
-        public init(client: MCPClient) {
+        public init(client: any Client.MCP) {
             self.client = client
         }
 

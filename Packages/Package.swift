@@ -28,6 +28,7 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
+    .singleTargetLibrary("MCPClientAPI"),
     .singleTargetLibrary("TransportAPI"),
     .singleTargetLibrary("AppCore"),
     // Concrete
@@ -50,19 +51,23 @@ let targets: [Target] = {
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
     let transportAPI = Target.target(name: "TransportAPI")
+    // The MCP client contract, in our own types (no MCPCore). Lets MCPBackend
+    // depend on a protocol instead of the concrete MCPClientKit, so Backend.MCP
+    // is testable with a fake and concrete packages stop importing each other.
+    let clientAPI = Target.target(name: "MCPClientAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "AppCore")
-    let api = [models, backendAPI, transportAPI, core]
+    let api = [models, backendAPI, transportAPI, clientAPI, core]
 
     // ---------- Concrete packages (import only API packages) ----------
     // The MCP client reuses cupertino's cross-platform MCPCore protocol types.
     let clientKit = Target.target(
         name: "MCPClientKit",
-        dependencies: ["TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
+        dependencies: ["MCPClientAPI", "TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
     )
     let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["TransportAPI"])
-    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientKit"])
+    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientAPI"])
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
     // ---------- Features (framework-agnostic view models) ----------
@@ -84,7 +89,7 @@ let targets: [Target] = {
     // The only place the MCP conformer, the client, and the transport meet.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
-        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
+        dependencies: ["BackendAPI", "MCPBackend", "MCPClientAPI", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
     )
     let impl = [macBackendImpl]
 
@@ -92,7 +97,7 @@ let targets: [Target] = {
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "BackendAPI", "AppModels"],
+        dependencies: ["MacBackendImpl", "MCPBackend", "MCPClientAPI", "BackendAPI", "AppModels"],
     )
 
     return api + concrete + impl + [coreTests, backendTests]

@@ -5,17 +5,18 @@ import PackageDescription
 // App targets live under ../Apps as their own Xcode projects and consume this
 // package through a local path dependency.
 //
-// Layers run one direction only:
-//   Foundation (DesktopModels, DesktopCore)
-//     -> Infrastructure (MCPBackend, MarkdownRendering)
-//     -> Features (UI-agnostic @Observable view models)
-//     -> UI seam (DesktopUI: the protocols both frameworks implement)
-//     -> UI implementations (one AppKit package + one SwiftUI package per
-//        feature, plus a combined "flow" package per framework)
+// Package kinds (docs/DESIGN.md section 3). A package may import only the kind
+// below it:
+//   API (seam)      protocols + value types only, zero concrete deps
+//   Concrete        one job each; import only API packages (+ <=1 external lib);
+//                   concrete packages never import each other
+//   Impl (compose)  the ONLY packages allowed to import multiple concretes
+//   UI / Apps       UI packages + the entry-point app targets
 //
-// The AppKit and SwiftUI sides implement the SAME protocols from DesktopUI, so
-// the app targets consume either side identically; only the injected conformer
-// differs.
+// The ONLY universal backend seam is `Backend.Documentation` (BackendAPI). MCP
+// is confined to one conformer (`Backend.MCP` + MCPClientKit + the Transport
+// packages); the future embedded backend reaches cupertino directly with no MCP.
+// We reuse cupertino's cross-platform `MCPCore` types, nothing macOS-gated.
 
 extension Product {
     static func singleTargetLibrary(_ name: String) -> Product {
@@ -24,95 +25,77 @@ extension Product {
 }
 
 let products: [Product] = [
-    // Foundation / Infrastructure
+    // API / seam
     .singleTargetLibrary("DesktopModels"),
+    .singleTargetLibrary("BackendAPI"),
+    .singleTargetLibrary("MCPTransportAPI"),
     .singleTargetLibrary("DesktopCore"),
+    // Concrete
+    .singleTargetLibrary("MCPClientKit"),
+    .singleTargetLibrary("SubprocessTransport"),
     .singleTargetLibrary("MCPBackend"),
     .singleTargetLibrary("MarkdownRendering"),
-    // Features (logic only)
     .singleTargetLibrary("SearchFeature"),
     .singleTargetLibrary("FrameworkBrowserFeature"),
     .singleTargetLibrary("DocReaderFeature"),
     .singleTargetLibrary("SampleBrowserFeature"),
-    // UI seam
-    .singleTargetLibrary("DesktopUI"),
-    // UI implementations (per framework)
-    .singleTargetLibrary("SearchAppKit"),
-    .singleTargetLibrary("SearchSwiftUI"),
-    // Combined flows (per framework)
-    .singleTargetLibrary("AppKitFlow"),
-    .singleTargetLibrary("SwiftUIFlow"),
+    .singleTargetLibrary("ShellSwiftUI"),
+    .singleTargetLibrary("ShellAppKit"),
+    // Impl / composition
+    .singleTargetLibrary("MacBackendImpl"),
 ]
 
 let targets: [Target] = {
-    // ---------- Foundation Layer ----------
+    // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "DesktopModels")
-    let core = Target.target(name: "DesktopCore", dependencies: ["DesktopModels"])
-    let foundation = [models, core]
+    let backendAPI = Target.target(name: "BackendAPI", dependencies: ["DesktopModels"])
+    let transportAPI = Target.target(name: "MCPTransportAPI")
+    // DesktopCore holds the UI/Feature namespace anchors + the framework-agnostic
+    // RootModel. It does not own the backend seam (that is BackendAPI).
+    let core = Target.target(name: "DesktopCore")
+    let api = [models, backendAPI, transportAPI, core]
 
-    // ---------- Infrastructure Layer ----------
-    // MCPBackend is the only target that will import the `cupertino` package
-    // (wired in milestone M1); everything above it sees the backend seam only.
-    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["DesktopCore"])
+    // ---------- Concrete packages (import only API packages) ----------
+    // The MCP client reuses cupertino's cross-platform MCPCore protocol types.
+    let clientKit = Target.target(
+        name: "MCPClientKit",
+        dependencies: ["MCPTransportAPI", .product(name: "MCPCore", package: "Cupertino")]
+    )
+    let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["MCPTransportAPI"])
+    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "DesktopModels", "MCPClientKit"])
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["DesktopModels"])
-    let infrastructure = [mcpBackend, markdown]
 
-    // ---------- Features Layer (UI-agnostic view models) ----------
-    let search = Target.target(name: "SearchFeature", dependencies: ["DesktopCore"])
-    let frameworkBrowser = Target.target(name: "FrameworkBrowserFeature", dependencies: ["DesktopCore"])
-    let docReader = Target.target(name: "DocReaderFeature", dependencies: ["DesktopCore"])
-    let sampleBrowser = Target.target(name: "SampleBrowserFeature", dependencies: ["DesktopCore"])
+    // ---------- Features (framework-agnostic view models) ----------
+    let featureDependencies: [Target.Dependency] = ["DesktopCore", "BackendAPI", "MarkdownRendering"]
+    let search = Target.target(name: "SearchFeature", dependencies: featureDependencies)
+    let frameworkBrowser = Target.target(name: "FrameworkBrowserFeature", dependencies: featureDependencies)
+    let docReader = Target.target(name: "DocReaderFeature", dependencies: featureDependencies)
+    let sampleBrowser = Target.target(name: "SampleBrowserFeature", dependencies: featureDependencies)
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
-    // ---------- UI Seam ----------
-    // The protocols both frameworks implement, plus the platform typealias and a
-    // small SwiftUI<->AppKit controller bridge.
-    let desktopUI = Target.target(
-        name: "DesktopUI",
-        dependencies: [
-            "DesktopModels",
-            "SearchFeature",
-            "FrameworkBrowserFeature",
-            "DocReaderFeature",
-            "SampleBrowserFeature",
-        ],
-        path: "Sources/Desktop/Seam",
-    )
+    // ---------- UI (parallel per-framework packages) ----------
+    let uiDependencies: [Target.Dependency] = ["DesktopCore", "MarkdownRendering"]
+    let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
+    let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
 
-    // ---------- UI Implementations ----------
-    // One package per feature per framework. Both conform to the same DesktopUI
-    // protocol for that feature. Milestone M0 wires Search end to end; the other
-    // three features follow the identical pattern.
-    let searchAppKit = Target.target(
-        name: "SearchAppKit",
-        dependencies: ["DesktopUI", "SearchFeature"],
-        path: "Sources/Desktop/AppKit/Search",
-    )
-    let searchSwiftUI = Target.target(
-        name: "SearchSwiftUI",
-        dependencies: ["DesktopUI", "SearchFeature"],
-        path: "Sources/Desktop/SwiftUI/Search",
-    )
+    let concrete = [clientKit, subprocessTransport, mcpBackend, markdown] + features + [shellSwiftUI, shellAppKit]
 
-    // ---------- Combined Flows ----------
-    // The "start a flow" packages: each assembles its framework's screens into a
-    // root controller behind the shared DesktopUI.Flow protocol.
-    let appKitFlow = Target.target(
-        name: "AppKitFlow",
-        dependencies: ["DesktopUI", "SearchAppKit"],
-        path: "Sources/Desktop/AppKit/Flow",
+    // ---------- Impl / composition packages (wire concretes together) ----------
+    // The only place the MCP conformer, the client, and the transport meet.
+    let macBackendImpl = Target.target(
+        name: "MacBackendImpl",
+        dependencies: ["BackendAPI", "MCPBackend", "MCPClientKit", "MCPTransportAPI", "SubprocessTransport"]
     )
-    let swiftUIFlow = Target.target(
-        name: "SwiftUIFlow",
-        dependencies: ["DesktopUI", "SearchSwiftUI"],
-        path: "Sources/Desktop/SwiftUI/Flow",
-    )
-    let userInterface = [desktopUI, searchAppKit, searchSwiftUI, appKitFlow, swiftUIFlow]
+    let impl = [macBackendImpl]
 
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "DesktopCoreTests", dependencies: ["DesktopCore"])
+    let backendTests = Target.testTarget(
+        name: "BackendScaffoldTests",
+        dependencies: ["MacBackendImpl", "BackendAPI", "DesktopModels"]
+    )
 
-    return foundation + infrastructure + features + userInterface + [coreTests]
+    return api + concrete + impl + [coreTests, backendTests]
 }()
 
 let package = Package(
@@ -121,5 +104,15 @@ let package = Package(
         .macOS(.v15),
     ],
     products: products,
-    targets: targets,
+    dependencies: [
+        // Local path to the cupertino monorepo's package. cupertino is an
+        // ExtremePackaging layout, so its manifest is under Packages/, but that
+        // basename collides with ours (SwiftPM derives a path dependency's
+        // identity from its directory basename). We point at the
+        // `CupertinoUpstream` symlink (-> ../../cupertino/Packages) so the
+        // identity is unique. We only link its cross-platform `MCPCore` product.
+        // See docs/DESIGN.md open question 5.
+        .package(name: "Cupertino", path: "CupertinoUpstream"),
+    ],
+    targets: targets
 )

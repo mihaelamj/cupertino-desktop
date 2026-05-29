@@ -1,19 +1,20 @@
 import AppKit
-import AppKitFlow
-import DesktopUI
+import DesktopCore
+import ShellAppKit
 
-/// Entry point only. The app injects the AppKit flow and consumes it through the
-/// shared CupertinoDesktop.UI.Flow protocol, identically to the SwiftUI app.
+// Entry point only; the window's content comes from the AppKit shell package,
+// consumed through the shared-shape `RootExperience` protocol.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let model = UI.RootModel()
+    private let experience: any UI.RootExperience = UI.LiveRootExperience()
     private var window: NSWindow?
-    private let flow: any CupertinoDesktop.UI.Flow = CupertinoDesktop.UI.AppKitFlow()
 
-    func applicationDidFinishLaunching(_: Notification) {
+    func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
-        let window = NSWindow(contentViewController: flow.makeRootController())
+        let window = NSWindow(contentViewController: experience.makeRoot(model: model))
         window.setContentSize(NSSize(width: 1000, height: 640))
         window.title = "Cupertino Desktop"
         window.center()
@@ -23,7 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         true
     }
 
@@ -37,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(
             withTitle: "Quit \(appName)",
             action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q",
+            keyEquivalent: "q"
         )
         appMenuItem.submenu = appMenu
 

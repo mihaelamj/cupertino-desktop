@@ -9,5 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added the initial Swift package, SwiftUI app target, AppKit app target,
-  workspace, and project generation script for the desktop app skeleton.
+- M0 skeleton: the `Packages/` SPM package with the layered target tree, both
+  `Apps/` targets (SwiftUI and AppKit) generated from XcodeGen `project.yml`, and
+  `Main.xcworkspace`. The UI ships as parallel native packages `ShellSwiftUI` /
+  `ShellAppKit` (no NSHostingController or representable bridges) exposing a
+  same-shaped `UI.RootExperience` over one shared, UI-framework-free
+  `UI.RootModel`, so each app consumes its framework identically. Launches an
+  empty split-view shell.
+- Backend seam scaffold: a transport-agnostic, protocol-only package graph. The
+  ONLY universal seam is `Backend.Documentation` (`BackendAPI`). MCP is confined
+  to one conformer: `Backend.MCP` (`MCPBackend`) talks JSON-RPC via `MCPClient`
+  (`MCPClientKit`, reusing cupertino's cross-platform `MCPCore` types) over a
+  `Transport.Channel` (`MCPTransportAPI`), with `Transport.Subprocess`
+  (`SubprocessTransport`) spawning `cupertino serve`. `MacBackendImpl` is the
+  composition root wiring those together; the future iOS embedded backend will
+  be a separate direct-call conformer with no MCP. Real value types in
+  `DesktopModels`. Method bodies are honest M1 placeholders (throw, never fake).
+- `scripts/generate-xcodeproj.sh` to materialize the per-app Xcode projects from
+  their `project.yml` manifests.

@@ -24,9 +24,7 @@ targets:
       - path: Sources
     dependencies:
       - package: CupertinoDesktopPackages
-        product: DesktopUI
-      - package: CupertinoDesktopPackages
-        product: SwiftUIFlow
+        product: ShellSwiftUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.swiftui

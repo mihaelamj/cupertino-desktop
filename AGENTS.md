@@ -21,8 +21,10 @@ library. Search, indexing, and storage live in the server, not here.
 
 The repo ships **two app targets in parallel, SwiftUI and AppKit**, over one shared
 backend, to compare the two approaches before committing to one. A native iOS
-variant is a possible future concern. Namespace root: `CupertinoDesktop`. Target:
-macOS 15+, Swift 6.2+, Xcode 16+. See [docs/DESIGN.md](docs/DESIGN.md).
+variant is a possible future concern. Types are namespaced under short per-module
+semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`), with no
+project-name root prefix. Target: macOS 15+, Swift 6.2+, Xcode 16+. See
+[docs/DESIGN.md](docs/DESIGN.md).
 
 ## Language policy
 

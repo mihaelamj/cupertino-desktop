@@ -13,8 +13,10 @@ server owns all of that.
 
 The repo ships **two app targets in parallel, SwiftUI and AppKit**, over one shared
 backend, so the two UI approaches can be compared before a final framework choice.
-A native iOS variant over the same backend is a possible future concern. The
-namespace root is `CupertinoDesktop`. Architecture: [docs/DESIGN.md](docs/DESIGN.md).
+A native iOS variant over the same backend is a possible future concern. Types
+are namespaced under short per-module semantic anchors (`Model`, `Backend`,
+`Feature`, `UI`, `Markdown`); there is no project-name root prefix, the Swift
+module already namespaces each target. Architecture: [docs/DESIGN.md](docs/DESIGN.md).
 
 Target platform: macOS 15+, Swift 6.2+, Xcode 16+.
 

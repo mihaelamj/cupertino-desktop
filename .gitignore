@@ -85,6 +85,12 @@ Packages/db.sqlite-*
 # ExtremePackaging staging/build folders
 Stage/
 Tasks/.build/
+# Per-app Xcode projects are generated from project.yml by XcodeGen
+# (scripts/generate-xcodeproj.sh); project.yml is the source of truth.
+Apps/*/*.xcodeproj
+# Local xcodebuild output when building app targets outside Xcode
+Apps/*/.build-xcode/
+Apps/*/.spm/
 # Local harness / AI rule system state (AGENTS.md is intentionally tracked)
 .claude/
 .ai-agent-rules

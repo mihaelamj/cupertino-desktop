@@ -1,17 +1,19 @@
-import DesktopUI
+import DesktopCore
+import ShellSwiftUI
 import SwiftUI
-import SwiftUIFlow
 
-/// Entry point only. The app injects the SwiftUI flow and consumes it through the
-/// shared CupertinoDesktop.UI.Flow protocol, identically to how the AppKit app
-/// consumes AppKitFlow (docs/rules/package-structure.md).
+// App targets contain entry points only; all views live in packages
+// (docs/rules/package-structure.md). The root comes from the SwiftUI shell
+// package, consumed through the shared-shape `RootExperience` protocol.
 @main
 struct CupertinoDesktopSwiftUIApp: App {
-    private let flow: any CupertinoDesktop.UI.Flow = CupertinoDesktop.UI.SwiftUIFlow()
+    @State private var model = UI.RootModel()
+    private let experience = UI.LiveRootExperience()
 
     var body: some Scene {
         WindowGroup {
-            CupertinoDesktop.UI.ControllerView(flow.makeRootController())
+            experience.makeRoot(model: model)
         }
+        .windowStyle(.titleBar)
     }
 }

@@ -39,7 +39,8 @@ project's when you adopt these.
 - [package-architecture.md](package-architecture.md) - single-responsibility
   targets with unidirectional dependencies.
 - [package-import-contract.md](package-import-contract.md) - per-target allowed
-  imports; applies now, the engine and CLI are already two targets.
+  imports; the app targets, feature packages, and backend adapter are separate
+  targets with a one-way import contract.
 - [shared-protocols.md](shared-protocols.md) - the cross-target protocol seam.
 
 Open decisions live in [docs/decisions/](../decisions/).
@@ -50,7 +51,7 @@ Open decisions live in [docs/decisions/](../decisions/).
 - [git-discipline.md](git-discipline.md) - issues, labels, PRs, branches, commits,
   remotes.
 
-## The planned native macOS and iOS editor
+## Native UI (SwiftUI + AppKit, both app targets, from day one)
 
 - [views.md](views.md) - SwiftUI view architecture and identity.
 - [view-models.md](view-models.md) - ViewModel responsibilities and patterns.

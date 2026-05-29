@@ -4,7 +4,18 @@ How to structure CupertinoDesktop's Swift so the same sources build and run on A
 
 Load on demand. Triggers: `canImport`, `Linux`, `FoundationNetworking`, `Darwin`, `Glibc`, `swift-system`, `swift-foundation`, cross-platform, manifest, `.when(platforms:)`, `os(Linux)`, `os(iOS)`, `os(macOS)`, `os(visionOS)`, `os(tvOS)`, Vapor, AsyncHTTPClient, Hummingbird.
 
-Grounded in Swift Evolution and `swiftlang/swift-foundation`. The TileKit engine targets macOS and Linux (a server-style Apple + Linux split), so it falls under Topology 2/3 below. Subprocess and shell-out are available on both macOS and Linux; the engine may use them.
+Grounded in Swift Evolution and `swiftlang/swift-foundation`.
+
+> **Scope for this repo:** Cupertino Desktop is **Apple-only** (macOS now, iOS later);
+> there is no Linux or Windows target, so the Linux/Windows portability sections
+> below (FoundationNetworking, Glibc, `.when(platforms:)` for Linux, Docker topology)
+> are inert here. What still applies, and matters from day one, is the **protocol
+> seam pattern** itself: when behaviour diverges across Apple platforms (macOS vs
+> iOS) or across the two UI frameworks (AppKit vs SwiftUI), define a foundation-only
+> protocol, implement it once per platform/framework, and wire the right one at the
+> composition root. The core depends only on the protocol, never on `#if` at call
+> sites. Subprocess and shell-out are available on macOS; the app uses them to spawn
+> `cupertino serve` (see [linux-server.md](linux-server.md) for that lifecycle).
 
 ## Linux portability and the platform seam (mandatory)
 

@@ -33,5 +33,21 @@
                 try await transport.send(Data("x".utf8))
             }
         }
+
+        /// When the spawned process exits (EOF on stdout), the inbound stream must
+        /// finish so waiters fail fast instead of hanging. `/bin/echo hi` prints one
+        /// line and exits.
+        @Test("inbound stream finishes when the process exits", .timeLimit(.minutes(1)))
+        func streamFinishesOnExit() async throws {
+            let transport = Transport.Subprocess(command: "/bin/echo", arguments: ["hi"])
+            try await transport.start()
+            var iterator = transport.inbound.makeAsyncIterator()
+            let first = try await iterator.next()
+            #expect(first.flatMap { String(data: $0, encoding: .utf8) } == "hi")
+            // After the single line, the process exits and the stream ends.
+            let next = try await iterator.next()
+            #expect(next == nil)
+            await transport.stop()
+        }
     }
 #endif

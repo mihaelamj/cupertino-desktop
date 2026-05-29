@@ -10,25 +10,37 @@ import TransportAPI
 /// MCPCore types at this boundary. We deliberately do not build on cupertino's
 /// `MCP.Client`, which is stdio-hardcoded with no transport injection point.
 ///
-/// Requests are serialized by the actor and answered FIFO: one request is in flight
-/// at a time, so the next inbound frame matching our id is its response.
+/// Requests are **multiplexed by id**: many can be in flight at once (the actor can
+/// be re-entered across `await`), so each response is routed to the waiter whose
+/// request id it carries. A single consumer task owns the inbound iterator and
+/// dispatches frames; each request also has a deadline so a stalled server cannot
+/// hang a caller forever.
 public actor MCPClient: Client.MCP {
     private let transport: any Transport.Channel
     private let clientName: String
     private let clientVersion: String
+    private let requestTimeout: Duration
 
     private var requestID = 0
-    private var pending: CheckedContinuation<Data, Error>?
-    private var buffered: [Data] = []
-    private var streamError: Error?
+    private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
+    private var inbox: [Int: Data] = [:] // responses that arrived before their waiter parked
+    private var deadlines: [Int: Task<Void, Never>] = [:]
+    private var streamFailure: Error?
     private var consumer: Task<Void, Never>?
+
     private let encoder: JSONEncoder
     private let decoder = JSONDecoder()
 
-    public init(transport: any Transport.Channel, clientName: String = "cupertino-desktop", clientVersion: String = "0.0.1") {
+    public init(
+        transport: any Transport.Channel,
+        clientName: String = "cupertino-desktop",
+        clientVersion: String = "0.0.1",
+        requestTimeout: Duration = .seconds(30),
+    ) {
         self.transport = transport
         self.clientName = clientName
         self.clientVersion = clientVersion
+        self.requestTimeout = requestTimeout
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         self.encoder = encoder
@@ -44,9 +56,7 @@ public actor MCPClient: Client.MCP {
         consumer?.cancel()
         consumer = nil
         await transport.stop()
-        pending?.resume(throwing: Failure.notConnected)
-        pending = nil
-        buffered.removeAll()
+        failAll(with: Failure.notConnected)
     }
 
     public func callTool(_ name: String, arguments: [String: Client.Argument]) async throws -> String {
@@ -94,59 +104,91 @@ public actor MCPClient: Client.MCP {
         requestID += 1
         let id = requestID
         let request = MCP.Core.Protocols.Request(id: .int(id), method: method, params: params)
-        try await transport.send(encoder.encode(request))
+        let requestData = try encoder.encode(request)
 
-        while true {
-            let frame = try await nextFrame()
-            if let failure = try? decoder.decode(MCP.Core.Protocols.JSONRPCError.self, from: frame), failure.id == .int(id) {
-                throw Failure.backend(failure.error.message)
+        try await transport.send(requestData)
+        let frame = try await response(for: id)
+
+        if let failure = try? decoder.decode(MCP.Core.Protocols.JSONRPCError.self, from: frame), failure.id == .int(id) {
+            throw Failure.backend(failure.error.message)
+        }
+        let response = try decoder.decode(MCP.Core.Protocols.JSONRPCResponse.self, from: frame)
+        let resultData = try encoder.encode(response.result)
+        return try decoder.decode(Result.self, from: resultData)
+    }
+
+    /// Await the response frame for `id`, honouring frames that arrived early and the
+    /// per-request deadline.
+    private func response(for id: Int) async throws -> Data {
+        if let frame = inbox.removeValue(forKey: id) { return frame }
+        if let streamFailure { throw streamFailure }
+        return try await withCheckedThrowingContinuation { continuation in
+            pending[id] = continuation
+            deadlines[id] = Task { [weak self, requestTimeout] in
+                try? await Task.sleep(for: requestTimeout)
+                await self?.expire(id)
             }
-            guard let response = try? decoder.decode(MCP.Core.Protocols.JSONRPCResponse.self, from: frame),
-                  response.id == .int(id)
-            else {
-                continue // a notification or an unrelated frame; keep reading
-            }
-            let resultData = try encoder.encode(response.result)
-            return try decoder.decode(Result.self, from: resultData)
         }
     }
 
-    /// A single task owns the inbound iterator (so it never crosses an actor `await`)
-    /// and hands each frame to the parked reader, FIFO.
+    private func expire(_ id: Int) {
+        deadlines[id] = nil
+        guard let continuation = pending.removeValue(forKey: id) else { return }
+        continuation.resume(throwing: Failure.transport("request \(id) timed out"))
+    }
+
+    // MARK: - Inbound dispatch
+
+    /// One task owns the iterator (so it never crosses an actor `await`) and routes
+    /// each frame to the waiter whose id it carries.
     private func startConsuming(_ stream: AsyncThrowingStream<Data, Error>) {
         consumer = Task { [weak self] in
             do {
                 for try await frame in stream {
-                    await self?.deliver(.success(frame))
+                    await self?.route(.success(frame))
                 }
-                await self?.deliver(.failure(Failure.transport("connection closed")))
+                await self?.route(.failure(Failure.transport("connection closed")))
             } catch {
-                await self?.deliver(.failure(error))
+                await self?.route(.failure(error))
             }
         }
     }
 
-    private func deliver(_ result: Result<Data, Error>) {
-        if let pending {
-            self.pending = nil
-            pending.resume(with: result)
-            return
-        }
+    private func route(_ result: Result<Data, Error>) {
         switch result {
-        case let .success(frame): buffered.append(frame)
-        case let .failure(error): streamError = error
+        case let .success(frame):
+            guard let id = Self.frameID(frame) else { return } // notification or unkeyed; ignore
+            deadlines[id]?.cancel()
+            deadlines[id] = nil
+            if let continuation = pending.removeValue(forKey: id) {
+                continuation.resume(returning: frame)
+            } else {
+                inbox[id] = frame
+            }
+        case let .failure(error):
+            failAll(with: error)
         }
     }
 
-    private func nextFrame() async throws -> Data {
-        if !buffered.isEmpty { return buffered.removeFirst() }
-        if let streamError {
-            self.streamError = nil
-            throw streamError
+    private func failAll(with error: Error) {
+        streamFailure = error
+        for task in deadlines.values {
+            task.cancel()
         }
-        return try await withCheckedThrowingContinuation { continuation in
-            pending = continuation
+        deadlines.removeAll()
+        let waiters = pending
+        pending.removeAll()
+        inbox.removeAll()
+        for continuation in waiters.values {
+            continuation.resume(throwing: error)
         }
+    }
+
+    private static func frameID(_ frame: Data) -> Int? {
+        guard let envelope = try? JSONDecoder().decode(Envelope.self, from: frame),
+              case let .int(id) = envelope.id
+        else { return nil }
+        return id
     }
 
     // MARK: - Extraction
@@ -172,6 +214,10 @@ public actor MCPClient: Client.MCP {
     }
 
     // MARK: - Wire param shapes (our minimal Codable structs; the server only sees JSON)
+
+    private struct Envelope: Decodable {
+        let id: MCP.Core.Protocols.RequestID?
+    }
 
     private struct ToolCallParams: Codable {
         let name: String

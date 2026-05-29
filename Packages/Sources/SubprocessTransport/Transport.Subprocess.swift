@@ -17,6 +17,7 @@
             private let lock = NSLock()
             private var process: Process?
             private var stdin: FileHandle?
+            private var stdoutHandle: FileHandle?
             private var inboundBuffer = Data()
 
             public init(command: String, arguments: [String]) {
@@ -35,7 +36,6 @@
                 let process = Process()
                 let stdinPipe = Pipe()
                 let stdoutPipe = Pipe()
-                let stderrPipe = Pipe()
 
                 // Resolve the executable: absolute path runs directly, otherwise go
                 // through `env` so a `PATH` lookup finds the brew-installed binary.
@@ -48,12 +48,18 @@
                 }
                 process.standardInput = stdinPipe
                 process.standardOutput = stdoutPipe
-                process.standardError = stderrPipe
+                // We do not surface the server's stderr; discard it so a full stderr
+                // pipe can never block the child (which would otherwise stop responding).
+                process.standardError = FileHandle.nullDevice
 
-                stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+                let stdoutHandle = stdoutPipe.fileHandleForReading
+                stdoutHandle.readabilityHandler = { [weak self] handle in
                     let data = handle.availableData
-                    guard !data.isEmpty else { return }
-                    self?.ingest(data)
+                    if data.isEmpty {
+                        self?.finishInbound() // EOF: the process closed stdout (exited)
+                    } else {
+                        self?.ingest(data)
+                    }
                 }
 
                 do {
@@ -64,6 +70,7 @@
                 }
 
                 self.process = process
+                self.stdoutHandle = stdoutHandle
                 stdin = stdinPipe.fileHandleForWriting
             }
 
@@ -81,9 +88,17 @@
             }
 
             public func stop() async {
+                stdoutHandle?.readabilityHandler = nil
+                stdoutHandle = nil
                 process?.terminate()
                 stdin = nil
                 process = nil
+                continuation.finish()
+            }
+
+            /// EOF on stdout (the process exited): end the inbound stream so waiters
+            /// fail fast instead of hanging. `finish()` is idempotent.
+            private func finishInbound() {
                 continuation.finish()
             }
 

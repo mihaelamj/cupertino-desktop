@@ -8,8 +8,8 @@ Status: design draft. Target the cupertino MCP backend as it exists on `cupertin
 
 - Native Apple app for browsing Apple developer docs, Swift Evolution, and sample code offline. macOS first (macOS 15+, Swift 6.2+, Xcode 16+); iOS (iPhone/iPad) is an explicit design target, not a someday-maybe.
 - Be a thin client over the `cupertino` corpus, reached through one backend seam with several implementations. Do **not** reimplement search, indexing, or storage. We are **not** "an MCP app": MCP is merely the wire that one local conformer happens to speak to a `cupertino serve` subprocess (section 5), one option among several, not the system's identity.
-- The backend is reached through one protocol seam, and **how** it connects (local subprocess, embedded in-process, future remote) is itself chosen by protocol, per platform.
-- Ship parallel UI targets that differ only in framework: macOS SwiftUI + macOS AppKit now; iOS SwiftUI + iOS UIKit as the same exercise on iOS. All consume the identical backend seam.
+- The backend is reached through one protocol seam, and **how** it connects is itself chosen by protocol. The first-order axis is **local vs remote** (remote is future). Today everything is local, in two flavors: **macOS talks to a local `cupertino serve` subprocess** (deliberately, to exercise the real Homebrew-installed binary), and **iOS runs cupertino's read path embedded in-process** (the only option on iOS, which cannot spawn a subprocess). **Embedded is mobile-only; the desktop is never embedded** because its whole point is to drive the real binary.
+- Ship **six fully-native UI variants** over one shared set of view models, differing by device idiom and framework, never by logic: **macAppKit, macSwiftUI, iPhoneUIKit, iPhoneSwiftUI, iPadUIKit, iPadSwiftUI**. iPhone and iPad are *distinct* UIs (not one size-class-adaptive shell). No bridges: each imports only its own framework and vends a real native root. All six bind the identical `UI.RootModel` + feature view models and the identical backend seam.
 - Follow the ExtremePackaging monorepo convention: `Main.xcworkspace` at root, single `Package.swift` in `Packages/`, app targets in `Apps/`, layered packages. Every package depends only on protocol (seam) packages; concrete packages never import each other; `*Impl` packages are the only place concretes are composed.
 
 **Non-goals**
@@ -38,7 +38,7 @@ try await client.connect()    // transport.start() + MCP `initialize` handshake
 await client.disconnect()      // transport.stop()
 ```
 
-`connect()` starts the transport (which, for the subprocess transport, launches the process and wires its pipes) and performs the MCP `initialize` handshake. The same client runs unchanged over a future remote transport. This client and its transports are used **only** by the macOS MCP conformer (section 5.2); the embedded conformer does not use them at all.
+`connect()` starts the transport (which, for the subprocess transport, launches the process and wires its pipes) and performs the MCP `initialize` handshake. The same client runs unchanged over a future remote transport. This client and its transports are used **only** by the macOS local-subprocess conformer (section 5.2); the embedded conformer does not use them at all.
 
 ### 2.2 Low-level surface
 
@@ -95,35 +95,43 @@ cupertino-desktop/
 │   │   # --- API / seam packages (protocols + value types only) ---
 │   │   ├── AppModels/           # value types (Framework, DocPage, SearchHit, ...)
 │   │   ├── BackendAPI/              # DocumentationBackend protocol + errors (the ONLY universal seam)
-│   │   ├── TransportAPI/         # Transport protocol; internal to the MCP conformer
+│   │   ├── TransportAPI/         # Transport protocol; internal to the local-subprocess conformer's MCP client
 │   │   ├── CatalogStoreAPI/         # CatalogStore protocol (where the DBs live; embedded path)  [future]
 │   │   ├── AppCore/             # UI namespace + framework-agnostic RootModel
 │   │   # --- Concrete packages (depend only on API packages) ---
 │   │   ├── MCPClientKit/            # JSON-RPC client over `any Transport` (+ MCPCore types)
 │   │   ├── SubprocessTransport/     # Transport: spawns `cupertino serve` (macOS)
 │   │   ├── RemoteTransport/         # Transport: HTTP/SSE to a remote MCP server (future)
-│   │   ├── LocalSubprocessBackend/              # DocumentationBackend conformer over MCPClientKit; maps -> AppModels
-│   │   ├── LocalEmbeddedBackend/         # DocumentationBackend conformer via direct cupertino calls (future, iOS+mac)
+│   │   ├── LocalSubprocessBackend/              # Documentation conformer; talks to local `cupertino serve` via MCPClientKit; maps -> AppModels (macOS)
+│   │   ├── LocalEmbeddedBackend/         # Documentation conformer via direct in-process cupertino calls; no MCP (iOS only)
 │   │   ├── BundledCatalogStore/     # CatalogStore: DBs shipped as app resources         [future]
 │   │   ├── DownloadableCatalogStore/# CatalogStore: fetch + cache DBs on first run        [future]
 │   │   ├── MarkdownRendering/       # markdown string -> display models
 │   │   ├── SearchFeature/ ...       # @Observable view models (depend on BackendAPI only)
-│   │   ├── ShellSwiftUI/ ShellAppKit/   # native window/navigation shells
-│   │   └── <Feature>SwiftUI / <Feature>AppKit/   # per-feature screen pairs (added per feature)
+│   │   # --- UI packages: SIX fully-native variants, one per idiom x framework ---
+│   │   #     (each imports only its own framework; no bridges; binds shared view models)
+│   │   ├── ShellMacAppKit/    ShellMacSwiftUI/      # macOS  (AppKit, SwiftUI)
+│   │   ├── ShelliPhoneUIKit/  ShelliPhoneSwiftUI/   # iPhone (UIKit, SwiftUI)  -- distinct from iPad
+│   │   ├── ShelliPadUIKit/    ShelliPadSwiftUI/     # iPad   (UIKit, SwiftUI)  -- distinct from iPhone
+│   │   └── <Feature> screens per variant            # each variant brings its own native screens
 │   │   # --- Impl / composition packages (wire concretes together) ---
-│   │   ├── MacBackendImpl/          # LocalSubprocessBackend over SubprocessTransport
-│   │   └── LocalEmbeddedBackendImpl/     # LocalEmbeddedBackend + CatalogStore                       [future]
+│   │   ├── MacBackendImpl/          # LocalSubprocessBackend over SubprocessTransport (macOS)
+│   │   └── LocalEmbeddedBackendImpl/     # LocalEmbeddedBackend + CatalogStore (iOS)                  [future]
 │   └── Tests/
-├── Apps/
-│   ├── CupertinoDesktopSwiftUI/     # macOS SwiftUI app  (ShellSwiftUI + MacBackendImpl)
-│   ├── CupertinoDesktopAppKit/      # macOS AppKit app   (ShellAppKit  + MacBackendImpl)
-│   ├── CupertinoMobileSwiftUI/      # iOS SwiftUI app    (iOS shell    + LocalEmbeddedBackendImpl)  [future]
-│   └── CupertinoMobileUIKit/        # iOS UIKit app      (iOS shell    + LocalEmbeddedBackendImpl)  [future]
+├── Apps/                            # SIX app targets, one per UI variant; iPhone and iPad are SEPARATE
+│   ├── CupertinoMacAppKit/          # macOS AppKit    (ShellMacAppKit     + MacBackendImpl)
+│   ├── CupertinoMacSwiftUI/         # macOS SwiftUI   (ShellMacSwiftUI    + MacBackendImpl)
+│   ├── CupertinoiPhoneUIKit/        # iPhone UIKit    (ShelliPhoneUIKit   + LocalEmbeddedBackendImpl)  [future]
+│   ├── CupertinoiPhoneSwiftUI/      # iPhone SwiftUI  (ShelliPhoneSwiftUI + LocalEmbeddedBackendImpl)  [future]
+│   ├── CupertinoiPadUIKit/          # iPad UIKit      (ShelliPadUIKit     + LocalEmbeddedBackendImpl)  [future]
+│   └── CupertinoiPadSwiftUI/        # iPad SwiftUI    (ShelliPadSwiftUI   + LocalEmbeddedBackendImpl)  [future]
 └── docs/
     └── DESIGN.md
 ```
 
-Dependency direction is strictly one-way: **Foundation → Infrastructure → Features → UI → Apps**. Apps depend on one UI package; UI packages depend on Features/Core; nothing depends on Apps.
+> M0 status: the two macOS variants exist today, currently named `CupertinoDesktopSwiftUI` / `CupertinoDesktopAppKit` (= the `macSwiftUI` / `macAppKit` variants) over `ShellSwiftUI` / `ShellAppKit`. The rename to the idiom scheme above and the four iOS variants are future work (sections 5.3, 13).
+
+Dependency direction is strictly one-way: **Foundation → Infrastructure → Features → UI → Apps**. Each app depends on exactly one UI variant package plus one backend `*Impl`; UI packages depend on Features/Core; nothing depends on Apps. The six UI variants share one set of view models, so iPhone-vs-iPad and UIKit-vs-SwiftUI differences are purely presentational.
 
 Types are namespaced under short per-module semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`); there is no project-name root prefix, since the Swift module already namespaces each target. So a type reads `UI.RootModel`, `Backend.LocalSubprocess`, `Feature.Search`.
 
@@ -148,40 +156,45 @@ Each feature ships an `@Observable` view model that depends only on `Documentati
 - **`DocReaderFeature`**: render a `read_document` page, in-page nav, related symbols (`get_inheritance`, `search_conformances`).
 - **`SampleBrowserFeature`**: `list_samples`, `read_sample` (project tree), `read_sample_file` (syntax-highlighted file viewer).
 
-### UI layer (two parallel, fully native packages)
+### UI layer (six parallel, fully native variants)
 
-The UI ships as **two parallel packages that implement the same functionality, consumed through same-shaped protocols**. Neither fakes the other: there is no `NSHostingController`, no `NSViewControllerRepresentable`. The SwiftUI package imports only SwiftUI and vends real `some View`; the AppKit package imports only AppKit and vends real `NSViewController`.
+The UI ships as **six parallel packages, one per idiom x framework, each implementing the same functionality and consumed through same-shaped protocols**. None fakes another: there is no `NSHostingController`, no `UIHostingController`, no representable bridge. Each package imports only its own framework and vends a real native root.
 
-- **`DesktopUISwiftUI`**: native SwiftUI views bound to the shared view models. Exposes `UI.RootExperience` (a protocol vending a SwiftUI `View`) with a `UI.LiveRootExperience` conformer.
-- **`DesktopUIAppKit`**: native AppKit view controllers bound to the same view models. Exposes `UI.RootExperience` (the same qualified name and method shape, vending an `NSViewController`) with its own `UI.LiveRootExperience`.
+The matrix (idiom is a first-class axis: iPhone and iPad are deliberately different, not one size-class-adaptive shell):
 
-The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view models) lives in `AppCore`/Features so both packages bind identically. The two `RootExperience` protocols are parallel (idiomatic per framework: `some View` vs `NSViewController`), not one erased type, so neither side pays a hosting/erasure penalty.
+| Variant | Framework | Vends | Idiom notes |
+|---|---|---|---|
+| `ShellMacAppKit` | AppKit | `NSViewController` | macOS window chrome, menus |
+| `ShellMacSwiftUI` | SwiftUI | `some View` | macOS `WindowGroup` |
+| `ShelliPhoneUIKit` | UIKit | `UIViewController` | compact: tab/stack navigation |
+| `ShelliPhoneSwiftUI` | SwiftUI | `some View` | compact layout |
+| `ShelliPadUIKit` | UIKit | `UIViewController` | regular: `UISplitViewController`, multi-column |
+| `ShelliPadSwiftUI` | SwiftUI | `some View` | regular: `NavigationSplitView`, multi-column |
+
+Each exposes the same-named `UI.RootExperience` (parallel protocols, idiomatic per framework: `some View` vs `UIViewController` vs `NSViewController`), not one erased type, so none pays a hosting/erasure penalty. The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view models in `AppCore`/Features) is bound identically by all six, so **iPhone-vs-iPad and UIKit-vs-SwiftUI differences live entirely in the view code, never in logic.**
 
 ### Apps layer
 
-- **`CupertinoDesktopSwiftUI`**: `@main` App, `WindowGroup`, links `ShellSwiftUI` + `MacBackendImpl`, mounts `UI.LiveRootExperience().makeRoot(model:)`.
-- **`CupertinoDesktopAppKit`**: `NSApplicationMain` + `NSApplicationDelegate`, `NSWindow`, links `ShellAppKit` + `MacBackendImpl`, mounts its `UI.LiveRootExperience().makeRoot(model:)` as the window content controller.
-
-Each app is a pure composition + framework-specific entry point: it picks an Impl package (which fixes the transport) and a UI package (which fixes the framework). All logic is in Features; all views are in the UI packages. The iOS apps follow the same shape with `LocalEmbeddedBackendImpl`.
+There are **six app targets, one per UI variant** (iPhone and iPad are separate targets, per the design): `CupertinoMacAppKit`, `CupertinoMacSwiftUI`, `CupertinoiPhoneUIKit`, `CupertinoiPhoneSwiftUI`, `CupertinoiPadUIKit`, `CupertinoiPadSwiftUI`. Each is a pure composition + framework-specific entry point: it links exactly one UI variant package and one backend `*Impl`, and mounts `UI.LiveRootExperience().makeRoot(model:)`. macOS targets use `MacBackendImpl` (the local-subprocess/brew-binary route); iOS targets use `LocalEmbeddedBackendImpl`. All logic is in Features; all views are in the UI packages.
 
 ## 5. The backend seam and its conformers
 
-There is exactly **one universal seam**: `DocumentationBackend`. Features and UI depend on it and nothing else. **MCP is not universal**: it is the wire protocol of one conformer (the macOS path, which has to speak MCP because `cupertino serve` only speaks MCP). Other conformers reach cupertino by other means, and they do not pretend otherwise.
+There is exactly **one universal seam**: `Backend.Documentation`. Features and UI depend on it and nothing else. Conformers are named by **locality** (local vs remote), never by protocol. **MCP is not a conformer and not universal**: it is only the wire one conformer's *client* happens to speak. The first-order split is local (today) vs remote (future):
 
 ```
 Features / UI
      │  depends only on
      ▼
-DocumentationBackend          (BackendAPI)   domain verbs, returns AppModels
-     ├── LocalSubprocessBackend           (macOS now): MCP JSON-RPC over a Transport
-     │        └── Transport   (TransportAPI): stdio now, remote later
-     │              ├── SubprocessTransport   (spawn `cupertino serve`)
-     │              └── RemoteTransport        (future: HTTP/SSE)
-     └── LocalEmbeddedBackend      (iOS / mac, future): calls cupertino's read APIs
-              directly in-process. No MCP, no JSON-RPC, no transport. Typed results.
+Backend.Documentation         (BackendAPI)   domain verbs, returns AppModels
+     ├── Backend.LocalSubprocess  (macOS): out-of-process on THIS machine. Talks to the
+     │        local `cupertino serve` (the brew binary, by design) via its MCP client
+     │        (MCPClientKit) over a SubprocessTransport. MCP lives only on that client.
+     ├── Backend.LocalEmbedded    (iOS only): in-process. Calls cupertino's read APIs
+     │        directly. No MCP, no JSON-RPC, no transport. Typed results.
+     └── Backend.Remote           (future): out-of-process, remote (network). Not built.
 ```
 
-The two conformers are independent and have nothing in common below `DocumentationBackend`. Adding a remote MCP server later is a new `Transport` under `LocalSubprocessBackend`; it does not touch `LocalEmbeddedBackend`. The embedded path's fidelity is *higher*, not lower, because it skips the markdown round-trip and reads cupertino's typed results.
+The conformers are independent and have nothing in common below `Backend.Documentation`. Locality is the axis: a remote backend is a new sibling here, not a transport swapped inside the local one; it does not touch the local conformers. The embedded path's fidelity is *higher* (typed results, no markdown round-trip), but it is **iOS-only** by design: the macOS app exists to drive the real brew binary, so it stays on the subprocess path.
 
 ### 5.1 `DocumentationBackend` (the only universal seam)
 
@@ -236,9 +249,9 @@ public protocol Transport: Sendable {
 
 ### 5.3 Conformer B: `LocalEmbeddedBackend` (local, in-process)
 
-iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to. The honest answer is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `LocalEmbeddedBackend` conforms `DocumentationBackend` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `AppModels`. No MCP, no JSON-RPC, no transport. This is the iOS production path and the higher-fidelity one.
+**Embedded is mobile-only.** iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to; the only way to read the corpus is in-process. (And the desktop deliberately does *not* use this path: the macOS app's purpose is to exercise the real Homebrew binary over the subprocess, section 5.2, so embedding there would defeat the point.) The honest answer for iOS is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `LocalEmbeddedBackend` conforms `Backend.Documentation` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `AppModels`. No MCP, no JSON-RPC, no transport.
 
-**Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `LocalEmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work, scheduled before the iOS apps (milestone M8), not a local shim.
+**Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `LocalEmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work (milestone M7), landing before the M8 iOS apps, not a local shim.
 
 ### 5.4 Backend selection is itself by protocol
 
@@ -282,7 +295,7 @@ Connection state is observable in either conformer (`ConnectionStatusBadge`): `i
 
 - **`LocalSubprocessBackend` over `SubprocessTransport` (macOS)**: owns one long-lived `MCPClient`; the client `actor` serializes calls, so it adds no extra locking. Discover the `cupertino` executable (explicit path, then `PATH`); surface a clear "cupertino not found / docs not downloaded" empty state linking to install instructions rather than crashing. Reconnect on demand if the subprocess dies (a thrown client error on a call). Confirm App Sandbox entitlements permit spawning a subprocess, or ship non-sandboxed for the v1 dev tool.
 - **`LocalSubprocessBackend` over `RemoteTransport` (future)**: same client, but network reachability, auth, and latency become the failure modes; same observable state machine.
-- **`LocalEmbeddedBackend` (iOS / mac, future)**: no process and no transport. "Connect" means resolving the corpus via `CatalogStore` and opening the SQLite DBs; failure is a missing/locked/old corpus (first-run download or bundled-corpus error). Startup cost is opening the DBs, not spawning.
+- **`LocalEmbeddedBackend` (iOS only)**: no process and no transport. "Connect" means resolving the corpus via `CatalogStore` and opening the SQLite DBs; failure is a missing/locked/old corpus (first-run download or bundled-corpus error). Startup cost is opening the DBs, not spawning.
 
 ## 8. State & view-model design
 
@@ -303,9 +316,9 @@ Connection state is observable in either conformer (`ConnectionStatusBadge`): `i
 - Parameterized tests for the markdown/JSON parsers (`@Test(arguments:)`).
 - No tests spawn the real subprocess except one opt-in integration smoke test, gated behind an env flag.
 
-## 11. Why parallel apps share one backend
+## 11. Why six parallel apps share one backend
 
-The compare-then-decide plan works only if the comparison is fair: identical backend, identical models, identical features, with the **only** variable being the UI framework. The seam layering guarantees that. macOS runs SwiftUI and AppKit side by side over `MacBackendImpl`; iOS will run SwiftUI and UIKit over `LocalEmbeddedBackendImpl`. When a framework decision is made, the losing `Apps/` target is deleted and nothing else changes. Swapping a transport (adding remote, moving iOS from bundled to downloadable corpus) touches one concrete package plus one Impl package, never a feature or a view.
+The compare plan works only if the comparison is fair: identical backend, identical models, identical features, with the **only** variables being device idiom and UI framework. The seam layering guarantees that. macOS runs AppKit and SwiftUI side by side over `MacBackendImpl` (the local-subprocess/brew-binary route); iPhone and iPad each run UIKit and SwiftUI over `LocalEmbeddedBackendImpl`. That is six fully-native variants over one set of view models. iPhone and iPad are deliberately different presentations of the *same* models, not a single adaptive shell, so the design can compare real per-idiom UIs. When decisions are made, losing `Apps/` targets are deleted and nothing else changes. A future remote backend touches one concrete package plus one Impl, never a feature or a view.
 
 ## 12. Open questions (decision log)
 
@@ -321,11 +334,11 @@ The compare-then-decide plan works only if the comparison is fair: identical bac
 
 - **M0 (Skeleton)**: `Main.xcworkspace`, `Packages/Package.swift` with empty layered targets, both macOS `Apps/` targets launching an empty `NavigationSplitView` / `NSSplitViewController`. Compiles, runs, does nothing.
 - **M1 (Backend seam + spike)**: `BackendAPI`, `TransportAPI`, `MCPClientKit`, `SubprocessTransport`, `LocalSubprocessBackend` over the subprocess transport, `MacBackendImpl`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
-- **M2 (Read path)**: framework browser → doc reader rendering `read_document` markdown in both apps.
+- **M2 (Read path)**: framework browser → doc reader rendering `read_document` markdown in both macOS variants.
 - **M3 (Search)**: debounced `search_docs` with scopes; result rows navigate to reader.
 - **M4 (Samples)**: `list_samples` → `read_sample` tree → `read_sample_file` code viewer.
 - **M5 (Symbols & polish)**: `get_inheritance` / conformances related panel; connection-status UX, empty/first-run states, error handling.
-- **M6 (Compare & decide, macOS)**: evaluate SwiftUI vs AppKit on macOS, pick one or keep both, delete any losing target.
-- **M7 (Embedded backend, macOS)**: `LocalEmbeddedBackend` calling cupertino's read APIs directly in-process (no MCP), proving the same features run with typed results. macOS only; exercises the direct-call mapping before the iOS port.
-- **M8 (iOS, gated on upstream)**: land the cupertino iOS-buildability refactor (section 5.3), add `CatalogStore` conformers, ship `CupertinoMobileSwiftUI` + `CupertinoMobileUIKit` over `LocalEmbeddedBackendImpl`.
-- **M9 (Remote, optional)**: `RemoteTransport` under `LocalSubprocessBackend` over HTTP/SSE for a hosted-corpus deployment, if a use case appears.
+- **M6 (Compare & decide, macOS)**: evaluate `macAppKit` vs `macSwiftUI` over the same `MacBackendImpl`, pick one or keep both, delete any losing target.
+- **M7 (iOS embedding, gated on upstream)**: land the cupertino iOS-buildability refactor (section 5.3) so `LocalEmbeddedBackend` builds for iOS, and add the `CatalogStore` conformers. (There is **no** macOS-embedded path: embedded is mobile-only; the macOS app stays on the brew-binary subprocess by design.)
+- **M8 (iOS apps)**: ship the four iOS variants over `LocalEmbeddedBackendImpl` as distinct targets: `CupertinoiPhoneUIKit`, `CupertinoiPhoneSwiftUI`, `CupertinoiPadUIKit`, `CupertinoiPadSwiftUI`. iPhone and iPad are deliberately different UIs over the shared view models; compare UIKit vs SwiftUI on each idiom.
+- **M9 (Remote, optional)**: a `Backend.Remote` conformer (HTTP/SSE to a hosted cupertino) for a shared-corpus deployment, if a use case appears. A sibling backend, not a transport inside the local one.

@@ -1,4 +1,4 @@
-# Cupertino Desktop — Architecture & Design
+# Cupertino Desktop: Architecture & Design
 
 Status: design draft. Target the cupertino MCP backend as it exists on `cupertino@develop`.
 
@@ -8,7 +8,7 @@ Status: design draft. Target the cupertino MCP backend as it exists on `cupertin
 
 - Native macOS app (macOS 15+, Swift 6.2+, Xcode 16+) for browsing Apple developer docs, Swift Evolution, and sample code offline.
 - Thin UI client over the existing `MCPClient` from the `cupertino` package. Do **not** reimplement search, indexing, or storage.
-- Ship **two app targets in parallel** — SwiftUI and AppKit — sharing one backend so we can compare and decide later (per README).
+- Ship **two app targets in parallel** (SwiftUI and AppKit) sharing one backend so we can compare and decide later (per README).
 - Follow the ExtremePackaging monorepo convention: `Main.xcworkspace` at root, single `Package.swift` in `Packages/`, app targets in `Apps/`, layered feature packages.
 
 **Non-goals**
@@ -56,7 +56,7 @@ func readResource(uri: String) async throws -> ReadResourceResult
 
 ### 2.4 Full server tool catalog (reachable via `callTool`)
 
-The MCP server exposes more than the wrapper covers. The **framework browser's 261 frameworks come from `list_frameworks`**, which has no convenience method — call it directly.
+The MCP server exposes more than the wrapper covers. The **framework browser's 261 frameworks come from `list_frameworks`**, which has no convenience method, so call it directly.
 
 `search`, `list_frameworks`, `list_samples`, `read_document`, `read_sample`, `read_sample_file`, `get_inheritance`, `search_symbols`, `search_conformances`, `search_generics`, `search_concurrency`, `search_property_wrappers`.
 
@@ -64,7 +64,7 @@ The MCP server exposes more than the wrapper covers. The **framework browser's 2
 
 **Every backend result is a formatted markdown/text string, not a typed model.** This drives the whole architecture:
 
-1. We render markdown natively (doc reader, search results) — strings are a feature, not a bug, for the reader.
+1. We render markdown natively (doc reader, search results): strings are a feature, not a bug, for the reader.
 2. For list/tree UIs (frameworks sidebar, search result rows, sample file trees) we need structure. Two options, decided per-tool in §6:
    - **(A) Parse the markdown** the server returns into models in an Infrastructure layer.
    - **(B) Bypass the wrapper**, call the raw tool, and parse the richer `CallToolResult` content (may contain JSON).
@@ -96,31 +96,31 @@ Dependency direction is strictly one-way: **Foundation → Infrastructure → Fe
 
 ### Foundation layer
 
-- **`DesktopModels`** — pure value types: `Framework`, `DocPage`, `SearchHit`, `SampleProject`, `SampleFile`, `SymbolHit`, `DocURI`. `Sendable`, no dependencies. Make impossible states unrepresentable (e.g. `DocURI` is a validated wrapper, not a bare `String`).
-- **`DesktopCore`** — shared protocols and errors: `DocumentationBackend` protocol (the seam, §5), `BackendError`, paging types.
+- **`DesktopModels`**: pure value types: `Framework`, `DocPage`, `SearchHit`, `SampleProject`, `SampleFile`, `SymbolHit`, `DocURI`. `Sendable`, no dependencies. Make impossible states unrepresentable (e.g. `DocURI` is a validated wrapper, not a bare `String`).
+- **`DesktopCore`**: shared protocols and errors: `DocumentationBackend` protocol (the seam, §5), `BackendError`, paging types.
 
 ### Infrastructure layer
 
-- **`MCPBackend`** — the single adapter that depends on the `cupertino` package's `MCP.Client`. Implements `DocumentationBackend`. Owns subprocess lifecycle, connection state, retries, and the string→model parsing/JSON extraction. **This is the only module that imports `cupertino`.** Everything above it sees the `DocumentationBackend` protocol, never `MCP.Client`.
-- **`MarkdownRendering`** — converts server markdown strings to display models (AttributedString for SwiftUI, NSAttributedString for AppKit). Shared by both apps.
+- **`MCPBackend`**: the single adapter that depends on the `cupertino` package's `MCP.Client`. Implements `DocumentationBackend`. Owns subprocess lifecycle, connection state, retries, and the string→model parsing/JSON extraction. **This is the only module that imports `cupertino`.** Everything above it sees the `DocumentationBackend` protocol, never `MCP.Client`.
+- **`MarkdownRendering`**: converts server markdown strings to display models (AttributedString for SwiftUI, NSAttributedString for AppKit). Shared by both apps.
 
 ### Features layer (UI-framework-agnostic logic + per-framework views)
 
 Each feature ships an `@Observable` ViewModel that depends only on `DocumentationBackend` (injected via `@Dependency`), plus two thin view sets (SwiftUI + AppKit) that bind to the same ViewModel.
 
-- **`SearchFeature`** — query box, result list, scopes (docs / samples / symbols).
-- **`FrameworkBrowserFeature`** — sidebar of frameworks (`list_frameworks`), drill into a framework's pages.
-- **`DocReaderFeature`** — render a `read_document` / `readDocumentation` page, in-page nav, related symbols (`get_inheritance`, `search_conformances`).
-- **`SampleBrowserFeature`** — `list_samples`, `read_sample` (project tree), `read_sample_file` (syntax-highlighted file viewer).
+- **`SearchFeature`**: query box, result list, scopes (docs / samples / symbols).
+- **`FrameworkBrowserFeature`**: sidebar of frameworks (`list_frameworks`), drill into a framework's pages.
+- **`DocReaderFeature`**: render a `read_document` / `readDocumentation` page, in-page nav, related symbols (`get_inheritance`, `search_conformances`).
+- **`SampleBrowserFeature`**: `list_samples`, `read_sample` (project tree), `read_sample_file` (syntax-highlighted file viewer).
 
 ### Components layer
 
-- **`DesktopComponents`** — reusable UI atoms conforming to `Component`: `MarkdownView`, `CodeBlockView`, `FrameworkRow`, `SearchResultRow`, `ConnectionStatusBadge`, `EmptyStateView`. One component per file, filename = component name.
+- **`DesktopComponents`**: reusable UI atoms conforming to `Component`: `MarkdownView`, `CodeBlockView`, `FrameworkRow`, `SearchResultRow`, `ConnectionStatusBadge`, `EmptyStateView`. One component per file, filename = component name.
 
 ### Apps layer
 
-- **`CupertinoDesktopSwiftUI`** — `@main` App, `WindowGroup`, `NavigationSplitView` shell, composition root wiring `@Dependency` values.
-- **`CupertinoDesktopAppKit`** — `NSApplicationDelegate`, `NSWindow` with `NSSplitViewController`, same composition root values.
+- **`CupertinoDesktopSwiftUI`**: `@main` App, `WindowGroup`, `NavigationSplitView` shell, composition root wiring `@Dependency` values.
+- **`CupertinoDesktopAppKit`**: `NSApplicationDelegate`, `NSWindow` with `NSSplitViewController`, same composition root values.
 
 Both apps are pure composition + framework-specific shell. All logic is in Features.
 
@@ -156,7 +156,7 @@ extension DependencyValues {
 
 `DocPage` carries the raw markdown plus parsed metadata so `DocReaderFeature` renders without re-fetching.
 
-## 6. Per-tool model strategy (string → structure)
+## 6. Per-tool model strategy (string to structure)
 
 | Tool | UI need | Strategy | Notes |
 |---|---|---|---|
@@ -168,7 +168,7 @@ extension DependencyValues {
 | `read_sample_file` | code view | string-as-is | already syntax-highlighted text; show in code component |
 | `get_inheritance` / `search_conformances` | related panel | structured | symbol graph edges |
 
-M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON (→ strategy B) or only markdown (→ strategy A parser in `MCPBackend`). No parsing logic leaks above `MCPBackend`.
+M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON (strategy B) or only markdown (strategy A parser in `MCPBackend`). No parsing logic leaks above `MCPBackend`.
 
 ## 7. Subprocess & connection management
 
@@ -182,7 +182,7 @@ M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON
 
 - ViewModels are `@Observable` classes holding `@Dependency(\.backend)`, exposing async load methods and `LoadState<T>` (`idle / loading / loaded(T) / failed(Error)`). Make impossible states unrepresentable; never force-unwrap.
 - SwiftUI views use `@Bindable` over the ViewModel. AppKit controllers observe the same `@Observable` via `withObservationTracking` (or a small `Observations` bridge) to drive `NSView` updates.
-- Navigation: a single `AppRoute` enum (`.search`, `.framework(id)`, `.document(uri)`, `.sample(id)`) drives both shells — `NavigationSplitView` path in SwiftUI, selection state in the AppKit split controller.
+- Navigation: a single `AppRoute` enum (`.search`, `.framework(id)`, `.document(uri)`, `.sample(id)`) drives both shells (the `NavigationSplitView` path in SwiftUI, selection state in the AppKit split controller).
 
 ## 9. Concurrency
 
@@ -198,22 +198,22 @@ M1 spike (§13) records, per tool, whether the raw `CallToolResult` carries JSON
 
 ## 11. Why two apps share one backend
 
-The README's compare-then-decide plan works only if the comparison is fair: identical backend, identical models, identical features — the **only** variable is the UI framework. The layering guarantees that. When the decision is made, the losing `Apps/` target is deleted and nothing else changes.
+The README's compare-then-decide plan works only if the comparison is fair: identical backend, identical models, identical features, with the **only** variable being the UI framework. The layering guarantees that. When the decision is made, the losing `Apps/` target is deleted and nothing else changes.
 
 ## 12. Open questions (decision log)
 
-1. **JSON vs markdown per tool** — resolved by M1 spike; recorded in §6 table.
-2. **Markdown renderer** — native `AttributedString(markdown:)` vs a richer parser (swift-markdown) for code blocks/tables. Lean native first; escalate only if doc fidelity is poor.
-3. **App target form** — `.xcodeproj` per app vs SwiftPM executable app targets in the workspace. Default: `.xcodeproj` per app under `Apps/` (better for entitlements, sandboxing, signing) referencing the `Packages` manifest.
-4. **Sandboxing** — the app spawns a subprocess; confirm App Sandbox entitlements allow it, or ship non-sandboxed for v1 (dev tool). Decide before any distribution work.
-5. **Pinning the cupertino dependency** — local path during dev vs tagged SPM release. Default: local path (`../cupertino`) until the desktop app stabilizes.
+1. **JSON vs markdown per tool**: resolved by M1 spike; recorded in §6 table.
+2. **Markdown renderer**: native `AttributedString(markdown:)` vs a richer parser (swift-markdown) for code blocks/tables. Lean native first; escalate only if doc fidelity is poor.
+3. **App target form**: `.xcodeproj` per app vs SwiftPM executable app targets in the workspace. Default: `.xcodeproj` per app under `Apps/` (better for entitlements, sandboxing, signing) referencing the `Packages` manifest.
+4. **Sandboxing**: the app spawns a subprocess; confirm App Sandbox entitlements allow it, or ship non-sandboxed for v1 (dev tool). Decide before any distribution work.
+5. **Pinning the cupertino dependency**: local path during dev vs tagged SPM release. Default: local path (`../cupertino`) until the desktop app stabilizes.
 
 ## 13. Milestones
 
-- **M0 — Skeleton**: `Main.xcworkspace`, `Packages/Package.swift` with empty layered targets, both `Apps/` targets launching an empty `NavigationSplitView` / `NSSplitViewController`. Compiles, runs, does nothing.
-- **M1 — Backend seam + spike**: `DocumentationBackend`, `MCPBackend` connecting to `cupertino serve`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
-- **M2 — Read path**: framework browser → doc reader rendering `read_document` markdown in both apps.
-- **M3 — Search**: debounced `search_docs` with scopes; result rows navigate to reader.
-- **M4 — Samples**: `list_samples` → `read_sample` tree → `read_sample_file` code viewer.
-- **M5 — Symbols & polish**: `get_inheritance` / conformances related panel; connection-status UX, empty/first-run states, error handling.
-- **M6 — Compare & decide**: evaluate SwiftUI vs AppKit, pick one, delete the other target.
+- **M0 (Skeleton)**: `Main.xcworkspace`, `Packages/Package.swift` with empty layered targets, both `Apps/` targets launching an empty `NavigationSplitView` / `NSSplitViewController`. Compiles, runs, does nothing.
+- **M1 (Backend seam + spike)**: `DocumentationBackend`, `MCPBackend` connecting to `cupertino serve`, `FakeBackend`. Spike each tool to fill the §6 strategy table. First real call: `list_frameworks` into the sidebar.
+- **M2 (Read path)**: framework browser → doc reader rendering `read_document` markdown in both apps.
+- **M3 (Search)**: debounced `search_docs` with scopes; result rows navigate to reader.
+- **M4 (Samples)**: `list_samples` → `read_sample` tree → `read_sample_file` code viewer.
+- **M5 (Symbols & polish)**: `get_inheritance` / conformances related panel; connection-status UX, empty/first-run states, error handling.
+- **M6 (Compare & decide)**: evaluate SwiftUI vs AppKit, pick one, delete the other target.

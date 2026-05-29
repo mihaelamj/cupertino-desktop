@@ -1,6 +1,7 @@
 import AppModels
 import BackendAPI
-import MCPClientAPI
+import CupertinoMCPClientAPI
+import Foundation
 
 public extension Backend {
     /// `Backend.Documentation` adapter for the **local, out-of-process** path: it
@@ -33,7 +34,26 @@ public extension Backend {
         // MARK: FrameworkBrowsing
 
         public func listFrameworks() async throws -> [Model.Framework] {
-            throw Failure.unsupported(operation: "listFrameworks")
+            let markdown = try await client.callTool("list_frameworks", arguments: [:])
+            return Self.parseFrameworks(markdown)
+        }
+
+        /// Parse the `list_frameworks` markdown table (rows like ``| `swiftui` | 8679 |``)
+        /// into `Model.Framework`. Parsing lives here, inside the adapter, never above
+        /// the protocol. The table gives the lowercased id and a document count; we use
+        /// the id as the display name until a richer source provides one.
+        static func parseFrameworks(_ markdown: String) -> [Model.Framework] {
+            markdown.split(whereSeparator: \.isNewline).compactMap { rawLine in
+                let cells = rawLine.split(separator: "|").map { $0.trimmingCharacters(in: .whitespaces) }
+                guard cells.count >= 2,
+                      cells[0].hasPrefix("`"), cells[0].hasSuffix("`")
+                else { return nil }
+                let id = String(cells[0].dropFirst().dropLast())
+                guard !id.isEmpty,
+                      let count = Int(cells[1].replacingOccurrences(of: ",", with: ""))
+                else { return nil }
+                return Model.Framework(id: id, name: id, documentCount: count)
+            }
         }
 
         // MARK: DocumentReading

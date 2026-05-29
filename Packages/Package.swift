@@ -17,8 +17,11 @@ import PackageDescription
 // named by locality, not protocol: `Backend.LocalSubprocess` (out-of-process, talks
 // to a local `cupertino serve` subprocess) and `Backend.LocalEmbedded` (in-process,
 // direct calls, no MCP) are peers; a remote conformer is future. MCP is not an
-// identity here: it is only the wire the subprocess conformer's client (MCPClientKit)
-// speaks, reusing cupertino's cross-platform `MCPCore` types.
+// identity here: it is only the wire the subprocess conformer speaks. The MCP
+// client, its transport seam, and the subprocess transport now live in the external
+// `CupertinoMCPClientKit` package (the client extracted from this repo); we consume
+// its `CupertinoMCPClientAPI` seam above the protocol and wire the concretes in
+// `MacBackendImpl`.
 
 extension Product {
     static func singleTargetLibrary(_ name: String) -> Product {
@@ -30,12 +33,8 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
-    .singleTargetLibrary("MCPClientAPI"),
-    .singleTargetLibrary("TransportAPI"),
     .singleTargetLibrary("AppCore"),
     // Concrete
-    .singleTargetLibrary("MCPClientKit"),
-    .singleTargetLibrary("SubprocessTransport"),
     .singleTargetLibrary("LocalSubprocessBackend"),
     .singleTargetLibrary("MarkdownRendering"),
     .singleTargetLibrary("SearchFeature"),
@@ -51,28 +50,31 @@ let products: [Product] = [
     .singleTargetLibrary("MobileBackendImpl"),
 ]
 
+// The MCP client kit (external, local path): wire core, the Transport.Channel byte
+// seam, the macOS subprocess transport, and the MCPClient over an injected channel,
+// plus the `Client.MCP` seam. Replaces the old in-repo MCPClientKit / MCPClientAPI /
+// TransportAPI / SubprocessTransport packages.
+let kit = "CupertinoMCPClientKit"
+func kitProduct(_ name: String) -> Target.Dependency {
+    .product(name: name, package: kit)
+}
+
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
-    let transportAPI = Target.target(name: "TransportAPI")
-    // The MCP client contract, in our own types (no MCPCore). Lets LocalSubprocessBackend
-    // depend on a protocol instead of the concrete MCPClientKit, so Backend.LocalSubprocess
-    // is testable with a fake and concrete packages stop importing each other.
-    let clientAPI = Target.target(name: "MCPClientAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "AppCore")
-    let api = [models, backendAPI, transportAPI, clientAPI, core]
+    let api = [models, backendAPI, core]
 
     // ---------- Concrete packages (import only API packages) ----------
-    // The MCP client reuses cupertino's cross-platform MCPCore protocol types.
-    let clientKit = Target.target(
-        name: "MCPClientKit",
-        dependencies: ["MCPClientAPI", "TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
+    // The subprocess adapter depends on the client seam (CupertinoMCPClientAPI), not
+    // the concrete client, so it is testable with a fake and imports no MCP wire types.
+    let localSubprocessBackend = Target.target(
+        name: "LocalSubprocessBackend",
+        dependencies: ["BackendAPI", "AppModels", kitProduct("CupertinoMCPClientAPI")],
     )
-    let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["TransportAPI"])
-    let localSubprocessBackend = Target.target(name: "LocalSubprocessBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientAPI"])
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
     // ---------- Features (framework-agnostic view models) ----------
@@ -93,16 +95,23 @@ let targets: [Target] = {
     // Direct cupertino calls land in a later milestone; this scaffold fixes shape.
     let localEmbeddedBackend = Target.target(name: "LocalEmbeddedBackend", dependencies: ["BackendAPI", "AppModels"])
 
-    let concrete = [clientKit, subprocessTransport, localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
-    // MacBackendImpl is the only place the local-subprocess conformer, its MCP
-    // client, and the subprocess transport meet (Desktop). MobileBackendImpl
+    // MacBackendImpl is the only place the local-subprocess conformer, the MCP
+    // client kit, and the subprocess transport meet (Desktop). MobileBackendImpl
     // composes the local-embedded conformer (Mobile). Both vend an opaque
     // `any Backend.Documentation`.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
-        dependencies: ["BackendAPI", "LocalSubprocessBackend", "MCPClientAPI", "MCPClientKit", "TransportAPI", "SubprocessTransport"],
+        dependencies: [
+            "BackendAPI",
+            "LocalSubprocessBackend",
+            kitProduct("CupertinoMCPClient"),
+            kitProduct("CupertinoMCPClientAPI"),
+            kitProduct("CupertinoMCPSubprocessTransport"),
+            kitProduct("CupertinoMCPTransport"),
+        ],
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
@@ -114,10 +123,22 @@ let targets: [Target] = {
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", "MCPClientAPI", "BackendAPI", "AppModels"],
+        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("CupertinoMCPClientAPI"), "BackendAPI", "AppModels"],
+    )
+    let localSubprocessTests = Target.testTarget(
+        name: "LocalSubprocessBackendTests",
+        dependencies: [
+            "LocalSubprocessBackend",
+            kitProduct("CupertinoMCPClient"),
+            kitProduct("CupertinoMCPClientAPI"),
+            kitProduct("CupertinoMCPSubprocessTransport"),
+            kitProduct("CupertinoMCPTransport"),
+            "BackendAPI",
+            "AppModels",
+        ],
     )
 
-    return api + concrete + impl + [coreTests, backendTests]
+    return api + concrete + impl + [coreTests, backendTests, localSubprocessTests]
 }()
 
 let package = Package(
@@ -128,14 +149,16 @@ let package = Package(
     ],
     products: products,
     dependencies: [
-        // Local path to the cupertino monorepo's package. cupertino is an
-        // ExtremePackaging layout, so its manifest is under Packages/, but that
-        // basename collides with ours (SwiftPM derives a path dependency's
-        // identity from its directory basename). We point at the
-        // `CupertinoUpstream` symlink (-> ../../cupertino/Packages) so the
-        // identity is unique. We only link its cross-platform `MCPCore` product.
-        // See docs/DESIGN.md open question 5.
-        .package(name: "Cupertino", path: "CupertinoUpstream"),
+        // The extracted MCP client kit, pinned to a commit on its `main` so CI
+        // resolves it reproducibly. Re-pin this SHA (a one-line bump) to pick up kit
+        // changes during co-development; switch to a tagged release once the kit
+        // stabilizes. The `cupertino` package dependency is intentionally absent: the
+        // subprocess path no longer needs cupertino's `MCPCore`, and the future
+        // in-process embedded path (Mobile) will re-add it when it is actually built.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoMCPClientKit.git",
+            revision: "d13541036e2c18b3edd2b61050a986c5be166919",
+        ),
     ],
     targets: targets,
 )

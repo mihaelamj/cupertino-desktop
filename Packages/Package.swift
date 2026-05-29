@@ -116,8 +116,12 @@ let targets: [Target] = {
         name: "BackendScaffoldTests",
         dependencies: ["MacBackendImpl", "LocalSubprocessBackend", "MCPClientAPI", "BackendAPI", "AppModels"],
     )
+    let transportTests = Target.testTarget(
+        name: "SubprocessTransportTests",
+        dependencies: ["SubprocessTransport", "TransportAPI"],
+    )
 
-    return api + concrete + impl + [coreTests, backendTests]
+    return api + concrete + impl + [coreTests, backendTests, transportTests]
 }()
 
 let package = Package(

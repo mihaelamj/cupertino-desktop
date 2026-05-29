@@ -9,22 +9,22 @@ import Testing
 struct BackendScaffoldTests {
     @Test("MacBackend.live() composes an opaque DocumentationBackend")
     func liveComposes() async {
-        // The composition root returns the seam type, not a concrete: callers
-        // cannot tell it is MCP-over-subprocess (enforced at compile time by the
-        // `any Backend.Documentation` annotation). This is the contract that lets
-        // iOS swap in the embedded backend later with no change above the seam. At
-        // M0 the subprocess transport is unimplemented, so connecting fails
-        // honestly rather than pretending the backend is up.
+        // The composition root returns the seam type, not a concrete: callers cannot
+        // tell it is MCP-over-subprocess (enforced at compile time by the
+        // `any Backend.Documentation` annotation). This is the contract that lets iOS
+        // swap in the embedded adapter later with no change above the seam. We assert
+        // a verb fails honestly with our own `Failure` (no process is spawned: the
+        // unimplemented verb throws before touching the transport).
         let backend: any Backend.Documentation = MacBackend.live()
-        await #expect(throws: (any Error).self) {
-            try await backend.connect()
+        await #expect(throws: Backend.Failure.self) {
+            _ = try await backend.searchEverything(Model.UnifiedQuery(text: "swiftui"))
         }
     }
 
     @Test("Unimplemented calls fail honestly rather than returning fake data")
     func unimplementedThrows() async {
         let backend = MacBackend.live()
-        await #expect(throws: (any Error).self) {
+        await #expect(throws: Backend.Failure.self) {
             _ = try await backend.listFrameworks()
         }
     }

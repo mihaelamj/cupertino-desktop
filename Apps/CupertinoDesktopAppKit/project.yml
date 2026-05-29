@@ -26,7 +26,7 @@ targets:
       - package: CupertinoDesktopPackages
         product: ShellAppKit
       - package: CupertinoDesktopPackages
-        product: DesktopCore
+        product: AppCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.appkit

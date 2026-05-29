@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 public extension Feature {
     /// Documentation reader: renders a `read_document` page, in-page navigation,

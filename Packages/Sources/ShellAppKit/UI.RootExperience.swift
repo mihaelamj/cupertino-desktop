@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 #if canImport(AppKit)
     import AppKit

@@ -1,4 +1,4 @@
-@testable import DesktopCore
+@testable import AppCore
 import Testing
 
 @Suite("M0 skeleton")

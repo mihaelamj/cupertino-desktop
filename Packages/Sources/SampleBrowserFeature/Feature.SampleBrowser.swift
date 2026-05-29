@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 public extension Feature {
     /// Sample code browser: `list_samples`, `read_sample` project tree, and the

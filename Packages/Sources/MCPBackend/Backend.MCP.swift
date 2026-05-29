@@ -1,5 +1,5 @@
+import AppModels
 import BackendAPI
-import DesktopModels
 import MCPClientKit
 
 public extension Backend {

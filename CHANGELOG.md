@@ -24,6 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`SubprocessTransport`) spawning `cupertino serve`. `MacBackendImpl` is the
   composition root wiring those together; the future iOS embedded backend will
   be a separate direct-call conformer with no MCP. Real value types in
-  `DesktopModels`. Method bodies are honest M1 placeholders (throw, never fake).
+  `AppModels`. Method bodies are honest M1 placeholders (throw, never fake).
 - `scripts/generate-xcodeproj.sh` to materialize the per-app Xcode projects from
   their `project.yml` manifests.

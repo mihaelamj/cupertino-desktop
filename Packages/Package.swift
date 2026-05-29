@@ -26,10 +26,10 @@ extension Product {
 
 let products: [Product] = [
     // API / seam
-    .singleTargetLibrary("DesktopModels"),
+    .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
     .singleTargetLibrary("TransportAPI"),
-    .singleTargetLibrary("DesktopCore"),
+    .singleTargetLibrary("AppCore"),
     // Concrete
     .singleTargetLibrary("MCPClientKit"),
     .singleTargetLibrary("SubprocessTransport"),
@@ -47,12 +47,12 @@ let products: [Product] = [
 
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
-    let models = Target.target(name: "DesktopModels")
-    let backendAPI = Target.target(name: "BackendAPI", dependencies: ["DesktopModels"])
+    let models = Target.target(name: "AppModels")
+    let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
     let transportAPI = Target.target(name: "TransportAPI")
-    // DesktopCore holds the UI/Feature namespace anchors + the framework-agnostic
+    // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
-    let core = Target.target(name: "DesktopCore")
+    let core = Target.target(name: "AppCore")
     let api = [models, backendAPI, transportAPI, core]
 
     // ---------- Concrete packages (import only API packages) ----------
@@ -62,11 +62,11 @@ let targets: [Target] = {
         dependencies: ["TransportAPI", .product(name: "MCPCore", package: "Cupertino")],
     )
     let subprocessTransport = Target.target(name: "SubprocessTransport", dependencies: ["TransportAPI"])
-    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "DesktopModels", "MCPClientKit"])
-    let markdown = Target.target(name: "MarkdownRendering", dependencies: ["DesktopModels"])
+    let mcpBackend = Target.target(name: "MCPBackend", dependencies: ["BackendAPI", "AppModels", "MCPClientKit"])
+    let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
     // ---------- Features (framework-agnostic view models) ----------
-    let featureDependencies: [Target.Dependency] = ["DesktopCore", "BackendAPI", "MarkdownRendering"]
+    let featureDependencies: [Target.Dependency] = ["AppCore", "BackendAPI", "MarkdownRendering"]
     let search = Target.target(name: "SearchFeature", dependencies: featureDependencies)
     let frameworkBrowser = Target.target(name: "FrameworkBrowserFeature", dependencies: featureDependencies)
     let docReader = Target.target(name: "DocReaderFeature", dependencies: featureDependencies)
@@ -74,7 +74,7 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
-    let uiDependencies: [Target.Dependency] = ["DesktopCore", "MarkdownRendering"]
+    let uiDependencies: [Target.Dependency] = ["AppCore", "MarkdownRendering"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
 
@@ -89,10 +89,10 @@ let targets: [Target] = {
     let impl = [macBackendImpl]
 
     // ---------- Tests ----------
-    let coreTests = Target.testTarget(name: "DesktopCoreTests", dependencies: ["DesktopCore"])
+    let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "BackendAPI", "DesktopModels"],
+        dependencies: ["MacBackendImpl", "BackendAPI", "AppModels"],
     )
 
     return api + concrete + impl + [coreTests, backendTests]

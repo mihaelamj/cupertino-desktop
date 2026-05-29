@@ -1,5 +1,5 @@
+import AppCore
 import AppKit
-import DesktopCore
 import ShellAppKit
 
 /// Entry point only; the window's content comes from the AppKit shell package,

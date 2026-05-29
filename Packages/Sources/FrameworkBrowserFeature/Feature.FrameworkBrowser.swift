@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 public extension Feature {
     /// Framework browser: the sidebar of frameworks from `list_frameworks` and

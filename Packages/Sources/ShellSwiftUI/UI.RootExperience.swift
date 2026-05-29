@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 #if canImport(SwiftUI)
     import SwiftUI

@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 
 public extension Feature {
     /// Search feature: query box, scopes (docs / samples / symbols), and result

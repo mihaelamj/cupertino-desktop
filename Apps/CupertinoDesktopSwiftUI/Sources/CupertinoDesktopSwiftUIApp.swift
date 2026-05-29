@@ -1,4 +1,4 @@
-import DesktopCore
+import AppCore
 import ShellSwiftUI
 import SwiftUI
 

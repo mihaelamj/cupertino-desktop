@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		21A73289F8DD85CD544B6892 /* DesktopCore in Frameworks */ = {isa = PBXBuildFile; productRef = 983BFAF403CC8D7F85ED361F /* DesktopCore */; };
+		21A73289F8DD85CD544B6892 /* AppCore in Frameworks */ = {isa = PBXBuildFile; productRef = 48A17FF4C30DE81227E4F715 /* AppCore */; };
 		561E90B439EA0A01754CD669 /* ShellSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0C6540AF714657F5179C3A05 /* ShellSwiftUI */; };
 		D36E6F3442AFA9340625E9A3 /* CupertinoDesktopSwiftUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0675ABB4AC3782FB2E76B38C /* CupertinoDesktopSwiftUIApp.swift */; };
 /* End PBXBuildFile section */
@@ -24,7 +24,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				561E90B439EA0A01754CD669 /* ShellSwiftUI in Frameworks */,
-				21A73289F8DD85CD544B6892 /* DesktopCore in Frameworks */,
+				21A73289F8DD85CD544B6892 /* AppCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -81,7 +81,7 @@
 			name = CupertinoDesktopSwiftUI;
 			packageProductDependencies = (
 				0C6540AF714657F5179C3A05 /* ShellSwiftUI */,
-				983BFAF403CC8D7F85ED361F /* DesktopCore */,
+				48A17FF4C30DE81227E4F715 /* AppCore */,
 			);
 			productName = CupertinoDesktopSwiftUI;
 			productReference = FFB4391D1E2F7134FFFC7521 /* CupertinoDesktopSwiftUI.app */;
@@ -337,9 +337,9 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = ShellSwiftUI;
 		};
-		983BFAF403CC8D7F85ED361F /* DesktopCore */ = {
+		48A17FF4C30DE81227E4F715 /* AppCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = DesktopCore;
+			productName = AppCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -93,16 +93,16 @@ cupertino-desktop/
 │   ├── Package.swift                # single manifest, all library targets
 │   ├── Sources/
 │   │   # --- API / seam packages (protocols + value types only) ---
-│   │   ├── DesktopModels/           # value types (Framework, DocPage, SearchHit, ...)
+│   │   ├── AppModels/           # value types (Framework, DocPage, SearchHit, ...)
 │   │   ├── BackendAPI/              # DocumentationBackend protocol + errors (the ONLY universal seam)
 │   │   ├── TransportAPI/         # Transport protocol; internal to the MCP conformer
 │   │   ├── CatalogStoreAPI/         # CatalogStore protocol (where the DBs live; embedded path)  [future]
-│   │   ├── DesktopCore/             # UI namespace + framework-agnostic RootModel
+│   │   ├── AppCore/             # UI namespace + framework-agnostic RootModel
 │   │   # --- Concrete packages (depend only on API packages) ---
 │   │   ├── MCPClientKit/            # JSON-RPC client over `any Transport` (+ MCPCore types)
 │   │   ├── SubprocessTransport/     # Transport: spawns `cupertino serve` (macOS)
 │   │   ├── RemoteTransport/         # Transport: HTTP/SSE to a remote MCP server (future)
-│   │   ├── MCPBackend/              # DocumentationBackend conformer over MCPClientKit; maps -> DesktopModels
+│   │   ├── MCPBackend/              # DocumentationBackend conformer over MCPClientKit; maps -> AppModels
 │   │   ├── EmbeddedBackend/         # DocumentationBackend conformer via direct cupertino calls (future, iOS+mac)
 │   │   ├── BundledCatalogStore/     # CatalogStore: DBs shipped as app resources         [future]
 │   │   ├── DownloadableCatalogStore/# CatalogStore: fetch + cache DBs on first run        [future]
@@ -131,8 +131,8 @@ Types are namespaced under short per-module semantic anchors (`Model`, `Backend`
 
 ### Foundation layer
 
-- **`DesktopModels`**: pure value types: `Framework`, `DocPage`, `SearchHit`, `SampleProject`, `SampleFile`, `SymbolHit`, `DocURI`. `Sendable`, no dependencies. Make impossible states unrepresentable (e.g. `DocURI` is a validated wrapper, not a bare `String`).
-- **`DesktopCore`**: shared protocols and errors: `DocumentationBackend` protocol (the seam, §5), `BackendError`, paging types.
+- **`AppModels`**: pure value types: `Framework`, `DocPage`, `SearchHit`, `SampleProject`, `SampleFile`, `SymbolHit`, `DocURI`. `Sendable`, no dependencies. Make impossible states unrepresentable (e.g. `DocURI` is a validated wrapper, not a bare `String`).
+- **`AppCore`**: shared protocols and errors: `DocumentationBackend` protocol (the seam, §5), `BackendError`, paging types.
 
 ### Infrastructure layer
 
@@ -155,7 +155,7 @@ The UI ships as **two parallel packages that implement the same functionality, c
 - **`DesktopUISwiftUI`**: native SwiftUI views bound to the shared view models. Exposes `UI.RootExperience` (a protocol vending a SwiftUI `View`) with a `UI.LiveRootExperience` conformer.
 - **`DesktopUIAppKit`**: native AppKit view controllers bound to the same view models. Exposes `UI.RootExperience` (the same qualified name and method shape, vending an `NSViewController`) with its own `UI.LiveRootExperience`.
 
-The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view models) lives in `DesktopCore`/Features so both packages bind identically. The two `RootExperience` protocols are parallel (idiomatic per framework: `some View` vs `NSViewController`), not one erased type, so neither side pays a hosting/erasure penalty.
+The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view models) lives in `AppCore`/Features so both packages bind identically. The two `RootExperience` protocols are parallel (idiomatic per framework: `some View` vs `NSViewController`), not one erased type, so neither side pays a hosting/erasure penalty.
 
 ### Apps layer
 
@@ -172,7 +172,7 @@ There is exactly **one universal seam**: `DocumentationBackend`. Features and UI
 Features / UI
      │  depends only on
      ▼
-DocumentationBackend          (BackendAPI)   domain verbs, returns DesktopModels
+DocumentationBackend          (BackendAPI)   domain verbs, returns AppModels
      ├── MCPBackend           (macOS now): MCP JSON-RPC over a Transport
      │        └── Transport   (TransportAPI): stdio now, remote later
      │              ├── SubprocessTransport   (spawn `cupertino serve`)
@@ -185,7 +185,7 @@ The two conformers are independent and have nothing in common below `Documentati
 
 ### 5.1 `DocumentationBackend` (the only universal seam)
 
-Pure domain language, returns `DesktopModels` value types, never leaks MCP or cupertino types. Both conformers honour the same contract.
+Pure domain language, returns `AppModels` value types, never leaks MCP or cupertino types. Both conformers honour the same contract.
 
 ```swift
 public protocol DocumentationBackend: Sendable {
@@ -236,7 +236,7 @@ public protocol Transport: Sendable {
 
 ### 5.3 Conformer B: `EmbeddedBackend` (iOS / mac, direct calls, future)
 
-iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to. The honest answer is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `EmbeddedBackend` conforms `DocumentationBackend` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `DesktopModels`. No MCP, no JSON-RPC, no transport. This is the iOS production path and the higher-fidelity one.
+iOS cannot spawn a subprocess, so there is no `cupertino serve` to talk to. The honest answer is **not** to run an in-process MCP server and talk to ourselves over a fake channel; it is to call cupertino's read APIs directly. `EmbeddedBackend` conforms `DocumentationBackend` by calling the same services `cupertino serve` calls (`Services.ReadService`, `Search.Index`, `Sample.Index`, the production source registry), opening the SQLite DBs through a `CatalogStore` (section 5.5), and mapping cupertino's typed results into `AppModels`. No MCP, no JSON-RPC, no transport. This is the iOS production path and the higher-fidelity one.
 
 **Hard upstream constraint**: cupertino's read targets are macOS-only today (`platforms: [.macOS(.v13)]`, `#if os(macOS)`, `FileManager.homeDirectoryForCurrentUser`). So `EmbeddedBackend` is **not buildable for iOS** against cupertino as it stands. Per the maintainer's call ("most correct and highest fidelity, extremely refactored"), the plan is the proper upstream refactor in the cupertino repo: add the `.iOS` platform, split the read path cleanly from the macOS-only crawler/indexer/WebKit producers, and resolve all paths through injection (`Shared.Paths` is already path-DI). This is real cross-repo work, scheduled before the iOS apps (milestone M8), not a local shim.
 

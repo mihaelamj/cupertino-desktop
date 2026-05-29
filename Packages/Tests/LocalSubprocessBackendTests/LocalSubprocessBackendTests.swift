@@ -1,12 +1,12 @@
 import AppModels
 import BackendAPI
+import CupertinoMCPClient
+import CupertinoMCPClientAPI
+import CupertinoMCPSubprocessTransport
+import CupertinoMCPTransport
 import Foundation
 @testable import LocalSubprocessBackend
-import MCPClientAPI
-import MCPClientKit
-import SubprocessTransport
 import Testing
-import TransportAPI
 
 @Suite("LocalSubprocess adapter")
 struct LocalSubprocessBackendTests {

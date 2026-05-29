@@ -1,9 +1,9 @@
 import BackendAPI
+import CupertinoMCPClient
+import CupertinoMCPClientAPI
+import CupertinoMCPSubprocessTransport
+import CupertinoMCPTransport
 import LocalSubprocessBackend
-import MCPClientAPI
-import MCPClientKit
-import SubprocessTransport
-import TransportAPI
 
 /// Composition root for the macOS backend: the one place the concrete MCP
 /// conformer, the client, and the subprocess transport are wired together.

@@ -70,7 +70,13 @@ public extension Backend {
                 framework: query.framework,
                 language: query.language,
                 limit: query.limit,
-                includeArchive: false,
+                includeArchive: selected.isEmpty || selected.contains(.appleArchive),
+                minIOS: query.floor.iOS,
+                minMacOS: query.floor.macOS,
+                minTvOS: query.floor.tvOS,
+                minWatchOS: query.floor.watchOS,
+                minVisionOS: query.floor.visionOS,
+                minSwift: query.floor.swift,
             )
             let hits = results.compactMap(Self.hit(from:))
             guard selected.count > 1, selected.count < Model.Source.allCases.count else { return hits }

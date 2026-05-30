@@ -6,13 +6,13 @@ import SearchFeature
     import SwiftUI
 
     public extension UI {
-        /// The SwiftUI search screen: a form exposing every `searchDocs` option the
-        /// backend can answer (text, the source databases, framework, per-platform
-        /// minimums, and a result limit), with the results listed below. It binds the
-        /// framework-agnostic `Feature.Search.ViewModel`, so the AppKit and UIKit shells
-        /// can present the same options over the same view model.
+        /// The SwiftUI search screen. The results are the main content (a search bar on
+        /// top, the result list filling the screen); every other `searchDocs` option
+        /// lives behind a Filters sheet so it never buries the results. It binds the
+        /// framework-agnostic `Feature.Search.ViewModel`.
         struct SearchView: View {
             @Bindable private var model: Feature.Search.ViewModel
+            @State private var showingFilters = false
 
             public init(model: Feature.Search.ViewModel) {
                 _model = Bindable(model)
@@ -20,13 +20,47 @@ import SearchFeature
 
             public var body: some View {
                 NavigationStack {
-                    Form {
-                        Section("Query") {
-                            TextField("Search text", text: $model.text)
-                                .onSubmit { model.run() }
-                            Stepper("Limit: \(model.limit)", value: $model.limit, in: 1 ... 100)
+                    content
+                        .navigationTitle("Search")
+                        .searchable(text: $model.text, prompt: "Search documentation")
+                        .onSubmit(of: .search) { model.run() }
+                        .toolbar {
+                            ToolbarItem(placement: .primaryAction) {
+                                Button { showingFilters = true } label: {
+                                    Label("Filters", systemImage: "line.3.horizontal.decrease.circle")
+                                }
+                            }
                         }
+                        .sheet(isPresented: $showingFilters) { filters }
+                        .task { if !model.hasRun { model.run() } }
+                }
+            }
 
+            @ViewBuilder private var content: some View {
+                if model.isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = model.errorMessage {
+                    ContentUnavailableView("Could not search", systemImage: "exclamationmark.triangle", description: Text(error))
+                } else if model.hasRun, model.results.isEmpty {
+                    ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
+                } else {
+                    List(model.results) { hit in
+                        ResultRow(hit: hit)
+                    }
+                    .overlay(alignment: .top) {
+                        Text("\(model.results.count) results")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                    }
+                }
+            }
+
+            /// Every remaining option, behind the Filters button.
+            private var filters: some View {
+                NavigationStack {
+                    Form {
                         Section("Databases") {
                             ForEach(Model.Source.allCases, id: \.self) { source in
                                 Toggle(source.scheme, isOn: Binding(
@@ -35,45 +69,26 @@ import SearchFeature
                                 ))
                             }
                         }
-
                         Section("Filters") {
                             TextField("Framework (e.g. SwiftUI)", text: $model.framework)
                             TextField("min iOS (e.g. 17.0)", text: $model.minIOS)
                             TextField("min macOS (e.g. 14.0)", text: $model.minMacOS)
                             TextField("min Swift (e.g. 5.9)", text: $model.minSwift)
                         }
-
-                        Section {
-                            Button("Run search") { model.run() }
+                        Section("Limit") {
+                            Stepper("Limit: \(model.limit)", value: $model.limit, in: 1 ... 100)
                         }
-
-                        results
                     }
-                    .navigationTitle("Search")
-                    .task { if !model.hasRun { model.run() } }
-                }
-            }
-
-            @ViewBuilder private var results: some View {
-                if model.isLoading {
-                    Section {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    }
-                } else if let error = model.errorMessage {
-                    Section {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.secondary)
-                    }
-                } else if model.hasRun {
-                    Section("Results (\(model.results.count))") {
-                        if model.results.isEmpty {
-                            Text("No matches for these options.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(model.results) { hit in
-                                ResultRow(hit: hit)
+                    .navigationTitle("Filters")
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Apply") {
+                                model.run()
+                                showingFilters = false
                             }
+                        }
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") { showingFilters = false }
                         }
                     }
                 }

@@ -11,9 +11,11 @@ public extension Backend {
     /// Local-remote is the axis: a future remote adapter would talk to a hosted
     /// cupertino over the network instead.
     ///
-    /// The tool calls and the string/JSON to `AppModels` mapping (docs/PROTOCOL.md
-    /// section 4) land in milestone M1; this scaffold fixes the shape and wiring and
-    /// fails honestly with `Failure.unsupported` until each verb is implemented.
+    /// The verb-to-tool mapping is docs/PROTOCOL.md section 4: `read_document`
+    /// returns JSON (decoded straight into `DocPage`); the search-list tools return
+    /// the server's ranked markdown, which this adapter parses (see the parsing
+    /// extension) into `AppModels`. Verbs no feature drives yet still fail honestly
+    /// with `Failure.unsupported`.
     actor LocalSubprocess: Documentation {
         private let client: any Client.MCP
 
@@ -58,14 +60,52 @@ public extension Backend {
 
         // MARK: DocumentReading
 
-        public func readDocument(_: Model.DocURI) async throws -> Model.DocPage {
-            throw Failure.unsupported(operation: "readDocument")
+        /// `read_document` returns JSON by default, so the reader gets a structured
+        /// page without scraping markdown. We decode the fields we model and carry the
+        /// server's `rawMarkdown` through as the body.
+        public func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+            let json = try await client.callTool("read_document", arguments: [
+                "uri": .string(uri.rawValue),
+                "format": .string("json"),
+            ])
+            guard let data = json.data(using: .utf8) else {
+                throw Failure.decoding("read_document returned non-UTF8 content")
+            }
+            let raw: RawDocument
+            do {
+                raw = try JSONDecoder().decode(RawDocument.self, from: data)
+            } catch {
+                throw Failure.decoding("read_document JSON did not match the expected shape: \(error)")
+            }
+            let body = (raw.rawMarkdown?.isEmpty == false ? raw.rawMarkdown : nil)
+                ?? raw.abstract ?? raw.title ?? uri.rawValue
+            return Model.DocPage(
+                uri: uri,
+                source: Self.source(of: uri),
+                title: raw.title ?? uri.rawValue,
+                abstract: raw.abstract,
+                declaration: raw.declaration.map { Model.DocPage.Declaration(code: $0.code, language: $0.language) },
+                markdown: body,
+                sections: raw.sections?.map { Model.DocPage.Section(title: $0.title, markdown: $0.content) } ?? [],
+            )
         }
 
         // MARK: Searching
 
-        public func searchDocs(_: Model.DocsQuery) async throws -> [Model.DocHit] {
-            throw Failure.unsupported(operation: "searchDocs")
+        /// `search` per selected doc-like source, parsing each response's ranked
+        /// markdown blocks into `DocHit`. `samples`/`packages` carry a different nature
+        /// and are excluded here (they answer through `searchEverything`). The platform
+        /// floor maps to cupertino's `min_*` arguments, so filtering happens server-side.
+        public func searchDocs(_ query: Model.DocsQuery) async throws -> [Model.DocHit] {
+            guard !query.text.isEmpty else { return [] }
+            let requested = query.sources.intersection(Self.docLikeSources)
+            let sources = requested.isEmpty ? [Model.Source.appleDocs] : requested
+            var hits: [Model.DocHit] = []
+            for source in sources.sorted(by: { $0.scheme < $1.scheme }) {
+                let markdown = try await client.callTool("search", arguments: Self.searchArguments(query, source: source))
+                hits.append(contentsOf: Self.parseDocHits(markdown))
+            }
+            return Array(hits.prefix(max(0, query.limit)))
         }
 
         public func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
@@ -76,8 +116,15 @@ public extension Backend {
             throw Failure.unsupported(operation: "searchPackages")
         }
 
-        public func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
-            throw Failure.unsupported(operation: "searchEverything")
+        /// The unified scope: one `search` with no source returns every source's hits
+        /// already bucketed under section headers, which we parse into the doc, sample,
+        /// and package buckets in a single round-trip.
+        public func searchEverything(_ query: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+            guard !query.text.isEmpty else {
+                return Model.UnifiedResults(docs: [], samples: Model.SampleResults(projects: [], files: []), packages: [])
+            }
+            let markdown = try await client.callTool("search", arguments: Self.unifiedArguments(query))
+            return Self.parseUnified(markdown)
         }
 
         // MARK: SampleBrowsing

@@ -1,25 +1,29 @@
 import AppCore
 import AppModels
+import CodeHighlighting
+import MarkdownRendering
 import SearchFeature
 
 #if canImport(UIKit)
     import UIKit
 
     extension UI {
-        /// Reader pushed when a UIKit search result is tapped. It reads the document by
-        /// URI through the shared, framework-agnostic `Feature.Search.ViewModel`, the same
-        /// view model the SwiftUI and AppKit search screens bind, and renders its full
-        /// markdown body. View code only; the read lives behind the protocol seam.
+        /// Reader pushed when a UIKit search result (or an in-document link) is opened. It
+        /// reads the document by URI through the shared, framework-agnostic
+        /// `Feature.Search.ViewModel`, renders its full markdown, carries the reader
+        /// text-size control, and pushes a new reader when a link inside the page is tapped.
         @MainActor
-        final class DocumentReaderViewController: UIViewController {
+        final class DocumentReaderViewController: UIViewController, UITextViewDelegate {
             private let model: Feature.Search.ViewModel
-            private let hit: Model.DocHit
+            private let uri: Model.DocURI
+            private let providedTitle: String?
             private let textView = UITextView()
             private let spinner = UIActivityIndicatorView(style: .large)
 
-            init(model: Feature.Search.ViewModel, hit: Model.DocHit) {
+            init(model: Feature.Search.ViewModel, uri: Model.DocURI, title: String?) {
                 self.model = model
-                self.hit = hit
+                self.uri = uri
+                providedTitle = title
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -30,10 +34,12 @@ import SearchFeature
 
             override func viewDidLoad() {
                 super.viewDidLoad()
-                title = hit.title
+                title = providedTitle
                 view.backgroundColor = .systemBackground
+                refreshSizeControl()
 
                 textView.isEditable = false
+                textView.delegate = self
                 textView.alwaysBounceVertical = true
                 textView.font = .preferredFont(forTextStyle: .body)
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
@@ -56,18 +62,60 @@ import SearchFeature
                 load()
             }
 
+            private var page: Model.DocPage?
+
             private func load() {
                 spinner.startAnimating()
                 Task { @MainActor in
                     defer { spinner.stopAnimating() }
                     do {
-                        let page = try await model.readPage(hit.uri)
-                        textView.text = page.markdown
+                        let loaded = try await model.readPage(uri)
+                        page = loaded
+                        if title == nil { title = loaded.title }
+                        render()
                     } catch {
                         textView.text = "Could not open the document."
                     }
                     textView.isHidden = false
                 }
+            }
+
+            private func render() {
+                guard let page else { return }
+                let base = Markdown.Theme().basePointSize
+                textView.attributedText = Markdown.attributed(
+                    page: page,
+                    highlighter: Highlight.Splash(),
+                    theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
+                )
+            }
+
+            @objc private func textLarger() {
+                Model.ReaderTextSize.larger()
+                refreshSizeControl()
+                render()
+            }
+
+            @objc private func textSmaller() {
+                Model.ReaderTextSize.smaller()
+                refreshSizeControl()
+                render()
+            }
+
+            private func refreshSizeControl() {
+                navigationItem.rightBarButtonItems = UI.ReaderTextSize.barButtonItems(
+                    target: self, larger: #selector(textLarger), smaller: #selector(textSmaller),
+                )
+            }
+
+            /// A tapped in-document link that resolves to a doc URI pushes a new reader;
+            /// other links open normally.
+            func textView(_: UITextView, shouldInteractWith url: URL, in _: NSRange, interaction _: UITextItemInteraction) -> Bool {
+                guard let linked = Model.DocURI(url.absoluteString) else { return true }
+                navigationController?.pushViewController(
+                    DocumentReaderViewController(model: model, uri: linked, title: nil), animated: true,
+                )
+                return false
             }
         }
     }

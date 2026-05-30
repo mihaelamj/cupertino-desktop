@@ -43,7 +43,7 @@ struct SearchViewModelTests {
 
 /// A fake `Backend.Searching`: the view model depends only on that slice, so the test
 /// needs no transport and no corpus.
-private struct FakeSearch: Backend.Searching {
+private struct FakeSearch: Backend.Searching, Backend.DocumentReading {
     var fail = false
 
     enum Boom: Error { case boom }
@@ -52,6 +52,10 @@ private struct FakeSearch: Backend.Searching {
         if fail { throw Boom.boom }
         guard let uri = Model.DocURI("apple-docs://swiftui/view") else { return [] }
         return [Model.DocHit(id: "1", uri: uri, source: .appleDocs, title: "View", framework: "SwiftUI", snippet: "", score: 1)]
+    }
+
+    func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+        Model.DocPage(uri: uri, source: .appleDocs, title: "View", markdown: "# View")
     }
 
     func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {

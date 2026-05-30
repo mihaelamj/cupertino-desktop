@@ -68,11 +68,16 @@ public extension Feature.Search {
             if case .idle = state { false } else { true }
         }
 
-        private let backend: any Backend.Searching
+        private let backend: any Backend.Searching & Backend.DocumentReading
         private var task: Task<Void, Never>?
 
-        public init(backend: any Backend.Searching) {
+        public init(backend: any Backend.Searching & Backend.DocumentReading) {
             self.backend = backend
+        }
+
+        /// Read a document by URI so a tapped result can open its page.
+        public func readPage(_ uri: Model.DocURI) async throws -> Model.DocPage {
+            try await backend.readDocument(uri)
         }
 
         public func toggle(_ source: Model.Source) {

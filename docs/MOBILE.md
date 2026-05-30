@@ -129,11 +129,23 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
 
 ## Status
 
-- `CupertinoDataKit` shapes confirmed with cupertino (its corrected verbs are `search`,
-  `fetch`, `list-frameworks`; `Framework` identity is `name`). cupertino cuts/owns/tags the
-  repo; this app scaffolds the protocols by PR for cupertino's critic.
-- `CupertinoDataEngine` (cupertino's engine extracted iOS-buildable) proposed to cupertino;
-  awaiting its feasibility read on decoupling the engine from server/CLI/indexer.
-- Next, once both land: add them as versioned deps, write the `MobileData` wiring
-  (`CatalogStore` + `LocalEmbeddedBackend`), and wire the first iOS variant over the shared
-  view models.
+- **`CupertinoDataKit` published and consumed.** v0.1.0 is on GitHub (cupertino-owned,
+  tagged); this app depends on it by version and never on the `cupertino` repo. The
+  embedded adapter `Backend.LocalEmbedded` conforms an injected
+  `CupertinoDataKit.Search.DocumentReading` and maps results into `AppModels`.
+- **Two universal mobile apps ship today** over that seam: `CupertinoMobileSwiftUI`
+  (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over `ShellUIKit`), each a single
+  adaptive target handling iPhone (compact) and iPad (regular) idioms. This supersedes
+  the earlier four-device-specific-shell sketch; per-device behaviour is specified in
+  [UI-DESIGN.md](UI-DESIGN.md).
+- **`CupertinoDataEngine` (the real iOS read engine): designed and accepted, but
+  implementation deferred to a future cupertino release** (maintainer decision, design
+  doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
+  over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
+  second implementation of the same `Search.Database` contract, added behind
+  `MobileBackend.live(dataSource:)` with no adapter change.
+- **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
+  `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
+  framework names, real document counts, and real Apple abstracts captured from the
+  cupertino index. It honours the answerable search options (source, framework, query,
+  limit). The macOS subprocess (MCP) path is unaffected by all of this.

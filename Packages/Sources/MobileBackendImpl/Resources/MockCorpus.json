@@ -1,0 +1,94 @@
+{
+  "_note": "Captured from the cupertino documentation index (apple-docs) on 2026-05-30 via the MCP search/list tools. Real framework names, real document counts, and real Apple abstracts, used as life-like mock content until CupertinoDataEngine ships. Not the full corpus; an expandable subset.",
+  "frameworks": [
+    { "id": "Swift", "count": 18717 },
+    { "id": "Foundation", "count": 13649 },
+    { "id": "AppKit", "count": 13378 },
+    { "id": "UIKit", "count": 12416 },
+    { "id": "SwiftUI", "count": 8679 },
+    { "id": "AVFoundation", "count": 5348 },
+    { "id": "RealityKit", "count": 4456 },
+    { "id": "Metal", "count": 4050 },
+    { "id": "ARKit", "count": 2363 },
+    { "id": "HealthKit", "count": 2102 },
+    { "id": "Vision", "count": 1881 },
+    { "id": "Network", "count": 1949 },
+    { "id": "StoreKit", "count": 1414 },
+    { "id": "MapKit", "count": 1290 },
+    { "id": "CloudKit", "count": 1283 },
+    { "id": "CoreData", "count": 1107 },
+    { "id": "Combine", "count": 1062 },
+    { "id": "CoreML", "count": 913 },
+    { "id": "CryptoKit", "count": 665 },
+    { "id": "Charts", "count": 601 },
+    { "id": "SwiftData", "count": 467 },
+    { "id": "WidgetKit", "count": 329 },
+    { "id": "Testing", "count": 209 },
+    { "id": "Observation", "count": 19 }
+  ],
+  "documents": [
+    {
+      "uri": "apple-docs://SwiftUI/documentation",
+      "framework": "SwiftUI",
+      "title": "SwiftUI",
+      "summary": "Declare the user interface and behavior for your app on every platform.",
+      "markdown": "# SwiftUI\n\nDeclare the user interface and behavior for your app on every platform.\n\n## Overview\n\nSwiftUI provides views, controls, and layout structures for declaring your app's user interface. The framework provides event handlers for delivering taps, gestures, and other types of input to your app, and tools to manage the flow of data from your app's models down to the views and controls that users see and interact with.\n\nDefine your app structure using the `App` protocol, and populate it with scenes that contain the views that make up your app's user interface. Create your own custom views that conform to the `View` protocol, and compose them with SwiftUI views for displaying text, images, and custom shapes using stacks, lists, and more.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://SwiftUI/accessibility-fundamentals",
+      "framework": "SwiftUI",
+      "title": "Accessibility fundamentals",
+      "summary": "Make your SwiftUI apps accessible to everyone, including people with disabilities.",
+      "markdown": "# Accessibility fundamentals\n\nMake your SwiftUI apps accessible to everyone, including people with disabilities.\n\n## Overview\n\nLike all Apple UI frameworks, SwiftUI comes with built-in accessibility support. The framework introspects common elements like navigation views, lists, text fields, sliders, buttons, and so on, and provides basic accessibility labels and values by default.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://UIKit/documentation",
+      "framework": "UIKit",
+      "title": "UIKit",
+      "summary": "Construct and manage a graphical, event-driven user interface for your iOS, iPadOS, or tvOS app.",
+      "markdown": "# UIKit\n\nConstruct and manage a graphical, event-driven user interface for your iOS, iPadOS, or tvOS app.\n\n## Overview\n\nUIKit provides a variety of features for building apps, including components you can use to construct the core infrastructure of your iOS, iPadOS, or tvOS apps. The framework provides the window and view architecture for implementing your UI, the event-handling infrastructure for delivering Multi-Touch and other types of input to your app, and the main run loop for managing interactions between the user, the system, and your app.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://Foundation/documentation",
+      "framework": "Foundation",
+      "title": "Foundation",
+      "summary": "Access essential data types, collections, and operating-system services to define the base layer of functionality for your app.",
+      "markdown": "# Foundation\n\nAccess essential data types, collections, and operating-system services to define the base layer of functionality for your app.\n\n## Overview\n\nThe Foundation framework provides a base layer of functionality for apps and frameworks, including data storage and persistence, text processing, date and time calculations, sorting and filtering, and networking.\n\n## Topics\n\n- Numbers, Data, and Basic Values\n- Strings and Text\n- Collections\n- Dates and Times\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://Combine/documentation",
+      "framework": "Combine",
+      "title": "Combine",
+      "summary": "Customize handling of asynchronous events by combining event-processing operators.",
+      "markdown": "# Combine\n\nCustomize handling of asynchronous events by combining event-processing operators.\n\n## Overview\n\nThe Combine framework provides a declarative Swift API for processing values over time. Combine declares publishers to expose values that can change over time, and subscribers to receive those values from the publishers.\n\nThe `Publisher` protocol declares a type that can deliver a sequence of values over time. At the end of a chain of publishers, a `Subscriber` acts on elements as it receives them.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://SwiftData/documentation",
+      "framework": "SwiftData",
+      "title": "SwiftData",
+      "summary": "Write your model code declaratively to add managed persistence and efficient model fetching.",
+      "markdown": "# SwiftData\n\nWrite your model code declaratively to add managed persistence and efficient model fetching.\n\n## Overview\n\nCombining Core Data's proven persistence technology and Swift's modern concurrency features, SwiftData enables you to add persistence to your app quickly, with minimal code and no external dependencies. Using modern language features like macros, SwiftData enables you to describe the entire model layer for your app.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://SwiftData/persistentidentifier",
+      "framework": "SwiftData",
+      "title": "PersistentIdentifier",
+      "summary": "A type that describes the aggregate identity of a SwiftData model.",
+      "markdown": "# PersistentIdentifier\n\nA type that describes the aggregate identity of a SwiftData model.\n\n```swift\nstruct PersistentIdentifier\n```\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://Observation/observable-macro",
+      "framework": "Observation",
+      "title": "Observable()",
+      "summary": "Defines and implements conformance of the Observable protocol.",
+      "markdown": "# Observable()\n\nDefines and implements conformance of the Observable protocol.\n\n```swift\n@attached(member) @attached(memberAttribute) @attached(extension, conformances: Observable)\nmacro Observable()\n```\n\n## Overview\n\nThis macro adds observation support to a custom type and conforms the type to the `Observable` protocol.\n\n_Captured from the cupertino index (apple-docs)._"
+    },
+    {
+      "uri": "apple-docs://WidgetKit/documentation",
+      "framework": "WidgetKit",
+      "title": "WidgetKit",
+      "summary": "Extend the reach of your app by creating widgets, watch complications, Live Activities, and controls.",
+      "markdown": "# WidgetKit\n\nExtend the reach of your app by creating widgets, watch complications, Live Activities, and controls.\n\n## Overview\n\nUsing WidgetKit, you can make your app's content available in contexts outside the app and extend its reach by building an ecosystem of glanceable, up-to-date experiences. On iPhone and iPad, people put widgets in Today View, on the Home Screen, and on the Lock Screen. On Mac, people put native Mac app widgets on the desktop and in Notification Center.\n\n_Captured from the cupertino index (apple-docs)._"
+    }
+  ]
+}

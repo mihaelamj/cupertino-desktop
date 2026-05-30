@@ -93,7 +93,7 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
-    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature"]
+    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature", "SearchFeature"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
     let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
@@ -161,8 +161,13 @@ let targets: [Target] = {
         name: "LocalEmbeddedBackendTests",
         dependencies: ["LocalEmbeddedBackend", dataKitProduct, "BackendAPI", "AppModels"],
     )
+    let searchFeatureTests = Target.testTarget(
+        name: "SearchFeatureTests",
+        dependencies: ["SearchFeature", "AppCore", "BackendAPI", "AppModels"],
+    )
 
-    return api + concrete + impl + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests]
+    return api + concrete + impl
+        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests]
 }()
 
 let package = Package(

@@ -15,6 +15,10 @@ import FrameworkBrowserFeature
         struct RootView: View {
             @Bindable private var model: RootModel
             private let frameworks: Feature.FrameworkBrowser.ViewModel
+            /// Keep the sidebar pinned open so iPad shows the list and detail together
+            /// in both orientations, rather than the detail-prominent default that slides
+            /// the sidebar away as an overlay.
+            @State private var columnVisibility = NavigationSplitViewVisibility.all
 
             public init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
                 _model = Bindable(model)
@@ -22,13 +26,14 @@ import FrameworkBrowserFeature
             }
 
             public var body: some View {
-                NavigationSplitView {
+                NavigationSplitView(columnVisibility: $columnVisibility) {
                     sidebar
                         .navigationTitle("Cupertino (SwiftUI)")
                         .task { frameworks.onAppeared() }
                 } detail: {
                     detailColumn
                 }
+                .navigationSplitViewStyle(.balanced)
                 .onChange(of: model.selectedFrameworkID) { _, newID in
                     frameworks.selectFramework(newID)
                 }

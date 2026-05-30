@@ -6,10 +6,12 @@ import FrameworkBrowserFeature
     import SwiftUI
 
     public extension UI {
-        /// The SwiftUI app shell: a three-column navigation split view. The sidebar is
-        /// the live framework list from `Feature.FrameworkBrowser.ViewModel`; the
-        /// content and detail columns are still placeholders (later milestones). The
-        /// view binds the shared, framework-agnostic view model and contains no logic.
+        /// The SwiftUI app shell: a two-column navigation split view. The sidebar is the
+        /// live framework list from `Feature.FrameworkBrowser.ViewModel`; the detail
+        /// renders the selected framework's overview document. The view binds the shared,
+        /// framework-agnostic view model and contains no logic. `NavigationSplitView`
+        /// adapts across size classes: columns on iPad regular width, a navigation stack
+        /// on iPhone compact width (tapping a framework pushes the detail).
         struct RootView: View {
             @Bindable private var model: RootModel
             private let frameworks: Feature.FrameworkBrowser.ViewModel
@@ -24,20 +26,11 @@ import FrameworkBrowserFeature
                     sidebar
                         .navigationTitle("Cupertino (SwiftUI)")
                         .task { frameworks.onAppeared() }
-                } content: {
-                    ContentUnavailableView(
-                        "Select a framework",
-                        systemImage: "books.vertical",
-                    )
                 } detail: {
-                    if let id = model.selectedFrameworkID {
-                        Text(id)
-                    } else {
-                        ContentUnavailableView(
-                            "Select a document",
-                            systemImage: "doc.text",
-                        )
-                    }
+                    detailColumn
+                }
+                .onChange(of: model.selectedFrameworkID) { _, newID in
+                    frameworks.selectFramework(newID)
                 }
             }
 
@@ -58,6 +51,36 @@ import FrameworkBrowserFeature
                         FrameworkRow(framework: framework)
                     }
                 }
+            }
+
+            @ViewBuilder private var detailColumn: some View {
+                if frameworks.isLoadingDocument {
+                    ProgressView()
+                } else if let markdown = frameworks.selectedMarkdown {
+                    ScrollView {
+                        Text(Self.rendered(markdown))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .padding()
+                    }
+                    .navigationTitle(frameworks.selectedDocumentTitle ?? "")
+                } else if let error = frameworks.documentError {
+                    ContentUnavailableView(
+                        "Could not load document",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(error),
+                    )
+                } else {
+                    ContentUnavailableView("Select a framework", systemImage: "doc.text")
+                }
+            }
+
+            /// Render markdown for display, preserving line breaks and inline styling.
+            /// Block syntax (headings, fenced code) stays literal, which is fine for the
+            /// current mock content; a full renderer is a later milestone.
+            private static func rendered(_ markdown: String) -> AttributedString {
+                let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+                return (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
             }
         }
 

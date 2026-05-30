@@ -1,23 +1,24 @@
 import AppCore
+import FrameworkBrowserFeature
 
 #if canImport(AppKit)
     import AppKit
 
     extension UI {
-        /// The AppKit detail column. It mirrors the SwiftUI shell one-to-one: when a
-        /// framework is selected it shows the id (the same minimal content SwiftUI
-        /// shows via `Text(id)`), otherwise the "Select a document" empty state. It
-        /// observes `RootModel.selectedFrameworkID` with `withObservationTracking`, the
-        /// AppKit equivalent of SwiftUI's automatic binding. Replaced by the real
-        /// document reader in a later milestone.
+        /// The AppKit detail column. Renders the selected framework's overview document
+        /// from `Feature.FrameworkBrowser.ViewModel`, mirroring the SwiftUI and UIKit
+        /// detail: a scrollable text view of the markdown, a spinner while loading, an
+        /// empty state otherwise. Observes the view model with `withObservationTracking`.
         @MainActor
         final class SelectionDetailViewController: NSViewController {
-            private let model: RootModel
-            private let idLabel = NSTextField(labelWithString: "")
+            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let scrollView = NSScrollView()
+            private let textView = NSTextView()
+            private let progress = NSProgressIndicator()
             private let emptyState = NSStackView()
 
-            init(model: RootModel) {
-                self.model = model
+            init(frameworks: Feature.FrameworkBrowser.ViewModel) {
+                self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -29,28 +30,43 @@ import AppCore
             override func loadView() {
                 let container = NSView()
 
-                idLabel.font = .systemFont(ofSize: NSFont.systemFontSize + 6, weight: .semibold)
-                idLabel.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(idLabel)
+                textView.isEditable = false
+                textView.drawsBackground = false
+                textView.textContainerInset = NSSize(width: 16, height: 16)
+                textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+                scrollView.documentView = textView
+                scrollView.hasVerticalScroller = true
+                scrollView.drawsBackground = false
+                scrollView.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(scrollView)
+
+                progress.style = .spinning
+                progress.controlSize = .regular
+                progress.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(progress)
 
                 let image = NSImageView()
                 image.image = NSImage(systemSymbolName: "doc.text", accessibilityDescription: nil)
                 image.symbolConfiguration = .init(pointSize: 36, weight: .regular)
                 image.contentTintColor = .tertiaryLabelColor
-                let title = NSTextField(labelWithString: "Select a document")
-                title.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
-                title.textColor = .secondaryLabelColor
+                let label = NSTextField(labelWithString: "Select a framework")
+                label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
+                label.textColor = .secondaryLabelColor
                 emptyState.orientation = .vertical
                 emptyState.alignment = .centerX
                 emptyState.spacing = 8
                 emptyState.addArrangedSubview(image)
-                emptyState.addArrangedSubview(title)
+                emptyState.addArrangedSubview(label)
                 emptyState.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(emptyState)
 
                 NSLayoutConstraint.activate([
-                    idLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    idLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                    scrollView.topAnchor.constraint(equalTo: container.topAnchor),
+                    scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                    progress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                    progress.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                     emptyState.centerXAnchor.constraint(equalTo: container.centerXAnchor),
                     emptyState.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                 ])
@@ -65,7 +81,7 @@ import AppCore
 
             private func track() {
                 withObservationTracking {
-                    _ = model.selectedFrameworkID
+                    _ = frameworks.documentState
                 } onChange: { [weak self] in
                     Task { @MainActor in
                         guard let self else { return }
@@ -76,13 +92,21 @@ import AppCore
             }
 
             private func render() {
-                if let id = model.selectedFrameworkID {
-                    idLabel.stringValue = id
-                    idLabel.isHidden = false
+                let loading = frameworks.isLoadingDocument
+                progress.isHidden = !loading
+                if loading { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
+
+                if let markdown = frameworks.selectedMarkdown {
+                    scrollView.isHidden = false
                     emptyState.isHidden = true
+                    textView.string = markdown
+                } else if let error = frameworks.documentError {
+                    scrollView.isHidden = false
+                    emptyState.isHidden = true
+                    textView.string = error
                 } else {
-                    idLabel.isHidden = true
-                    emptyState.isHidden = false
+                    scrollView.isHidden = true
+                    emptyState.isHidden = loading
                 }
             }
         }

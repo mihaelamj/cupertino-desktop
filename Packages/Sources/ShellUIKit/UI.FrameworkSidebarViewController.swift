@@ -159,7 +159,9 @@ import FrameworkBrowserFeature
 
             func tableView(_: UITableView, didSelectRowAt indexPath: IndexPath) {
                 guard indexPath.row < frameworks.frameworks.count else { return }
-                model.selectedFrameworkID = frameworks.frameworks[indexPath.row].id
+                let id = frameworks.frameworks[indexPath.row].id
+                model.selectedFrameworkID = id
+                frameworks.selectFramework(id)
                 splitViewController?.show(.secondary)
             }
         }

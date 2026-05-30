@@ -46,7 +46,7 @@ import FrameworkBrowserFeature
                 sidebar.title = "Cupertino (UIKit)"
                 setViewController(sidebar, for: .primary)
                 setViewController(Self.placeholder("Select a framework", symbol: "books.vertical"), for: .supplementary)
-                setViewController(SelectionDetailViewController(model: model), for: .secondary)
+                setViewController(SelectionDetailViewController(frameworks: frameworks), for: .secondary)
             }
 
             // MARK: UISplitViewControllerDelegate

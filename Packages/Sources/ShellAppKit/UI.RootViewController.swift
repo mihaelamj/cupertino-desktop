@@ -52,7 +52,7 @@ import FrameworkBrowserFeature
                 // The reader/detail column. It mirrors the SwiftUI shell: the selected
                 // framework id when one is chosen, the empty state otherwise. Lower
                 // holding priority so it takes the slack when the window resizes.
-                let detailItem = NSSplitViewItem(viewController: SelectionDetailViewController(model: model))
+                let detailItem = NSSplitViewItem(viewController: SelectionDetailViewController(frameworks: frameworks))
                 detailItem.minimumThickness = 320
                 detailItem.holdingPriority = .init(245)
                 addSplitViewItem(detailItem)

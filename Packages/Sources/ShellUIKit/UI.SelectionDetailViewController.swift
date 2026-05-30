@@ -1,22 +1,23 @@
 import AppCore
+import FrameworkBrowserFeature
 
 #if canImport(UIKit)
     import UIKit
 
     extension UI {
-        /// The UIKit detail column. Mirrors the SwiftUI and AppKit shells one-to-one:
-        /// the selected framework id when one is chosen, the "Select a document" empty
-        /// state otherwise. Observes `RootModel.selectedFrameworkID` with
-        /// `withObservationTracking`, the UIKit equivalent of SwiftUI's automatic
-        /// binding. Replaced by the real document reader in a later milestone.
+        /// The UIKit detail column. Renders the selected framework's overview document
+        /// from `Feature.FrameworkBrowser.ViewModel`, mirroring the SwiftUI detail: a
+        /// scrollable text view of the markdown, a spinner while loading, an empty state
+        /// otherwise. State changes are picked up with `withObservationTracking`.
         @MainActor
         final class SelectionDetailViewController: UIViewController {
-            private let model: RootModel
-            private let idLabel = UILabel()
+            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let textView = UITextView()
+            private let spinner = UIActivityIndicatorView(style: .medium)
             private let emptyState = UIStackView()
 
-            init(model: RootModel) {
-                self.model = model
+            init(frameworks: Feature.FrameworkBrowser.ViewModel) {
+                self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -29,29 +30,39 @@ import AppCore
                 super.viewDidLoad()
                 view.backgroundColor = .systemBackground
 
-                idLabel.font = .preferredFont(forTextStyle: .title2)
-                idLabel.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(idLabel)
+                textView.isEditable = false
+                textView.alwaysBounceVertical = true
+                textView.font = .preferredFont(forTextStyle: .body)
+                textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+                textView.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview(textView)
+
+                spinner.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview(spinner)
 
                 let image = UIImageView(image: UIImage(systemName: "doc.text"))
                 image.tintColor = .tertiaryLabel
                 image.contentMode = .scaleAspectFit
                 image.preferredSymbolConfiguration = .init(pointSize: 36, weight: .regular)
-                let title = UILabel()
-                title.text = "Select a document"
-                title.font = .preferredFont(forTextStyle: .headline)
-                title.textColor = .secondaryLabel
+                let label = UILabel()
+                label.text = "Select a framework"
+                label.font = .preferredFont(forTextStyle: .headline)
+                label.textColor = .secondaryLabel
                 emptyState.axis = .vertical
                 emptyState.alignment = .center
                 emptyState.spacing = 8
                 emptyState.addArrangedSubview(image)
-                emptyState.addArrangedSubview(title)
+                emptyState.addArrangedSubview(label)
                 emptyState.translatesAutoresizingMaskIntoConstraints = false
                 view.addSubview(emptyState)
 
                 NSLayoutConstraint.activate([
-                    idLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    idLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+                    textView.topAnchor.constraint(equalTo: view.topAnchor),
+                    textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                    textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                    textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                    spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                    spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor),
                     emptyState.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                     emptyState.centerYAnchor.constraint(equalTo: view.centerYAnchor),
                 ])
@@ -62,7 +73,7 @@ import AppCore
 
             private func track() {
                 withObservationTracking {
-                    _ = model.selectedFrameworkID
+                    _ = frameworks.documentState
                 } onChange: { [weak self] in
                     Task { @MainActor in
                         guard let self else { return }
@@ -73,14 +84,23 @@ import AppCore
             }
 
             private func render() {
-                if let id = model.selectedFrameworkID {
-                    idLabel.text = id
-                    idLabel.isHidden = false
+                let loading = frameworks.isLoadingDocument
+                spinner.isHidden = !loading
+                if loading { spinner.startAnimating() } else { spinner.stopAnimating() }
+
+                if let markdown = frameworks.selectedMarkdown {
+                    textView.isHidden = false
                     emptyState.isHidden = true
-                    title = id
+                    textView.text = markdown
+                    title = frameworks.selectedDocumentTitle
+                } else if let error = frameworks.documentError {
+                    textView.isHidden = false
+                    emptyState.isHidden = true
+                    textView.text = error
+                    title = nil
                 } else {
-                    idLabel.isHidden = true
-                    emptyState.isHidden = false
+                    textView.isHidden = true
+                    emptyState.isHidden = loading
                     title = nil
                 }
             }

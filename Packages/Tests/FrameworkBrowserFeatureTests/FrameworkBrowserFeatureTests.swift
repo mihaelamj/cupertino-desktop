@@ -62,7 +62,7 @@ struct FrameworkBrowserViewModelTests {
 
 /// A minimal `Backend.Connecting & Backend.FrameworkBrowsing` double. Possible only
 /// because the view model depends on the narrow slices, not the full backend.
-private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing {
+private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing, Backend.Searching, Backend.DocumentReading {
     enum Mode {
         case success([Model.Framework])
         case fail
@@ -81,6 +81,26 @@ private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing {
     }
 
     func disconnect() async {}
+
+    func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+        Model.DocPage(uri: uri, source: .appleDocs, title: "Doc", markdown: "# Doc")
+    }
+
+    func searchDocs(_: Model.DocsQuery) async throws -> [Model.DocHit] {
+        []
+    }
+
+    func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
+        throw Failure.boom
+    }
+
+    func searchPackages(_: Model.PackageQuery) async throws -> [Model.PackageHit] {
+        throw Failure.boom
+    }
+
+    func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+        throw Failure.boom
+    }
 
     func listFrameworks() async throws -> [Model.Framework] {
         switch mode {

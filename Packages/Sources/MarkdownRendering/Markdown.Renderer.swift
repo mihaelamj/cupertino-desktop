@@ -94,7 +94,7 @@ import Markdown
             let line = NSMutableAttributedString()
             appendInline(heading, attributes: attributes, into: line)
             out.append(line)
-            out.append(NSAttributedString(string: "\n", attributes: attributes))
+            out.append(blockBreak())
         }
 
         private func appendParagraph(_ paragraph: Paragraph, into out: NSMutableAttributedString) {
@@ -103,7 +103,7 @@ import Markdown
             let line = NSMutableAttributedString()
             appendInline(paragraph, attributes: attributes, into: line)
             out.append(line)
-            out.append(NSAttributedString(string: "\n", attributes: attributes))
+            out.append(blockBreak())
         }
 
         func appendCodeBlock(_ code: String, language: String?, into out: NSMutableAttributedString) {
@@ -234,8 +234,11 @@ import Markdown
             return copy
         }
 
+        /// A blank line between blocks. An explicit blank line (not just paragraph
+        /// spacing) is needed because SwiftUI's `Text(AttributedString)` ignores
+        /// `NSParagraphStyle.paragraphSpacing`; the AppKit/UIKit text views honor both.
         private func blockBreak() -> NSAttributedString {
-            NSAttributedString(string: "\n", attributes: [.font: theme.body])
+            NSAttributedString(string: "\n\n", attributes: [.font: theme.body])
         }
 
         private func bodyParagraphStyle() -> NSParagraphStyle {

@@ -56,6 +56,8 @@ import MarkdownRendering
                     declaration: declaration,
                     highlighter: Highlight.Splash(),
                     theme: Markdown.Theme(basePointSize: Self.baseSize * scale),
+                    // SwiftUI Text ignores paragraph spacing, so use explicit blank lines.
+                    spacing: .blankLine,
                 )
             }
         }

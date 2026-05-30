@@ -1,12 +1,17 @@
 import AppCore
 import AppKit
+import FrameworkBrowserFeature
+import MacBackendImpl
 import ShellAppKit
 
 /// Entry point only; the window's content comes from the AppKit shell package,
-/// consumed through the shared-shape `RootExperience` protocol.
+/// consumed through the shared-shape `RootExperience` protocol. This composition
+/// root is the one place the live backend is created (`MacBackend.live()`) and
+/// injected into the feature view models.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = UI.RootModel()
+    private let frameworks = Feature.FrameworkBrowser.ViewModel(backend: MacBackend.live())
     private let experience: any UI.RootExperience = UI.LiveRootExperience()
     private var window: NSWindow?
 
@@ -14,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
-        let window = NSWindow(contentViewController: experience.makeRoot(model: model))
+        let window = NSWindow(contentViewController: experience.makeRoot(model: model, frameworks: frameworks))
         window.setContentSize(NSSize(width: 1000, height: 640))
         window.title = "Cupertino Desktop"
         window.center()

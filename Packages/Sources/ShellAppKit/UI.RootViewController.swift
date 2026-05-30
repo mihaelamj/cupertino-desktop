@@ -1,20 +1,22 @@
 import AppCore
+import FrameworkBrowserFeature
 
 #if canImport(AppKit)
     import AppKit
 
     public extension UI {
-        /// The AppKit app shell: an empty split view controller mirroring the SwiftUI
-        /// `RootView`, bound to the shared `RootModel`. Milestone M0 placeholder, built
-        /// entirely in code with no XIB (docs/rules/package-structure.md). Per-feature
-        /// AppKit packages supply the column controllers later, injected at the app
-        /// composition root.
+        /// The AppKit app shell: a three-column split view mirroring the SwiftUI
+        /// `RootView`. The sidebar is the live framework list (`FrameworkSidebarViewController`
+        /// over `Feature.FrameworkBrowser.ViewModel`); content and detail are still
+        /// placeholders. Built entirely in code, no XIB (docs/rules/package-structure.md).
         @MainActor
         final class RootViewController: NSSplitViewController {
             private let model: RootModel
+            private let frameworks: Feature.FrameworkBrowser.ViewModel
 
-            public init(model: RootModel) {
+            public init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.model = model
+                self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -25,9 +27,8 @@ import AppCore
 
             override public func viewDidLoad() {
                 super.viewDidLoad()
-                addSplitViewItem(
-                    NSSplitViewItem(sidebarWithViewController: Self.placeholder("Frameworks")),
-                )
+                let sidebar = FrameworkSidebarViewController(model: model, frameworks: frameworks)
+                addSplitViewItem(NSSplitViewItem(sidebarWithViewController: sidebar))
                 addSplitViewItem(
                     NSSplitViewItem(viewController: Self.placeholder("Select a framework")),
                 )

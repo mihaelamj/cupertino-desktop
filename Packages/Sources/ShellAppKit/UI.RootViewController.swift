@@ -5,14 +5,14 @@ import FrameworkBrowserFeature
     import AppKit
 
     public extension UI {
-        /// The AppKit app shell: a three-column split view mirroring the SwiftUI
+        /// The AppKit app shell: a two-column split view mirroring the SwiftUI
         /// `RootView`. The sidebar is the live framework list (`FrameworkSidebarViewController`
-        /// over `Feature.FrameworkBrowser.ViewModel`); content and detail are still
-        /// placeholders. Built entirely in code, no XIB (docs/rules/package-structure.md).
+        /// over `Feature.FrameworkBrowser.ViewModel`); the detail renders the selected
+        /// framework's document. Built entirely in code, no XIB (docs/rules/package-structure.md).
         ///
         /// Unlike SwiftUI's `NavigationSplitView`, AppKit does not hand you the
         /// sidebar-toggle toolbar button or column sizing for free, so this controller
-        /// wires both explicitly: minimum thicknesses so all three columns render, and
+        /// wires both explicitly: minimum thicknesses so both columns render, and
         /// an `NSToolbar` with a custom leading toggle button (`isNavigational`) that
         /// stays pinned by the title instead of sliding away when the sidebar collapses.
         @MainActor
@@ -40,18 +40,8 @@ import FrameworkBrowserFeature
                 sidebarItem.maximumThickness = 360
                 addSplitViewItem(sidebarItem)
 
-                // The document-list column (still a placeholder), a plain content item
-                // with a floor so it cannot collapse away. (Not a content-list item: a
-                // second collapsible region confuses the sidebar toggle.)
-                let contentItem = NSSplitViewItem(
-                    viewController: Self.placeholder("Select a framework", symbol: "books.vertical"),
-                )
-                contentItem.minimumThickness = 240
-                addSplitViewItem(contentItem)
-
-                // The reader/detail column. It mirrors the SwiftUI shell: the selected
-                // framework id when one is chosen, the empty state otherwise. Lower
-                // holding priority so it takes the slack when the window resizes.
+                // The reader/detail column renders the selected framework's document.
+                // Lower holding priority so it takes the slack when the window resizes.
                 let detailItem = NSSplitViewItem(viewController: SelectionDetailViewController(frameworks: frameworks))
                 detailItem.minimumThickness = 320
                 detailItem.holdingPriority = .init(245)
@@ -106,35 +96,6 @@ import FrameworkBrowserFeature
                 item.target = self
                 item.action = #selector(NSSplitViewController.toggleSidebar(_:))
                 return item
-            }
-
-            /// An empty-state placeholder column: a centered SF Symbol over a title,
-            /// matching the SwiftUI shell's `ContentUnavailableView`.
-            private static func placeholder(_ title: String, symbol: String) -> NSViewController {
-                let controller = NSViewController()
-                let container = NSView()
-
-                let image = NSImageView()
-                image.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-                image.symbolConfiguration = .init(pointSize: 36, weight: .regular)
-                image.contentTintColor = .tertiaryLabelColor
-
-                let label = NSTextField(labelWithString: title)
-                label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
-                label.textColor = .secondaryLabelColor
-
-                let stack = NSStackView(views: [image, label])
-                stack.orientation = .vertical
-                stack.alignment = .centerX
-                stack.spacing = 8
-                stack.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(stack)
-                NSLayoutConstraint.activate([
-                    stack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    stack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                ])
-                controller.view = container
-                return controller
             }
         }
     }

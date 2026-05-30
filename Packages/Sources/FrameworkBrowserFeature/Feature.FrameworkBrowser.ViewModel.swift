@@ -43,6 +43,7 @@ public extension Feature.FrameworkBrowser {
 
         private let backend: any Backend.Connecting & Backend.FrameworkBrowsing
         private var loadTask: Task<Void, Never>?
+        private var didConnect = false
 
         public init(backend: any Backend.Connecting & Backend.FrameworkBrowsing) {
             self.backend = backend
@@ -55,6 +56,9 @@ public extension Feature.FrameworkBrowser {
         /// dismissed view's in-flight load cannot keep the model alive.
         public func onAppeared() {
             guard case .idle = state else { return }
+            // Move out of `.idle` synchronously so a second onAppeared (before the task
+            // body runs) is rejected by the guard above, rather than starting a second load.
+            state = .loading
             loadTask = Task { [weak self] in await self?.load() }
         }
 
@@ -70,7 +74,13 @@ public extension Feature.FrameworkBrowser {
         func load() async {
             state = .loading
             do {
-                try await backend.connect()
+                // Connect once. If a prior connect succeeded but the list call failed, a
+                // retry must not reconnect (that would spawn a second `cupertino serve`);
+                // if connect itself threw, `didConnect` stays false and a retry reconnects.
+                if !didConnect {
+                    try await backend.connect()
+                    didConnect = true
+                }
                 let frameworks = try await backend.listFrameworks()
                 if Task.isCancelled { return }
                 state = .loaded(frameworks)

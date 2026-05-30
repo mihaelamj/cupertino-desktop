@@ -98,6 +98,10 @@ import FrameworkBrowserFeature
                 item.label = "Toggle Sidebar"
                 item.toolTip = "Toggle Sidebar"
                 item.isBordered = true
+                // Per NSToolbarItem.isNavigational: the system positions navigational
+                // items at the leading edge of the window's title area (the same place as
+                // Finder's back/forward buttons), so the toggle stays by the title instead
+                // of tracking the sidebar and jumping on collapse.
                 item.isNavigational = true
                 item.target = self
                 item.action = #selector(NSSplitViewController.toggleSidebar(_:))

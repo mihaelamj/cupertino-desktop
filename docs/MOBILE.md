@@ -146,6 +146,7 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   `MobileBackend.live(dataSource:)` with no adapter change.
 - **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
-  framework names, real document counts, and real Apple abstracts captured from the
-  cupertino index. It honours the answerable search options (source, framework, query,
-  limit). The macOS subprocess (MCP) path is unaffected by all of this.
+  framework names, real document counts, and real Apple documents (full page bodies, not
+  just abstracts) captured verbatim from the cupertino index. It honours the answerable
+  search options (source, framework, query, the per-platform-minimum floor, and limit). The
+  macOS subprocess (MCP) path is unaffected by all of this.

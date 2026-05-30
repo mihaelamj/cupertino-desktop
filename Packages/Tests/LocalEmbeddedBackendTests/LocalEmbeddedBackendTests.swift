@@ -86,6 +86,19 @@ struct LocalEmbeddedBackendTests {
         #expect(hits.first?.title == "View")
     }
 
+    @Test("searchDocs over a multi-source subset keeps only the selected sources")
+    func searchDocsFiltersToSelectedSources() async throws {
+        let results = [
+            docResult("apple-docs://swiftui/view", source: "apple-docs"),
+            docResult("hig://components/button", source: "hig"),
+            docResult("swift-evolution://0001", source: "swift-evolution"),
+        ]
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(results: results))
+        let hits = try await backend.searchDocs(Model.DocsQuery(text: "x", sources: [.appleDocs, .hig]))
+        #expect(hits.count == 2)
+        #expect(Set(hits.map(\.source)) == Set([Model.Source.appleDocs, .hig])) // swift-evolution dropped
+    }
+
     @Test("an unadopted slice (samples) fails honestly")
     func unsupportedVerb() async {
         let backend = Backend.LocalEmbedded(dataSource: FakeDataSource())
@@ -93,6 +106,11 @@ struct LocalEmbeddedBackendTests {
             _ = try await backend.listSamples(framework: nil, limit: 10)
         }
     }
+}
+
+/// A minimal `Search.Result` for the given URI and source, enough to map to a DocHit.
+private func docResult(_ uri: String, source: String) -> Search.Result {
+    Search.Result(uri: uri, source: source, framework: "", title: uri, summary: "", filePath: "", wordCount: 1, rank: -1)
 }
 
 /// A fake `Search.DocumentReading`: the adapter depends on the protocol, so the read

@@ -56,15 +56,25 @@ public extension Backend {
         // MARK: Searching
 
         public func searchDocs(_ query: Model.DocsQuery) async throws -> [Model.DocHit] {
+            // The contract's `search` takes a single optional source, so a one-source
+            // query is expressed precisely. A subset of two or more cannot be passed in
+            // one call: we search across all sources, then filter the hits down to the
+            // selection below, which keeps the sources honest (no hit from a deselected
+            // source leaks through) at the cost of possibly fewer than `limit` rows for
+            // such queries. An empty or full selection means "all sources": no filter.
+            let selected = query.sources
+            let singleSource = selected.count == 1 ? selected.first?.scheme : nil
             let results = try await dataSource.search(
                 query: query.text,
-                source: query.sources.count == 1 ? query.sources.first?.scheme : nil,
+                source: singleSource,
                 framework: query.framework,
                 language: query.language,
                 limit: query.limit,
                 includeArchive: false,
             )
-            return results.compactMap(Self.hit(from:))
+            let hits = results.compactMap(Self.hit(from:))
+            guard selected.count > 1, selected.count < Model.Source.allCases.count else { return hits }
+            return hits.filter { selected.contains($0.source) }
         }
 
         public func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
@@ -148,6 +158,10 @@ public extension Backend {
 
         /// A `Search.Result` into a `Model.DocHit`, or nil when its URI is not a valid
         /// `Model.DocURI` (a malformed row is dropped rather than surfaced).
+        ///
+        /// `DocHit.availability` is left empty for now: the result's availability is a
+        /// freeform string and `Model.Availability` is structured, so it is mapped only
+        /// once the reader actually consumes it (an empty list, not a fabricated one).
         static func hit(from result: Search.Result) -> Model.DocHit? {
             guard let uri = Model.DocURI(result.uri) else { return nil }
             return Model.DocHit(

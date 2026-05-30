@@ -75,6 +75,15 @@ import FrameworkBrowserFeature
                 frameworks.onAppeared()
             }
 
+            /// Compact width (iPhone) uses push navigation, so deselect the row on return
+            /// ("Handling row selection in a table view"). Regular width (iPad) keeps the
+            /// selection highlighted (Split Views HIG); see `syncSelectionFromModel`.
+            override func viewWillAppear(_ animated: Bool) {
+                super.viewWillAppear(animated)
+                guard splitViewController?.isCollapsed == true, let selected = tableView.indexPathForSelectedRow else { return }
+                tableView.deselectRow(at: selected, animated: animated)
+            }
+
             /// Re-render on every view-model state change, then re-arm the tracker
             /// (a single `withObservationTracking` fires once).
             private func trackState() {
@@ -111,6 +120,7 @@ import FrameworkBrowserFeature
             }
 
             private func syncSelectionFromModel() {
+                guard splitViewController?.isCollapsed != true else { return } // iPad only; iPhone deselects on return
                 guard let id = model.selectedFrameworkID,
                       let row = frameworks.frameworks.firstIndex(where: { $0.id == id })
                 else { return }

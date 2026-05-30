@@ -21,6 +21,17 @@ is_enforcement_file() {
   esac
 }
 
+# Generated data corpora are verbatim captures of third-party documentation
+# (real Apple / Swift docs, em dashes and all), produced by
+# scripts/build-mock-corpus.py. They are data, not authored prose; rewriting
+# their punctuation would corrupt the captured source text, so skip them.
+is_generated_data_file() {
+  case "$1" in
+    */MockCorpus.json) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Tool-attribution phrases. Assembled from fragments so this script does not
 # contain the full literal phrases (which would self-flag in other scanners).
 TOOL="Cla""ude"
@@ -35,7 +46,7 @@ PHRASES=(
 
 while IFS= read -r f; do
   [ -f "$f" ] || continue
-  if LC_ALL=C grep -qF -- "$EMDASH" "$f" 2>/dev/null; then
+  if ! is_generated_data_file "$f" && LC_ALL=C grep -qF -- "$EMDASH" "$f" 2>/dev/null; then
     echo "style: em dash (U+2014) in $f" >&2
     FAIL=1
   fi

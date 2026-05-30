@@ -15,4 +15,12 @@ public enum MobileBackend {
     public static func live(dataSource: any Search.DocumentReading) -> any Backend.Documentation {
         Backend.LocalEmbedded(dataSource: dataSource)
     }
+
+    /// A development backend over `MockReader` (a hand-written `Search.DocumentReading`
+    /// stand-in), for running the iOS app before `CupertinoDataEngine` is published.
+    /// Returns mock content, not the real corpus; replace with `live(dataSource:)` over
+    /// the real engine once it ships, a one-line change at the composition root.
+    public static func mock() -> any Backend.Documentation {
+        live(dataSource: MockReader())
+    }
 }

@@ -15,7 +15,7 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-for app in CupertinoDesktopSwiftUI CupertinoDesktopAppKit CupertinoMobile; do
+for app in CupertinoDesktopSwiftUI CupertinoDesktopAppKit CupertinoMobileSwiftUI CupertinoMobileUIKit; do
   echo "Generating $app.xcodeproj"
   xcodegen generate --spec "$ROOT/Apps/$app/project.yml" --project "$ROOT/Apps/$app"
 done

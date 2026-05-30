@@ -17,6 +17,9 @@
       location = "group:Apps/CupertinoDesktopAppKit/CupertinoDesktopAppKit.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:Apps/CupertinoMobile/CupertinoMobile.xcodeproj">
+      location = "group:Apps/CupertinoMobileSwiftUI/CupertinoMobileSwiftUI.xcodeproj">
+   </FileRef>
+   <FileRef
+      location = "group:Apps/CupertinoMobileUIKit/CupertinoMobileUIKit.xcodeproj">
    </FileRef>
 </Workspace>

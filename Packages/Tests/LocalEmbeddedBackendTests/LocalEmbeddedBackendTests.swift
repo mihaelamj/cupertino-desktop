@@ -99,6 +99,22 @@ struct LocalEmbeddedBackendTests {
         #expect(Set(hits.map(\.source)) == Set([Model.Source.appleDocs, .hig])) // swift-evolution dropped
     }
 
+    @Test("searchEverything buckets results by source into docs, samples, and packages")
+    func everythingBuckets() async throws {
+        let results = [
+            docResult("apple-docs://swiftui/view", source: "apple-docs"),
+            docResult("samples://my-sample", source: "samples"),
+            docResult("packages://apple/swift-async-algorithms/Foo.md", source: "packages"),
+        ]
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(results: results))
+        let unified = try await backend.searchEverything(Model.UnifiedQuery(text: "", limitPerSource: 10))
+        #expect(unified.docs.count == 1)
+        #expect(unified.samples.projects.count == 1)
+        #expect(unified.packages.count == 1)
+        #expect(unified.packages.first?.owner == "apple")
+        #expect(unified.packages.first?.repo == "swift-async-algorithms")
+    }
+
     @Test("an unadopted slice (samples) fails honestly")
     func unsupportedVerb() async {
         let backend = Backend.LocalEmbedded(dataSource: FakeDataSource())

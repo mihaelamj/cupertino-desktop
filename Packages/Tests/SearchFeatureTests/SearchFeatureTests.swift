@@ -32,6 +32,13 @@ struct SearchViewModelTests {
         viewModel.toggle(Model.Source.appleDocs)
         #expect(!viewModel.sources.contains(Model.Source.appleDocs))
     }
+
+    @Test("the everything scope loads unified results")
+    func everythingScope() async {
+        let viewModel = Feature.Search.ViewModel(backend: FakeSearch())
+        await viewModel.loadEverything(Model.UnifiedQuery(text: "view"))
+        #expect(viewModel.unified?.docs.count == 1)
+    }
 }
 
 /// A fake `Backend.Searching`: the view model depends only on that slice, so the test
@@ -56,6 +63,8 @@ private struct FakeSearch: Backend.Searching {
     }
 
     func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
-        throw Boom.boom
+        if fail { throw Boom.boom }
+        let docs = try await searchDocs(Model.DocsQuery(text: ""))
+        return Model.UnifiedResults(docs: docs, samples: Model.SampleResults(projects: [], files: []), packages: [])
     }
 }

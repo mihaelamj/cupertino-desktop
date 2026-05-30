@@ -45,6 +45,9 @@ import SearchFeature
                         }
                     }
                     .sheet(isPresented: $showingFilters) { filters }
+                    .navigationDestination(for: Model.DocHit.self) { hit in
+                        DocumentReaderView(model: model, hit: hit)
+                    }
                     .task { if !model.hasRun { model.run() } }
                 }
             }
@@ -68,7 +71,7 @@ import SearchFeature
                     ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
                 } else {
                     List(model.results) { hit in
-                        DocRow(hit: hit)
+                        NavigationLink(value: hit) { DocRow(hit: hit) }
                     }
                 }
             }
@@ -78,7 +81,9 @@ import SearchFeature
                     List {
                         if !unified.docs.isEmpty {
                             Section("Docs (\(unified.docs.count))") {
-                                ForEach(unified.docs) { DocRow(hit: $0) }
+                                ForEach(unified.docs) { hit in
+                                    NavigationLink(value: hit) { DocRow(hit: hit) }
+                                }
                             }
                         }
                         if !unified.samples.projects.isEmpty {
@@ -181,6 +186,41 @@ import SearchFeature
                     }
                 }
                 .padding(.vertical, 2)
+            }
+        }
+
+        /// The page opened when a result is tapped: reads the document by URI and renders
+        /// its markdown. Replaced by the full document reader in a later milestone.
+        private struct DocumentReaderView: View {
+            let model: Feature.Search.ViewModel
+            let hit: Model.DocHit
+            @State private var page: Model.DocPage?
+            @State private var failed = false
+
+            var body: some View {
+                Group {
+                    if let page {
+                        ScrollView {
+                            Text(Self.rendered(page.markdown))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .textSelection(.enabled)
+                                .padding()
+                        }
+                    } else if failed {
+                        ContentUnavailableView("Could not open the document", systemImage: "exclamationmark.triangle")
+                    } else {
+                        ProgressView()
+                    }
+                }
+                .navigationTitle(hit.title)
+                .task {
+                    do { page = try await model.readPage(hit.uri) } catch { failed = true }
+                }
+            }
+
+            private static func rendered(_ markdown: String) -> AttributedString {
+                let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+                return (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
             }
         }
     }

@@ -91,8 +91,39 @@ public extension Backend {
             throw Failure.unsupported(operation: "searchPackages")
         }
 
-        public func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
-            throw Failure.unsupported(operation: "searchEverything")
+        /// One search across every source, bucketed by source into the unified shape:
+        /// doc-like sources become `DocHit`s, `samples` rows become `SampleProject`s, and
+        /// `packages` rows become `PackageHit`s. Each bucket is capped at `limitPerSource`.
+        /// This reuses the `DocumentReading` slice rather than needing dedicated sample or
+        /// package readers; the real engine can answer each source natively later.
+        public func searchEverything(_ query: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+            let results = try await dataSource.search(
+                query: query.text,
+                source: nil,
+                framework: query.framework,
+                language: nil,
+                limit: query.limitPerSource * Model.Source.allCases.count,
+                includeArchive: true,
+                minIOS: query.floor.iOS,
+                minMacOS: query.floor.macOS,
+                minTvOS: query.floor.tvOS,
+                minWatchOS: query.floor.watchOS,
+                minVisionOS: query.floor.visionOS,
+                minSwift: query.floor.swift,
+            )
+            var docs: [Model.DocHit] = []
+            var projects: [Model.SampleProject] = []
+            var packages: [Model.PackageHit] = []
+            for result in results {
+                if result.source == Model.Source.samples.scheme {
+                    if projects.count < query.limitPerSource { projects.append(Self.sampleProject(from: result)) }
+                } else if result.source == Model.Source.packages.scheme {
+                    if packages.count < query.limitPerSource { packages.append(Self.packageHit(from: result)) }
+                } else if docs.count < query.limitPerSource, let hit = Self.hit(from: result) {
+                    docs.append(hit)
+                }
+            }
+            return Model.UnifiedResults(docs: docs, samples: Model.SampleResults(projects: projects, files: []), packages: packages)
         }
 
         // MARK: SampleBrowsing
@@ -176,6 +207,36 @@ public extension Backend {
                 source: source(named: result.source),
                 title: result.title,
                 framework: result.framework.isEmpty ? nil : result.framework,
+                snippet: result.cleanedSummary,
+                score: result.score,
+            )
+        }
+
+        /// A `samples` row into a `Model.SampleProject` (the unified bucket maps the
+        /// doc-shaped result onto the sample shape; the real engine reads samples natively).
+        static func sampleProject(from result: Search.Result) -> Model.SampleProject {
+            Model.SampleProject(
+                id: Model.SampleID(result.uri),
+                title: result.title,
+                summary: result.cleanedSummary,
+                frameworks: result.framework.isEmpty ? [] : [result.framework],
+            )
+        }
+
+        /// A `packages` row into a `Model.PackageHit`, parsing owner/repo/path from a
+        /// `packages://owner/repo/path` URI.
+        static func packageHit(from result: Search.Result) -> Model.PackageHit {
+            let parts = result.uri
+                .replacingOccurrences(of: "packages://", with: "")
+                .split(separator: "/")
+                .map(String.init)
+            return Model.PackageHit(
+                id: result.id.uuidString,
+                owner: parts.first ?? "",
+                repo: parts.count > 1 ? parts[1] : "",
+                path: parts.count > 2 ? parts[2...].joined(separator: "/") : "",
+                module: result.framework.isEmpty ? nil : result.framework,
+                title: result.title,
                 snippet: result.cleanedSummary,
                 score: result.score,
             )

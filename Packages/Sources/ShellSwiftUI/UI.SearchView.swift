@@ -6,10 +6,11 @@ import SearchFeature
     import SwiftUI
 
     public extension UI {
-        /// The SwiftUI search screen. The results are the main content (a search bar on
-        /// top, the result list filling the screen); every other `searchDocs` option
-        /// lives behind a Filters sheet so it never buries the results. It binds the
-        /// framework-agnostic `Feature.Search.ViewModel`.
+        /// The SwiftUI search screen. Results are the main content (a search bar on top,
+        /// a Docs/Everything scope, the result list filling the screen); every other
+        /// `searchDocs` option lives behind a Filters sheet so it never buries the
+        /// results. The "everything" scope shows a unified, source-bucketed result (docs,
+        /// samples, packages). Binds the framework-agnostic `Feature.Search.ViewModel`.
         struct SearchView: View {
             @Bindable private var model: Feature.Search.ViewModel
             @State private var showingFilters = false
@@ -20,19 +21,30 @@ import SearchFeature
 
             public var body: some View {
                 NavigationStack {
-                    content
-                        .navigationTitle("Search")
-                        .searchable(text: $model.text, prompt: "Search documentation")
-                        .onSubmit(of: .search) { model.run() }
-                        .toolbar {
-                            ToolbarItem(placement: .primaryAction) {
-                                Button { showingFilters = true } label: {
-                                    Label("Filters", systemImage: "line.3.horizontal.decrease.circle")
-                                }
+                    VStack(spacing: 0) {
+                        Picker("Scope", selection: $model.scope) {
+                            Text("Docs").tag(Feature.Search.ViewModel.Scope.docs)
+                            Text("Everything").tag(Feature.Search.ViewModel.Scope.everything)
+                        }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+
+                        content
+                    }
+                    .navigationTitle("Search")
+                    .searchable(text: $model.text, prompt: "Search documentation")
+                    .onSubmit(of: .search) { model.run() }
+                    .onChange(of: model.scope) { _, _ in model.run() }
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button { showingFilters = true } label: {
+                                Label("Filters", systemImage: "line.3.horizontal.decrease.circle")
                             }
                         }
-                        .sheet(isPresented: $showingFilters) { filters }
-                        .task { if !model.hasRun { model.run() } }
+                    }
+                    .sheet(isPresented: $showingFilters) { filters }
+                    .task { if !model.hasRun { model.run() } }
                 }
             }
 
@@ -42,22 +54,51 @@ import SearchFeature
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let error = model.errorMessage {
                     ContentUnavailableView("Could not search", systemImage: "exclamationmark.triangle", description: Text(error))
-                } else if model.hasRun, model.results.isEmpty {
-                    ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
                 } else {
-                    List(model.results) { hit in
-                        ResultRow(hit: hit)
-                    }
-                    .overlay(alignment: .top) {
-                        Text("\(model.results.count) results")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(6)
+                    switch model.scope {
+                    case .docs: docsList
+                    case .everything: everythingList
                     }
                 }
             }
 
-            /// Every remaining option, behind the Filters button.
+            @ViewBuilder private var docsList: some View {
+                if model.hasRun, model.results.isEmpty {
+                    ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
+                } else {
+                    List(model.results) { hit in
+                        DocRow(hit: hit)
+                    }
+                }
+            }
+
+            @ViewBuilder private var everythingList: some View {
+                if let unified = model.unified {
+                    List {
+                        if !unified.docs.isEmpty {
+                            Section("Docs (\(unified.docs.count))") {
+                                ForEach(unified.docs) { DocRow(hit: $0) }
+                            }
+                        }
+                        if !unified.samples.projects.isEmpty {
+                            Section("Samples (\(unified.samples.projects.count))") {
+                                ForEach(unified.samples.projects) { SampleRow(project: $0) }
+                            }
+                        }
+                        if !unified.packages.isEmpty {
+                            Section("Packages (\(unified.packages.count))") {
+                                ForEach(unified.packages) { PackageRow(hit: $0) }
+                            }
+                        }
+                        if unified.docs.isEmpty, unified.samples.projects.isEmpty, unified.packages.isEmpty {
+                            ContentUnavailableView("No matches", systemImage: "magnifyingglass")
+                        }
+                    }
+                } else {
+                    Color.clear
+                }
+            }
+
             private var filters: some View {
                 NavigationStack {
                     Form {
@@ -95,31 +136,47 @@ import SearchFeature
             }
         }
 
-        /// One search result: title, the source database it came from, the framework,
-        /// and a snippet.
-        private struct ResultRow: View {
+        private struct DocRow: View {
             let hit: Model.DocHit
-
             var body: some View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(hit.title)
-                            .font(.headline)
+                        Text(hit.title).font(.headline)
                         Spacer()
-                        Text(hit.source.scheme)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(hit.source.scheme).font(.caption).foregroundStyle(.secondary)
                     }
                     if let framework = hit.framework {
-                        Text(framework)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        Text(framework).font(.caption2).foregroundStyle(.tertiary)
                     }
                     if !hit.snippet.isEmpty {
-                        Text(hit.snippet)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                        Text(hit.snippet).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+
+        private struct SampleRow: View {
+            let project: Model.SampleProject
+            var body: some View {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(project.title).font(.headline)
+                    if !project.summary.isEmpty {
+                        Text(project.summary).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        }
+
+        private struct PackageRow: View {
+            let hit: Model.PackageHit
+            var body: some View {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(hit.title).font(.headline)
+                    Text("\(hit.owner)/\(hit.repo)").font(.caption2).foregroundStyle(.tertiary)
+                    if !hit.snippet.isEmpty {
+                        Text(hit.snippet).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                     }
                 }
                 .padding(.vertical, 2)

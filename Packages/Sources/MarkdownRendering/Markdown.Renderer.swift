@@ -10,20 +10,31 @@ import Markdown
 
 #if canImport(UIKit) || canImport(AppKit)
     public extension Markdown {
+        /// How blocks are separated. AppKit and UIKit text views honor
+        /// `NSParagraphStyle.paragraphSpacing`, so they get typographic spacing with a
+        /// single newline between blocks; SwiftUI's `Text(AttributedString)` ignores
+        /// paragraph spacing, so it gets an explicit blank line instead.
+        enum BlockSpacing: Sendable {
+            case paragraphSpacing
+            case blankLine
+        }
+
         /// Render a served document body to an `NSAttributedString`: normalize the dirty
         /// GFM, parse it, and walk the AST styling headings, paragraphs, lists, blockquotes,
         /// links, and code. Code blocks are rendered pretty: monospaced, inset, on a tinted
         /// background, with Swift syntax colors when a `Model.CodeHighlighting` is injected.
-        /// An optional `declaration` is rendered as the leading signature block.
+        /// An optional `declaration` is rendered as the leading signature block. `spacing`
+        /// selects paragraph spacing (text views) or blank lines (SwiftUI `Text`).
         static func attributed(
             markdown: String,
             title: String? = nil,
             declaration: Model.DocPage.Declaration? = nil,
             highlighter: (any Model.CodeHighlighting)? = nil,
             theme: Theme = Theme(),
+            spacing: BlockSpacing = .paragraphSpacing,
         ) -> NSAttributedString {
             let normalized = Normalizer.normalize(markdown, title: title)
-            let renderer = Renderer(theme: theme, highlighter: highlighter)
+            let renderer = Renderer(theme: theme, highlighter: highlighter, spacing: spacing)
             let output = NSMutableAttributedString()
             if let declaration {
                 renderer.appendCodeBlock(declaration.code, language: declaration.language ?? "swift", into: output)
@@ -33,8 +44,13 @@ import Markdown
         }
 
         /// Convenience over a `Model.DocPage` (uses its markdown, title, and declaration).
-        static func attributed(page: Model.DocPage, highlighter: (any Model.CodeHighlighting)? = nil, theme: Theme = Theme()) -> NSAttributedString {
-            attributed(markdown: page.markdown, title: page.title, declaration: page.declaration, highlighter: highlighter, theme: theme)
+        static func attributed(
+            page: Model.DocPage,
+            highlighter: (any Model.CodeHighlighting)? = nil,
+            theme: Theme = Theme(),
+            spacing: BlockSpacing = .paragraphSpacing,
+        ) -> NSAttributedString {
+            attributed(markdown: page.markdown, title: page.title, declaration: page.declaration, highlighter: highlighter, theme: theme, spacing: spacing)
         }
 
         /// Resolve a link destination to a tappable URL: an absolute URL as-is, or a
@@ -58,6 +74,7 @@ import Markdown
     private struct Renderer {
         let theme: Markdown.Theme
         let highlighter: (any Model.CodeHighlighting)?
+        let spacing: Markdown.BlockSpacing
 
         // MARK: Blocks
 
@@ -234,11 +251,12 @@ import Markdown
             return copy
         }
 
-        /// A blank line between blocks. An explicit blank line (not just paragraph
-        /// spacing) is needed because SwiftUI's `Text(AttributedString)` ignores
-        /// `NSParagraphStyle.paragraphSpacing`; the AppKit/UIKit text views honor both.
+        /// The separator between blocks. Text views use a single newline and rely on
+        /// `NSParagraphStyle.paragraphSpacing`; SwiftUI `Text` ignores that, so it gets an
+        /// explicit blank line.
         private func blockBreak() -> NSAttributedString {
-            NSAttributedString(string: "\n\n", attributes: [.font: theme.body])
+            let separator = spacing == .blankLine ? "\n\n" : "\n"
+            return NSAttributedString(string: separator, attributes: [.font: theme.body])
         }
 
         private func bodyParagraphStyle() -> NSParagraphStyle {

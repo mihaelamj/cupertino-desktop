@@ -62,13 +62,17 @@ import FrameworkBrowserFeature
                 if frameworks.isLoadingDocument {
                     ProgressView()
                 } else if let markdown = frameworks.selectedMarkdown {
-                    ScrollView {
-                        Text(Self.rendered(markdown))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
-                            .padding()
-                    }
-                    .navigationTitle(frameworks.selectedDocumentTitle ?? "")
+                    MarkdownReader(markdown: markdown, title: frameworks.selectedDocumentTitle)
+                        .navigationTitle(frameworks.selectedDocumentTitle ?? "")
+                        .environment(\.openURL, OpenURLAction { url in
+                            // A tapped in-document link (e.g. "Mentioned in") that resolves
+                            // to a doc URI loads in place; anything else opens normally.
+                            if let uri = Model.DocURI(url.absoluteString) {
+                                frameworks.openDocument(uri)
+                                return .handled
+                            }
+                            return .systemAction
+                        })
                 } else if let error = frameworks.documentError {
                     ContentUnavailableView(
                         "Could not load document",
@@ -78,14 +82,6 @@ import FrameworkBrowserFeature
                 } else {
                     ContentUnavailableView("Select a framework", systemImage: "doc.text")
                 }
-            }
-
-            /// Render markdown for display, preserving line breaks and inline styling.
-            /// Block syntax (headings, fenced code) stays literal, which is fine for the
-            /// current mock content; a full renderer is a later milestone.
-            private static func rendered(_ markdown: String) -> AttributedString {
-                let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-                return (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
             }
         }
 

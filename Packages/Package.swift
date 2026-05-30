@@ -37,6 +37,7 @@ let products: [Product] = [
     // Concrete
     .singleTargetLibrary("LocalSubprocessBackend"),
     .singleTargetLibrary("MarkdownRendering"),
+    .singleTargetLibrary("CodeHighlighting"),
     .singleTargetLibrary("SearchFeature"),
     .singleTargetLibrary("FrameworkBrowserFeature"),
     .singleTargetLibrary("DocReaderFeature"),
@@ -82,7 +83,23 @@ let targets: [Target] = {
         name: "LocalSubprocessBackend",
         dependencies: ["BackendAPI", "AppModels", kitProduct("SwiftMCPClientAPI")],
     )
-    let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
+    // MarkdownRendering parses the served GFM (swift-markdown) and renders it to attributed
+    // strings. swift-markdown's module is named `Markdown`; our `Markdown` namespace enum
+    // shadows only the bare name, so swift-markdown's types are referenced unqualified
+    // (`Document`, `Heading`) and the two coexist. Code highlighting is injected as
+    // `Model.CodeHighlighting`, so this concrete keeps a single external lib and never
+    // imports the highlighting concrete directly.
+    let markdown = Target.target(
+        name: "MarkdownRendering",
+        dependencies: ["AppModels", .product(name: "Markdown", package: "swift-markdown")],
+    )
+    // CodeHighlighting conforms a Splash-backed highlighter to the neutral
+    // `Model.CodeHighlighting` seam (in AppModels), keeping Splash as this concrete's one
+    // external lib. The UI tier injects it into the renderer.
+    let codeHighlighting = Target.target(
+        name: "CodeHighlighting",
+        dependencies: ["AppModels", .product(name: "Splash", package: "Splash")],
+    )
 
     // ---------- Features (framework-agnostic view models) ----------
     let featureDependencies: [Target.Dependency] = ["AppCore", "AppModels", "BackendAPI", "MarkdownRendering"]
@@ -93,7 +110,7 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
-    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature", "SearchFeature"]
+    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "CodeHighlighting", "FrameworkBrowserFeature", "SearchFeature"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
     let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
@@ -109,7 +126,7 @@ let targets: [Target] = {
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
 
-    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP
@@ -165,9 +182,13 @@ let targets: [Target] = {
         name: "SearchFeatureTests",
         dependencies: ["SearchFeature", "AppCore", "BackendAPI", "AppModels"],
     )
+    let markdownTests = Target.testTarget(
+        name: "MarkdownRenderingTests",
+        dependencies: ["MarkdownRendering", "AppModels"],
+    )
 
     return api + concrete + impl
-        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests]
+        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
 }()
 
 let package = Package(
@@ -188,6 +209,19 @@ let package = Package(
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataKit.git",
             from: "0.1.0",
+        ),
+        // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
+        // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our
+        // `Markdown` namespace anchor, so it is module-aliased to `MarkdownAST` below.
+        .package(
+            url: "https://github.com/swiftlang/swift-markdown.git",
+            branch: "release/6.2",
+        ),
+        // Swift syntax highlighter for code blocks (pure Swift, no JS), behind the
+        // `CodeHighlighting` concrete so `MarkdownRendering` keeps a single external lib.
+        .package(
+            url: "https://github.com/JohnSundell/Splash.git",
+            from: "0.16.0",
         ),
     ],
     targets: targets,

@@ -1,5 +1,7 @@
 import AppCore
 import AppModels
+import CodeHighlighting
+import MarkdownRendering
 import SearchFeature
 
 #if canImport(AppKit)
@@ -25,11 +27,12 @@ import SearchFeature
         /// screens use, and holds no logic. State changes are picked up with
         /// `withObservationTracking`; live search is debounced through the view model.
         @MainActor
-        final class SearchViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
+        final class SearchViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSTextViewDelegate {
             private let model: Feature.Search.ViewModel
             private let searchField = NSSearchField()
             private let scope = NSSegmentedControl(labels: ["Docs", "Everything"], trackingMode: .selectOne, target: nil, action: nil)
             private let filtersButton = NSButton()
+            private let textSizeControls = NSStackView()
             private let tableView = NSTableView()
             private let resultsScroll = NSScrollView()
             private let readerView = NSTextView()
@@ -102,7 +105,14 @@ import SearchFeature
                 filtersButton.target = self
                 filtersButton.action = #selector(showFilters)
 
-                let topBar = NSStackView(views: [searchField, scope, filtersButton])
+                let smaller = sizeButton("textformat.size.smaller", action: #selector(textSmaller), tip: "Smaller text")
+                let larger = sizeButton("textformat.size.larger", action: #selector(textLarger), tip: "Larger text")
+                textSizeControls.orientation = .horizontal
+                textSizeControls.spacing = 4
+                textSizeControls.addArrangedSubview(smaller)
+                textSizeControls.addArrangedSubview(larger)
+
+                let topBar = NSStackView(views: [searchField, scope, filtersButton, textSizeControls])
                 topBar.orientation = .horizontal
                 topBar.spacing = 8
                 topBar.edgeInsets = NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
@@ -124,6 +134,7 @@ import SearchFeature
                 resultsScroll.hasVerticalScroller = true
 
                 readerView.isEditable = false
+                readerView.delegate = self
                 readerView.drawsBackground = false
                 readerView.textContainerInset = NSSize(width: 16, height: 16)
                 readerView.font = .systemFont(ofSize: NSFont.systemFontSize)
@@ -248,65 +259,100 @@ import SearchFeature
                 Task { @MainActor in
                     do {
                         let page = try await model.readPage(uri)
-                        readerView.string = page.markdown
+                        let base = Markdown.Theme().basePointSize
+                        readerView.textStorage?.setAttributedString(Markdown.attributed(
+                            page: page,
+                            highlighter: Highlight.Splash(),
+                            theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
+                        ))
                     } catch {
                         readerView.string = "Could not open the document."
                     }
                 }
             }
 
-            // MARK: NSTableViewDataSource / Delegate
-
-            func numberOfRows(in _: NSTableView) -> Int {
-                rows.count
+            private func sizeButton(_ symbol: String, action: Selector, tip: String) -> NSButton {
+                let button = NSButton(
+                    image: NSImage(systemSymbolName: symbol, accessibilityDescription: tip) ?? NSImage(),
+                    target: self, action: action,
+                )
+                button.bezelStyle = .texturedRounded
+                button.toolTip = tip
+                return button
             }
 
-            func tableView(_: NSTableView, isGroupRow row: Int) -> Bool {
-                if case .header = rows[row] { return true }
-                return false
-            }
-
-            func tableView(_: NSTableView, shouldSelectRow row: Int) -> Bool {
-                if case .header = rows[row] { return false }
-                return true
-            }
-
-            func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
-                switch rows[row] {
-                case let .header(title):
-                    Self.label(title, secondary: nil, bold: true)
-                case let .doc(hit):
-                    Self.label(hit.title, secondary: [hit.framework, hit.snippet.isEmpty ? nil : hit.snippet].compactMap(\.self).joined(separator: " : "))
-                case let .sample(project):
-                    Self.label(project.title, secondary: project.summary)
-                case let .package(hit):
-                    Self.label(hit.title, secondary: "\(hit.owner)/\(hit.repo)")
-                }
-            }
-
-            func tableViewSelectionDidChange(_: Notification) {
+            @objc private func textLarger() {
+                Model.ReaderTextSize.larger()
                 openSelection()
             }
 
-            private static func label(_ title: String, secondary: String?, bold: Bool = false) -> NSView {
-                let titleLabel = NSTextField(labelWithString: title)
-                titleLabel.font = bold
-                    ? .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
-                    : .systemFont(ofSize: NSFont.systemFontSize)
-                titleLabel.lineBreakMode = .byTruncatingTail
-                let stack = NSStackView(views: [titleLabel])
-                stack.orientation = .vertical
-                stack.alignment = .leading
-                stack.spacing = 2
-                if let secondary, !secondary.isEmpty {
-                    let secondaryLabel = NSTextField(labelWithString: secondary)
-                    secondaryLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
-                    secondaryLabel.textColor = .secondaryLabelColor
-                    secondaryLabel.lineBreakMode = .byTruncatingTail
-                    stack.addArrangedSubview(secondaryLabel)
-                }
-                return stack
+            @objc private func textSmaller() {
+                Model.ReaderTextSize.smaller()
+                openSelection()
             }
+
+            /// A clicked in-document link loads that document in the reader pane in place.
+            func textView(_: NSTextView, clickedOnLink link: Any, at _: Int) -> Bool {
+                let urlString = (link as? URL)?.absoluteString ?? (link as? String)
+                guard let urlString, let uri = Model.DocURI(urlString) else { return false }
+                read(uri)
+                return true
+            }
+        }
+    }
+
+    /// The table data source/delegate, in an extension so the controller's own body stays
+    /// within the type-length budget.
+    extension UI.SearchViewController {
+        func numberOfRows(in _: NSTableView) -> Int {
+            rows.count
+        }
+
+        func tableView(_: NSTableView, isGroupRow row: Int) -> Bool {
+            if case .header = rows[row] { return true }
+            return false
+        }
+
+        func tableView(_: NSTableView, shouldSelectRow row: Int) -> Bool {
+            if case .header = rows[row] { return false }
+            return true
+        }
+
+        func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
+            switch rows[row] {
+            case let .header(title):
+                Self.label(title, secondary: nil, bold: true)
+            case let .doc(hit):
+                Self.label(hit.title, secondary: [hit.framework, hit.snippet.isEmpty ? nil : hit.snippet].compactMap(\.self).joined(separator: " : "))
+            case let .sample(project):
+                Self.label(project.title, secondary: project.summary)
+            case let .package(hit):
+                Self.label(hit.title, secondary: "\(hit.owner)/\(hit.repo)")
+            }
+        }
+
+        func tableViewSelectionDidChange(_: Notification) {
+            openSelection()
+        }
+
+        fileprivate static func label(_ title: String, secondary: String?, bold: Bool = false) -> NSView {
+            let titleLabel = NSTextField(labelWithString: title)
+            titleLabel.font = bold
+                ? .systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+                : .systemFont(ofSize: NSFont.systemFontSize)
+            titleLabel.lineBreakMode = .byTruncatingTail
+            let stack = NSStackView(views: [titleLabel])
+            stack.orientation = .vertical
+            stack.alignment = .leading
+            stack.spacing = 2
+            if let secondary, !secondary.isEmpty {
+                let secondaryLabel = NSTextField(labelWithString: secondary)
+                secondaryLabel.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
+                secondaryLabel.textColor = .secondaryLabelColor
+                secondaryLabel.lineBreakMode = .byTruncatingTail
+                stack.addArrangedSubview(secondaryLabel)
+            }
+            return stack
         }
     }
 #endif

@@ -132,6 +132,27 @@ public extension Feature.FrameworkBrowser {
             docTask = Task { [weak self] in await self?.loadDocument(framework: id) }
         }
 
+        /// Open an arbitrary document by URI in the detail column, replacing the current
+        /// one. Used when a link inside a rendered document is tapped (e.g. a "Mentioned
+        /// in" entry), so the reader can follow it without going through the sidebar.
+        public func openDocument(_ uri: Model.DocURI) {
+            docTask?.cancel()
+            documentState = .loading
+            docTask = Task { [weak self] in await self?.readDocument(uri) }
+        }
+
+        /// Read a document by URI into the detail. Internal so a test can drive it.
+        func readDocument(_ uri: Model.DocURI) async {
+            do {
+                let page = try await backend.readDocument(uri)
+                if Task.isCancelled { return }
+                documentState = .loaded(page)
+            } catch {
+                if Task.isCancelled { return }
+                documentState = .failed(error.localizedDescription)
+            }
+        }
+
         /// Find a document in the framework (a search scoped to it) and read the first
         /// hit. This works for both the mock reader and the real engine, rather than
         /// assuming a synthetic URI. Internal so a test can drive it deterministically.

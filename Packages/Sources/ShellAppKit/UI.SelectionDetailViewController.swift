@@ -1,5 +1,8 @@
 import AppCore
+import AppModels
+import CodeHighlighting
 import FrameworkBrowserFeature
+import MarkdownRendering
 
 #if canImport(AppKit)
     import AppKit
@@ -8,14 +11,18 @@ import FrameworkBrowserFeature
         /// The AppKit detail column. Renders the selected framework's overview document
         /// from `Feature.FrameworkBrowser.ViewModel`, mirroring the SwiftUI and UIKit
         /// detail: a scrollable text view of the markdown, a spinner while loading, an
-        /// empty state otherwise. Observes the view model with `withObservationTracking`.
+        /// empty state otherwise. A floating text-size control rescales the text (macOS has
+        /// no Dynamic Type, so this is the resize mechanism here), and tapping an
+        /// in-document link loads that document in place. Observes the view model with
+        /// `withObservationTracking`.
         @MainActor
-        final class SelectionDetailViewController: NSViewController {
+        final class SelectionDetailViewController: NSViewController, NSTextViewDelegate {
             private let frameworks: Feature.FrameworkBrowser.ViewModel
             private let scrollView = NSScrollView()
             private let textView = NSTextView()
             private let progress = NSProgressIndicator()
             private let emptyState = NSStackView()
+            private let sizeControls = NSStackView()
 
             init(frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.frameworks = frameworks
@@ -60,11 +67,22 @@ import FrameworkBrowserFeature
                 emptyState.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(emptyState)
 
+                let smaller = sizeButton("textformat.size.smaller", action: #selector(textSmaller), tip: "Smaller text")
+                let larger = sizeButton("textformat.size.larger", action: #selector(textLarger), tip: "Larger text")
+                sizeControls.orientation = .horizontal
+                sizeControls.spacing = 4
+                sizeControls.addArrangedSubview(smaller)
+                sizeControls.addArrangedSubview(larger)
+                sizeControls.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(sizeControls)
+
                 NSLayoutConstraint.activate([
                     scrollView.topAnchor.constraint(equalTo: container.topAnchor),
                     scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                    sizeControls.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
+                    sizeControls.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
                     progress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
                     progress.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                     emptyState.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -73,10 +91,40 @@ import FrameworkBrowserFeature
                 view = container
             }
 
+            private func sizeButton(_ symbol: String, action: Selector, tip: String) -> NSButton {
+                let button = NSButton(
+                    image: NSImage(systemSymbolName: symbol, accessibilityDescription: tip) ?? NSImage(),
+                    target: self, action: action,
+                )
+                button.bezelStyle = .texturedRounded
+                button.toolTip = tip
+                return button
+            }
+
             override func viewDidLoad() {
                 super.viewDidLoad()
+                textView.delegate = self
                 track()
                 render()
+            }
+
+            @objc private func textLarger() {
+                Model.ReaderTextSize.larger()
+                render()
+            }
+
+            @objc private func textSmaller() {
+                Model.ReaderTextSize.smaller()
+                render()
+            }
+
+            /// A clicked in-document link that resolves to a doc URI loads in place; other
+            /// links fall through to the system.
+            func textView(_: NSTextView, clickedOnLink link: Any, at _: Int) -> Bool {
+                let urlString = (link as? URL)?.absoluteString ?? (link as? String)
+                guard let urlString, let uri = Model.DocURI(urlString) else { return false }
+                frameworks.openDocument(uri)
+                return true
             }
 
             private func track() {
@@ -99,7 +147,13 @@ import FrameworkBrowserFeature
                 if let markdown = frameworks.selectedMarkdown {
                     scrollView.isHidden = false
                     emptyState.isHidden = true
-                    textView.string = markdown
+                    let base = Markdown.Theme().basePointSize
+                    textView.textStorage?.setAttributedString(Markdown.attributed(
+                        markdown: markdown,
+                        title: frameworks.selectedDocumentTitle,
+                        highlighter: Highlight.Splash(),
+                        theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
+                    ))
                 } else if let error = frameworks.documentError {
                     scrollView.isHidden = false
                     emptyState.isHidden = true

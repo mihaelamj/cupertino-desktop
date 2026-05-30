@@ -34,6 +34,7 @@ import SearchFeature
                     }
                     .navigationTitle("Search")
                     .searchable(text: $model.text, prompt: "Search documentation")
+                    .onChange(of: model.text) { _, _ in model.runDebounced() }
                     .onSubmit(of: .search) { model.run() }
                     .onChange(of: model.scope) { _, _ in model.run() }
                     .toolbar {

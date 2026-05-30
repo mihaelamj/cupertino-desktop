@@ -42,3 +42,30 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         TARGETED_DEVICE_FAMILY: "1,2"
+  CupertinoMobileSwiftUIUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: CupertinoMobileSwiftUI
+      - package: CupertinoDesktopPackages
+        product: UITestPageObjects
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.mobile.swiftui.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: CupertinoMobileSwiftUI
+        TARGETED_DEVICE_FAMILY: "1,2"
+schemes:
+  CupertinoMobileSwiftUI:
+    build:
+      targets:
+        CupertinoMobileSwiftUI: all
+        CupertinoMobileSwiftUIUITests: [test]
+    test:
+      targets:
+        - CupertinoMobileSwiftUIUITests
+    run:
+      config: Debug

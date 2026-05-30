@@ -119,7 +119,7 @@ public extension Feature.FrameworkBrowser {
 
         private var docTask: Task<Void, Never>?
 
-        /// Read the overview page for the selected framework, or clear when nothing is
+        /// Load a document for the selected framework, or clear when nothing is
         /// selected. The shells call this when the sidebar selection changes, so the
         /// detail column shows real document content rather than just the id.
         public func selectFramework(_ id: String?) {
@@ -134,8 +134,8 @@ public extension Feature.FrameworkBrowser {
 
         /// Find a document in the framework (a search scoped to it) and read the first
         /// hit. This works for both the mock reader and the real engine, rather than
-        /// assuming a synthetic URI.
-        private func loadDocument(framework id: String) async {
+        /// assuming a synthetic URI. Internal so a test can drive it deterministically.
+        func loadDocument(framework id: String) async {
             do {
                 let hits = try await backend.searchDocs(Model.DocsQuery(text: "", framework: id, limit: 1))
                 guard let uri = hits.first?.uri else {

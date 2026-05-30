@@ -58,6 +58,21 @@ struct FrameworkBrowserViewModelTests {
         #expect(viewModel.errorMessage == nil)
         #expect(viewModel.frameworks.map(\.id) == ["swiftui"])
     }
+
+    @Test("selecting a framework loads and exposes its document")
+    func documentLoads() async {
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: FakeBackend(.success([])))
+        await viewModel.loadDocument(framework: "swiftui")
+        #expect(viewModel.selectedMarkdown == "# Doc")
+        #expect(viewModel.selectedDocumentTitle == "Doc")
+    }
+
+    @Test("deselecting clears the document")
+    func deselectClearsDocument() {
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: FakeBackend(.success([])))
+        viewModel.selectFramework(nil)
+        #expect(viewModel.selectedMarkdown == nil)
+    }
 }
 
 /// A minimal `Backend.Connecting & Backend.FrameworkBrowsing` double. Possible only
@@ -87,7 +102,8 @@ private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing, Backen
     }
 
     func searchDocs(_: Model.DocsQuery) async throws -> [Model.DocHit] {
-        []
+        guard let uri = Model.DocURI("apple-docs://swiftui/view") else { return [] }
+        return [Model.DocHit(id: "1", uri: uri, source: .appleDocs, title: "View", framework: "swiftui", snippet: "", score: 1)]
     }
 
     func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {

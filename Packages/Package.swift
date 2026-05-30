@@ -50,6 +50,8 @@ let products: [Product] = [
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
+    // UI-test support (Page Object Model), consumed by the apps' XCUITest targets.
+    .singleTargetLibrary("UITestPageObjects"),
 ]
 
 // The MCP client package (external, via SwiftMCPClient): the Transport.Channel byte
@@ -151,6 +153,13 @@ let targets: [Target] = {
     )
     let impl = [macBackendImpl, mobileBackendImpl]
 
+    // ---------- UI-test support: Page Object Model (docs/rules/testing) ----------
+    // A library of XCUITest page objects keyed off `UI.AccessibilityID` (in AppCore, the
+    // single source of truth shared with the views). Locating elements by accessibility
+    // identifier keeps each page object cross-platform: the same page drives the SwiftUI,
+    // AppKit, and UIKit apps. The apps' XCUITest targets (XcodeGen) link this product.
+    let uiTestPageObjects = Target.target(name: "UITestPageObjects", dependencies: ["AppCore"])
+
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let frameworkBrowserTests = Target.testTarget(
@@ -187,7 +196,7 @@ let targets: [Target] = {
         dependencies: ["MarkdownRendering", "AppModels"],
     )
 
-    return api + concrete + impl
+    return api + concrete + impl + [uiTestPageObjects]
         + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
 }()
 

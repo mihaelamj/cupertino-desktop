@@ -42,6 +42,7 @@ import MarkdownRendering
                 textView.font = .preferredFont(forTextStyle: .body)
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
                 textView.translatesAutoresizingMaskIntoConstraints = false
+                textView.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.reader
                 view.addSubview(textView)
 
                 spinner.translatesAutoresizingMaskIntoConstraints = false

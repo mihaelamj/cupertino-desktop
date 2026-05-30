@@ -78,7 +78,7 @@ let targets: [Target] = {
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
     // ---------- Features (framework-agnostic view models) ----------
-    let featureDependencies: [Target.Dependency] = ["AppCore", "BackendAPI", "MarkdownRendering"]
+    let featureDependencies: [Target.Dependency] = ["AppCore", "AppModels", "BackendAPI", "MarkdownRendering"]
     let search = Target.target(name: "SearchFeature", dependencies: featureDependencies)
     let frameworkBrowser = Target.target(name: "FrameworkBrowserFeature", dependencies: featureDependencies)
     let docReader = Target.target(name: "DocReaderFeature", dependencies: featureDependencies)
@@ -86,7 +86,7 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
-    let uiDependencies: [Target.Dependency] = ["AppCore", "MarkdownRendering"]
+    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
 
@@ -121,6 +121,10 @@ let targets: [Target] = {
 
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
+    let frameworkBrowserTests = Target.testTarget(
+        name: "FrameworkBrowserFeatureTests",
+        dependencies: ["FrameworkBrowserFeature", "AppCore", "BackendAPI", "AppModels"],
+    )
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
         dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), "BackendAPI", "AppModels"],
@@ -138,7 +142,7 @@ let targets: [Target] = {
         ],
     )
 
-    return api + concrete + impl + [coreTests, backendTests, localSubprocessTests]
+    return api + concrete + impl + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests]
 }()
 
 let package = Package(

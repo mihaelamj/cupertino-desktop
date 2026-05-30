@@ -27,6 +27,10 @@ targets:
         product: ShellAppKit
       - package: CupertinoDesktopPackages
         product: AppCore
+      - package: CupertinoDesktopPackages
+        product: FrameworkBrowserFeature
+      - package: CupertinoDesktopPackages
+        product: MacBackendImpl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.appkit

@@ -14,13 +14,14 @@ import SearchFeature
         struct SearchView: View {
             @Bindable private var model: Feature.Search.ViewModel
             @State private var showingFilters = false
+            @State private var path = NavigationPath()
 
             public init(model: Feature.Search.ViewModel) {
                 _model = Bindable(model)
             }
 
             public var body: some View {
-                NavigationStack {
+                NavigationStack(path: $path) {
                     VStack(spacing: 0) {
                         Picker("Scope", selection: $model.scope) {
                             Text("Docs").tag(Feature.Search.ViewModel.Scope.docs)
@@ -46,8 +47,20 @@ import SearchFeature
                     }
                     .sheet(isPresented: $showingFilters) { filters }
                     .navigationDestination(for: Model.DocHit.self) { hit in
-                        DocumentReaderView(model: model, hit: hit)
+                        DocumentReaderView(model: model, uri: hit.uri, providedTitle: hit.title)
                     }
+                    .navigationDestination(for: Model.DocURI.self) { uri in
+                        DocumentReaderView(model: model, uri: uri, providedTitle: nil)
+                    }
+                    .environment(\.openURL, OpenURLAction { url in
+                        // A tapped in-document link that resolves to a doc URI pushes that
+                        // document; anything else (absolute web links) opens normally.
+                        if let uri = Model.DocURI(url.absoluteString) {
+                            path.append(uri)
+                            return .handled
+                        }
+                        return .systemAction
+                    })
                     .task { if !model.hasRun { model.run() } }
                 }
             }
@@ -190,37 +203,29 @@ import SearchFeature
         }
 
         /// The page opened when a result is tapped: reads the document by URI and renders
-        /// its markdown. Replaced by the full document reader in a later milestone.
+        /// its full markdown through the shared `MarkdownReader` (the same pipeline the
+        /// framework browser detail uses).
         private struct DocumentReaderView: View {
             let model: Feature.Search.ViewModel
-            let hit: Model.DocHit
+            let uri: Model.DocURI
+            let providedTitle: String?
             @State private var page: Model.DocPage?
             @State private var failed = false
 
             var body: some View {
                 Group {
                     if let page {
-                        ScrollView {
-                            Text(Self.rendered(page.markdown))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .textSelection(.enabled)
-                                .padding()
-                        }
+                        MarkdownReader(markdown: page.markdown, title: page.title, declaration: page.declaration)
                     } else if failed {
                         ContentUnavailableView("Could not open the document", systemImage: "exclamationmark.triangle")
                     } else {
                         ProgressView()
                     }
                 }
-                .navigationTitle(hit.title)
-                .task {
-                    do { page = try await model.readPage(hit.uri) } catch { failed = true }
+                .navigationTitle(providedTitle ?? page?.title ?? "Document")
+                .task(id: uri) {
+                    do { page = try await model.readPage(uri) } catch { failed = true }
                 }
-            }
-
-            private static func rendered(_ markdown: String) -> AttributedString {
-                let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-                return (try? AttributedString(markdown: markdown, options: options)) ?? AttributedString(markdown)
             }
         }
     }

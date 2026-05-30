@@ -1,5 +1,8 @@
 import AppCore
+import AppModels
+import CodeHighlighting
 import FrameworkBrowserFeature
+import MarkdownRendering
 
 #if canImport(UIKit)
     import UIKit
@@ -8,9 +11,11 @@ import FrameworkBrowserFeature
         /// The UIKit detail column. Renders the selected framework's overview document
         /// from `Feature.FrameworkBrowser.ViewModel`, mirroring the SwiftUI detail: a
         /// scrollable text view of the markdown, a spinner while loading, an empty state
-        /// otherwise. State changes are picked up with `withObservationTracking`.
+        /// otherwise. A reader text-size control rescales the text, and tapping an
+        /// in-document link loads that document in place. State changes are picked up with
+        /// `withObservationTracking`.
         @MainActor
-        final class SelectionDetailViewController: UIViewController {
+        final class SelectionDetailViewController: UIViewController, UITextViewDelegate {
             private let frameworks: Feature.FrameworkBrowser.ViewModel
             private let textView = UITextView()
             private let spinner = UIActivityIndicatorView(style: .medium)
@@ -29,8 +34,10 @@ import FrameworkBrowserFeature
             override func viewDidLoad() {
                 super.viewDidLoad()
                 view.backgroundColor = .systemBackground
+                navigationItem.rightBarButtonItems = UI.ReaderTextSize.barButtonItems(target: self, larger: #selector(textLarger), smaller: #selector(textSmaller))
 
                 textView.isEditable = false
+                textView.delegate = self
                 textView.alwaysBounceVertical = true
                 textView.font = .preferredFont(forTextStyle: .body)
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
@@ -91,7 +98,13 @@ import FrameworkBrowserFeature
                 if let markdown = frameworks.selectedMarkdown {
                     textView.isHidden = false
                     emptyState.isHidden = true
-                    textView.text = markdown
+                    let base = Markdown.Theme().basePointSize
+                    textView.attributedText = Markdown.attributed(
+                        markdown: markdown,
+                        title: frameworks.selectedDocumentTitle,
+                        highlighter: Highlight.Splash(),
+                        theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
+                    )
                     title = frameworks.selectedDocumentTitle
                 } else if let error = frameworks.documentError {
                     textView.isHidden = false
@@ -103,6 +116,32 @@ import FrameworkBrowserFeature
                     emptyState.isHidden = loading
                     title = nil
                 }
+            }
+
+            @objc private func textLarger() {
+                Model.ReaderTextSize.larger()
+                refreshSizeControl()
+                render()
+            }
+
+            @objc private func textSmaller() {
+                Model.ReaderTextSize.smaller()
+                refreshSizeControl()
+                render()
+            }
+
+            private func refreshSizeControl() {
+                navigationItem.rightBarButtonItems = UI.ReaderTextSize.barButtonItems(
+                    target: self, larger: #selector(textLarger), smaller: #selector(textSmaller),
+                )
+            }
+
+            /// A tapped in-document link that resolves to a doc URI loads in place; other
+            /// links (absolute web URLs) open normally.
+            func textView(_: UITextView, shouldInteractWith url: URL, in _: NSRange, interaction _: UITextItemInteraction) -> Bool {
+                guard let uri = Model.DocURI(url.absoluteString) else { return true }
+                frameworks.openDocument(uri)
+                return false
             }
         }
     }

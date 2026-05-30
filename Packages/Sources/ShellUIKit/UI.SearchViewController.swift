@@ -203,7 +203,7 @@ import SearchFeature
             func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
                 tableView.deselectRow(at: indexPath, animated: true)
                 guard case let .doc(hit) = sections[indexPath.section].rows[indexPath.row] else { return }
-                navigationController?.pushViewController(DocumentReaderViewController(model: model, hit: hit), animated: true)
+                navigationController?.pushViewController(DocumentReaderViewController(model: model, uri: hit.uri, title: hit.title), animated: true)
             }
         }
     }

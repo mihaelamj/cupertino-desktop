@@ -1,0 +1,10 @@
+{
+  "id": "framework-reader",
+  "title": "Selecting a framework shows its document",
+  "tags": ["framework-browser", "reader"],
+  "steps": [
+    { "verb": "assert", "target": "framework_browser_sidebar" },
+    { "verb": "tap", "target": "framework_row_swiftui" },
+    { "verb": "assert", "target": "framework_browser_reader" }
+  ]
+}

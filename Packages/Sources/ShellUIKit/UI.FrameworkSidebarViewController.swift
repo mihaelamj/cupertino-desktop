@@ -143,6 +143,7 @@ import FrameworkBrowserFeature
             func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
                 let cell = tableView.dequeueReusableCell(withIdentifier: Self.cellID, for: indexPath)
                 let framework = frameworks.frameworks[indexPath.row]
+                cell.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.row(framework.id)
 
                 var content = cell.defaultContentConfiguration()
                 content.text = framework.name

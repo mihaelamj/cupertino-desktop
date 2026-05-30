@@ -55,6 +55,7 @@ import FrameworkBrowserFeature
                     List(frameworks.frameworks, selection: $model.selectedFrameworkID) { framework in
                         FrameworkRow(framework: framework)
                     }
+                    .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
                 }
             }
 
@@ -63,6 +64,7 @@ import FrameworkBrowserFeature
                     ProgressView()
                 } else if let markdown = frameworks.selectedMarkdown {
                     MarkdownReader(markdown: markdown, title: frameworks.selectedDocumentTitle)
+                        .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.reader)
                         .navigationTitle(frameworks.selectedDocumentTitle ?? "")
                         .environment(\.openURL, OpenURLAction { url in
                             // A tapped in-document link (e.g. "Mentioned in") that resolves
@@ -97,6 +99,8 @@ import FrameworkBrowserFeature
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
             }
         }
     }

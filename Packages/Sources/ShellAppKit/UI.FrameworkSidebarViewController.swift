@@ -144,6 +144,7 @@ import FrameworkBrowserFeature
             func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
                 let framework = frameworks.frameworks[row]
                 let cell = NSTableCellView()
+                cell.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
 
                 let name = NSTextField(labelWithString: framework.name)
                 let count = NSTextField(labelWithString: framework.documentCount.formatted())

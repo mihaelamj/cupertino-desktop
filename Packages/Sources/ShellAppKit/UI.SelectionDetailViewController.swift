@@ -41,6 +41,7 @@ import MarkdownRendering
                 textView.drawsBackground = false
                 textView.textContainerInset = NSSize(width: 16, height: 16)
                 textView.font = .systemFont(ofSize: NSFont.systemFontSize)
+                textView.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.reader)
                 scrollView.documentView = textView
                 scrollView.hasVerticalScroller = true
                 scrollView.drawsBackground = false

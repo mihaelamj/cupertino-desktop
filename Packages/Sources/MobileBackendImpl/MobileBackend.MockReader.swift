@@ -150,7 +150,7 @@ extension MobileBackend {
         func getDocumentContent(uri: String, format _: Search.DocumentFormat) async throws -> String? {
             // Match `apple-docs://<id>/overview` back to the framework's overview page.
             guard let host = uri.split(separator: "/").dropFirst().first.map(String.init) else { return nil }
-            return Self.overviews[host] ?? Self.overviews.first { uri.localizedCaseInsensitiveContains($0.key) }?.value
+            return Self.overviews[host]
         }
 
         func listFrameworks() async throws -> [String: Int] {

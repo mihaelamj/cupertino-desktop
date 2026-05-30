@@ -10,13 +10,14 @@ search, indexing, crawling, or storage; the server owns all of that.
 The app reaches the server only through a single `Backend.Documentation` protocol seam, so
 nothing in the UI knows it is MCP over a subprocess.
 
-## Two UIs over one backend
+## Three UIs over one backend
 
-The repo ships two macOS app targets in parallel, **SwiftUI** and **AppKit**, over one
-shared backend, so the two approaches can be compared before a final framework choice. The
-shared view models and the backend seam are identical; only the view code differs. A native
-iOS variant over an in-process (embedded) backend is planned. See
-[docs/DESIGN.md](docs/DESIGN.md) and [docs/MOBILE.md](docs/MOBILE.md).
+The repo ships three UI frameworks in parallel, **SwiftUI**, **AppKit**, and **UIKit**,
+over one shared backend and one set of view models, spanning three device classes,
+**iPhone, iPad, and Mac**, so the approaches can be compared before a final framework
+choice. SwiftUI runs on every device; AppKit is the Mac, UIKit is iPhone and iPad. The
+shared view models and the backend seam are identical across all of them; only the view
+code differs. See [docs/DESIGN.md](docs/DESIGN.md) and [docs/MOBILE.md](docs/MOBILE.md).
 
 ## Status
 

@@ -1,7 +1,7 @@
 import AppModels
 import BackendAPI
-import CupertinoMCPClientAPI
 import Foundation
+import SwiftMCPClientAPI
 
 public extension Backend {
     /// `Backend.Documentation` adapter for the **local, out-of-process** path: it

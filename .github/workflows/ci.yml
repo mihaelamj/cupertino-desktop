@@ -2,7 +2,7 @@ name: CI
 
 # The mechanical gates, run on GitHub as the backstop to the local git hooks.
 # cupertino-desktop is an Apple-only app (macOS + iOS UI packages), so there is no
-# Linux Swift job here; the cross-platform CupertinoMCPClientKit it depends on is
+# Linux Swift job here; the cross-platform SwiftMCPClient it depends on is
 # Linux-tested in its own CI. The package is swift-tools 6.2, so the macOS job
 # selects the latest stable Xcode (the runner default can lag a release).
 

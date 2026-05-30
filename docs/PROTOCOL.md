@@ -357,7 +357,7 @@ Each verb, the MCP tool the **subprocess** adapter calls, and the in-process ser
 
 Notes:
 - **`read_document` is JSON by default**, so the document reader gets structured `DocPage` content even through the subprocess adapter. The markdown-scrape cost is confined to the *search-list* tools on the subprocess side; the embedded adapter avoids all scraping by mapping typed services.
-- The subprocess adapter speaks the wire through the external `CupertinoMCPClientKit` (its Foundation-only `CupertinoMCPCore` wire types + `MCPClient` over an injected `Transport.Channel`); the embedded adapter reuses cupertino's typed read services and result models. Both map into the `AppModels` above and expose nothing else.
+- The subprocess adapter speaks the wire through the external `SwiftMCPClient` (its `MCPClient` over an injected `Transport.Channel`, over the neutral Foundation-only `SwiftMCPCore` wire types); the embedded adapter reuses cupertino's typed read services and result models. Both map into the `AppModels` above and expose nothing else.
 - cupertino clamps `limit` to 100; adapters clamp our `limit` accordingly.
 
 ## 5. Versioning

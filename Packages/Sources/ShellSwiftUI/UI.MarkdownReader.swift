@@ -37,6 +37,7 @@ import MarkdownRendering
                             }
                             .disabled(scale <= Self.range.lowerBound)
                             .help("Smaller text")
+                            .accessibilityIdentifier(UI.AccessibilityID.Reader.textSmaller)
 
                             Button {
                                 scale = min(Self.range.upperBound, scale + Self.step)
@@ -45,6 +46,7 @@ import MarkdownRendering
                             }
                             .disabled(scale >= Self.range.upperBound)
                             .help("Larger text")
+                            .accessibilityIdentifier(UI.AccessibilityID.Reader.textLarger)
                         }
                     }
             }

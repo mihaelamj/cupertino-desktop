@@ -43,6 +43,7 @@ let products: [Product] = [
     .singleTargetLibrary("SampleBrowserFeature"),
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
+    .singleTargetLibrary("ShellUIKit"),
     // Concrete (Mobile path)
     .singleTargetLibrary("LocalEmbeddedBackend"),
     // Impl / composition
@@ -95,6 +96,7 @@ let targets: [Target] = {
     let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
+    let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
 
     // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches the
     // corpus in-process (no MCP, no subprocess), because iOS cannot spawn one. It is a
@@ -107,7 +109,7 @@ let targets: [Target] = {
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
 
-    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP

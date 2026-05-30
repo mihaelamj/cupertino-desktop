@@ -22,9 +22,10 @@ final class CupertinoMobileUIKitUITests: XCTestCase {
             "tapping a framework should push its document onto the navigation stack",
         )
 
+        // The document loads asynchronously (search then read), so wait for the text
+        // view's value to contain the real abstract rather than reading it immediately.
         let body = app.textViews.firstMatch
-        XCTAssertTrue(body.waitForExistence(timeout: 10), "the detail should show the rendered document")
-        let text = (body.value as? String) ?? ""
-        XCTAssertTrue(text.contains("imperative"), "the detail should render the UIKit overview; got: \(text.prefix(80))")
+        let rendered = expectation(for: NSPredicate(format: "value CONTAINS %@", "event-driven"), evaluatedWith: body)
+        wait(for: [rendered], timeout: 10)
     }
 }

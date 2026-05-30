@@ -130,6 +130,7 @@ let targets: [Target] = {
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
         dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct],
+        resources: [.process("Resources")],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
 

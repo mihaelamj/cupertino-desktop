@@ -87,23 +87,37 @@ public extension Feature.Search {
             )
         }
 
-        /// Run the current scope's query, cancelling any query already in flight.
+        /// Run the current scope's query now, cancelling any query already in flight.
         public func run() {
             task?.cancel()
             state = .loading
+            task = Task { [weak self] in await self?.execute() }
+        }
+
+        /// Run after a short delay, coalescing rapid keystrokes so live search does not
+        /// fire a query per character (and does not hammer a real backend). Existing
+        /// results stay on screen until the new ones arrive, so there is no flicker.
+        public func runDebounced() {
+            task?.cancel()
+            task = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(250))
+                guard let self, !Task.isCancelled else { return }
+                await execute()
+            }
+        }
+
+        private func execute() async {
             switch scope {
             case .docs:
-                let query = Model.DocsQuery(
+                await load(Model.DocsQuery(
                     text: text, sources: sources, framework: framework.isEmpty ? nil : framework,
                     floor: floor, limit: limit,
-                )
-                task = Task { [weak self] in await self?.load(query) }
+                ))
             case .everything:
-                let query = Model.UnifiedQuery(
+                await loadEverything(Model.UnifiedQuery(
                     text: text, framework: framework.isEmpty ? nil : framework,
                     floor: floor, limitPerSource: limit,
-                )
-                task = Task { [weak self] in await self?.loadEverything(query) }
+                ))
             }
         }
 

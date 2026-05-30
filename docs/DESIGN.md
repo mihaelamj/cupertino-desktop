@@ -137,7 +137,7 @@ cupertino-desktop/
     └── DESIGN.md
 ```
 
-> M0 status: the two macOS variants exist today, currently named `CupertinoDesktopSwiftUI` / `CupertinoDesktopAppKit` (= the `macSwiftUI` / `macAppKit` variants) over `ShellSwiftUI` / `ShellAppKit`. The rename to the idiom scheme above and the four iOS variants are future work (sections 5.3, 13).
+> Status: four app variants exist today, the two macOS apps `CupertinoDesktopSwiftUI` / `CupertinoDesktopAppKit` (over `ShellSwiftUI` / `ShellAppKit`) and two adaptive mobile apps `CupertinoMobileSwiftUI` / `CupertinoMobileUIKit` (over `ShellSwiftUI` / `ShellUIKit`, each handling both iPhone and iPad rather than splitting per device). The framework browser, document reader, and search ship in all of them; macOS runs the live `Backend.LocalSubprocess` over `cupertino serve`, the mobile apps run `Backend.LocalEmbedded` over a bundled real-data corpus. The rename to the idiom scheme above, any finer per-device split, and the in-process `CupertinoDataEngine` are future work (sections 5.3, 13).
 
 Dependency direction is strictly one-way: **Foundation → Infrastructure → Features → UI → Apps**. Each app depends on exactly one UI variant package plus one backend `*Impl`; UI packages depend on Features/Core; nothing depends on Apps. The six UI variants share one set of view models, so iPhone-vs-iPad and UIKit-vs-SwiftUI differences are purely presentational.
 

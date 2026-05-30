@@ -19,8 +19,8 @@ import PackageDescription
 // direct calls, no MCP) are peers; a remote conformer is future. MCP is not an
 // identity here: it is only the wire the subprocess conformer speaks. The MCP
 // client, its transport seam, and the subprocess transport now live in the external
-// `CupertinoMCPClientKit` package (the client extracted from this repo); we consume
-// its `CupertinoMCPClientAPI` seam above the protocol and wire the concretes in
+// `SwiftMCPClient` package (the neutral client extracted from this repo); we consume
+// its `SwiftMCPClientAPI` seam above the protocol and wire the concretes in
 // `MacBackendImpl`.
 
 extension Product {
@@ -50,11 +50,11 @@ let products: [Product] = [
     .singleTargetLibrary("MobileBackendImpl"),
 ]
 
-// The MCP client kit (external, local path): wire core, the Transport.Channel byte
+// The MCP client package (external, via SwiftMCPClient): the Transport.Channel byte
 // seam, the macOS subprocess transport, and the MCPClient over an injected channel,
-// plus the `Client.MCP` seam. Replaces the old in-repo MCPClientKit / MCPClientAPI /
-// TransportAPI / SubprocessTransport packages.
-let kit = "CupertinoMCPClientKit"
+// plus the `Client.MCP` seam, over the neutral SwiftMCPCore wire types. Replaces the
+// old in-repo MCPClientKit / MCPClientAPI / TransportAPI / SubprocessTransport packages.
+let kit = "SwiftMCPClient"
 func kitProduct(_ name: String) -> Target.Dependency {
     .product(name: name, package: kit)
 }
@@ -69,11 +69,11 @@ let targets: [Target] = {
     let api = [models, backendAPI, core]
 
     // ---------- Concrete packages (import only API packages) ----------
-    // The subprocess adapter depends on the client seam (CupertinoMCPClientAPI), not
+    // The subprocess adapter depends on the client seam (SwiftMCPClientAPI), not
     // the concrete client, so it is testable with a fake and imports no MCP wire types.
     let localSubprocessBackend = Target.target(
         name: "LocalSubprocessBackend",
-        dependencies: ["BackendAPI", "AppModels", kitProduct("CupertinoMCPClientAPI")],
+        dependencies: ["BackendAPI", "AppModels", kitProduct("SwiftMCPClientAPI")],
     )
     let markdown = Target.target(name: "MarkdownRendering", dependencies: ["AppModels"])
 
@@ -107,10 +107,10 @@ let targets: [Target] = {
         dependencies: [
             "BackendAPI",
             "LocalSubprocessBackend",
-            kitProduct("CupertinoMCPClient"),
-            kitProduct("CupertinoMCPClientAPI"),
-            kitProduct("CupertinoMCPSubprocessTransport"),
-            kitProduct("CupertinoMCPTransport"),
+            kitProduct("SwiftMCPClient"),
+            kitProduct("SwiftMCPClientAPI"),
+            kitProduct("SwiftMCPSubprocessTransport"),
+            kitProduct("SwiftMCPTransport"),
         ],
     )
     let mobileBackendImpl = Target.target(
@@ -123,16 +123,16 @@ let targets: [Target] = {
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("CupertinoMCPClientAPI"), "BackendAPI", "AppModels"],
+        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), "BackendAPI", "AppModels"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
         dependencies: [
             "LocalSubprocessBackend",
-            kitProduct("CupertinoMCPClient"),
-            kitProduct("CupertinoMCPClientAPI"),
-            kitProduct("CupertinoMCPSubprocessTransport"),
-            kitProduct("CupertinoMCPTransport"),
+            kitProduct("SwiftMCPClient"),
+            kitProduct("SwiftMCPClientAPI"),
+            kitProduct("SwiftMCPSubprocessTransport"),
+            kitProduct("SwiftMCPTransport"),
             "BackendAPI",
             "AppModels",
         ],
@@ -149,15 +149,14 @@ let package = Package(
     ],
     products: products,
     dependencies: [
-        // The extracted MCP client kit, pinned to a commit on its `main` so CI
-        // resolves it reproducibly. Re-pin this SHA (a one-line bump) to pick up kit
-        // changes during co-development; switch to a tagged release once the kit
-        // stabilizes. The `cupertino` package dependency is intentionally absent: the
+        // The neutral MCP client package, pinned to its published 0.1.x line so CI
+        // resolves it reproducibly. Bump the lower bound when adopting a new tagged
+        // release. The `cupertino` package dependency is intentionally absent: the
         // subprocess path no longer needs cupertino's `MCPCore`, and the future
         // in-process embedded path (Mobile) will re-add it when it is actually built.
         .package(
-            url: "https://github.com/mihaelamj/CupertinoMCPClientKit.git",
-            revision: "d13541036e2c18b3edd2b61050a986c5be166919",
+            url: "https://github.com/mihaelamj/SwiftMCPClient.git",
+            from: "0.1.0",
         ),
     ],
     targets: targets,

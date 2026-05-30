@@ -1,8 +1,8 @@
 import AppModels
 import BackendAPI
-import CupertinoMCPClientAPI
 import LocalSubprocessBackend
 @testable import MacBackendImpl
+import SwiftMCPClientAPI
 import Testing
 
 @Suite("Backend seam scaffold")

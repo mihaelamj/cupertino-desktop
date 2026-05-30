@@ -1,11 +1,11 @@
 import AppModels
 import BackendAPI
-import CupertinoMCPClient
-import CupertinoMCPClientAPI
-import CupertinoMCPSubprocessTransport
-import CupertinoMCPTransport
 import Foundation
 @testable import LocalSubprocessBackend
+import SwiftMCPClient
+import SwiftMCPClientAPI
+import SwiftMCPSubprocessTransport
+import SwiftMCPTransport
 import Testing
 
 @Suite("LocalSubprocess adapter")

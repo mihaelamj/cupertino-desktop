@@ -52,6 +52,8 @@ targets:
       - target: CupertinoMobileSwiftUI
       - package: CupertinoDesktopPackages
         product: UITestPageObjects
+      - package: CupertinoDesktopPackages
+        product: FlowSpec
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.mobile.swiftui.uitests

@@ -50,8 +50,9 @@ let products: [Product] = [
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
-    // UI-test support (Page Object Model), consumed by the apps' XCUITest targets.
+    // UI-test support (Page Object Model + scenario engine), for the XCUITest targets.
     .singleTargetLibrary("UITestPageObjects"),
+    .singleTargetLibrary("FlowSpec"),
 ]
 
 // The MCP client package (external, via SwiftMCPClient): the Transport.Channel byte
@@ -158,7 +159,12 @@ let targets: [Target] = {
     // single source of truth shared with the views). Locating elements by accessibility
     // identifier keeps each page object cross-platform: the same page drives the SwiftUI,
     // AppKit, and UIKit apps. The apps' XCUITest targets (XcodeGen) link this product.
-    let uiTestPageObjects = Target.target(name: "UITestPageObjects", dependencies: ["AppCore"])
+    // FlowSpec: a dependency-free scenario engine (Verb/Step/Scenario + a StepRegistry seam
+    // and a runner/loader). Scenarios are declarative JSON under `scenarios/`; a per-UI
+    // registry in UITestPageObjects turns each step into a page-object action, so one
+    // scenario drives the SwiftUI, AppKit, and UIKit apps.
+    let flowSpec = Target.target(name: "FlowSpec")
+    let uiTestPageObjects = Target.target(name: "UITestPageObjects", dependencies: ["AppCore", "FlowSpec"])
 
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
@@ -196,7 +202,7 @@ let targets: [Target] = {
         dependencies: ["MarkdownRendering", "AppModels"],
     )
 
-    return api + concrete + impl + [uiTestPageObjects]
+    return api + concrete + impl + [flowSpec, uiTestPageObjects]
         + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
 }()
 

@@ -181,6 +181,19 @@ The matrix (idiom is a first-class axis: iPhone and iPad are deliberately differ
 
 Each exposes the same-named `UI.RootExperience` (parallel protocols, idiomatic per framework: `some View` vs `UIViewController` vs `NSViewController`), not one erased type, so none pays a hosting/erasure penalty. The shared, framework-agnostic seam (`UI.RootModel` and the per-feature view models in `AppCore`/Features) is bound identically by all six, so **iPhone-vs-iPad and UIKit-vs-SwiftUI differences live entirely in the view code, never in logic.**
 
+#### Building the variants in parallel is a seam-discovery method, not a speed play
+
+When we build a feature, we implement it in **two variants at once on purpose** (for example `ShellMacSwiftUI` and `ShellMacAppKit` over the same model). This is **slower** than doing one, and that is accepted: the point is not throughput, it is to **let the right shared abstraction reveal itself** instead of guessing it up front.
+
+The genuine seam, which view-model shape, which protocol, which value type belongs in `AppCore`/Features versus inside each shell, is only knowable at the **second real consumer**. So we surface that second consumer deliberately:
+
+1. Start each feature with a **deliberately thin** shared view model (`Feature.<Name>.Model` in its Features package): just the state and intents both frameworks obviously need.
+2. Implement the feature in **two variants** against that model, writing each shell **idiomatically** (SwiftUI bindings; AppKit `withObservationTracking` driving `NSView`), never bending one to match the other.
+3. **Reconcile**: whatever both shells end up expressing identically is real shared logic and is lifted into the view model (or a seam); whatever differs is presentation and **stays in the view code**.
+4. Lift only the **proven** duplication into `AppCore` / Features / `SharedProtocols`, then continue to the next feature.
+
+This is the operational form of the project's **"do not pre-abstract; abstract only at the second real consumer"** rule (see [rules/shared-protocols.md](rules/shared-protocols.md)): the parallel build **is** that second consumer, produced on purpose rather than imagined. The guard against false sharing: a candidate seam that fits SwiftUI's `some View` but forces AppKit into an unnatural shape (or the reverse) is the **wrong** seam; if a proposed abstraction makes either shell less idiomatic, it does not belong in the shared layer, it belongs in the shells. The six-variant matrix exists precisely so this pressure-test has more than one angle.
+
 ### Apps layer
 
 There are **six app targets, one per UI variant** (iPhone and iPad are separate targets, per the design): `CupertinoMacAppKit`, `CupertinoMacSwiftUI`, `CupertinoiPhoneUIKit`, `CupertinoiPhoneSwiftUI`, `CupertinoiPadUIKit`, `CupertinoiPadSwiftUI`. Each is a pure composition + framework-specific entry point: it links exactly one UI variant package and one backend `*Impl`, and mounts `UI.LiveRootExperience().makeRoot(model:)`. macOS targets use `MacBackendImpl` (the local-subprocess/brew-binary route); iOS targets use `LocalEmbeddedBackendImpl`. All logic is in Features; all views are in the UI packages.

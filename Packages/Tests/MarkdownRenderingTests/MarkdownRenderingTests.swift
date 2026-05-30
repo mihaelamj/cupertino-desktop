@@ -3,6 +3,12 @@ import Foundation
 @testable import MarkdownRendering
 import Testing
 
+#if canImport(UIKit)
+    import UIKit
+#elseif canImport(AppKit)
+    import AppKit
+#endif
+
 @Suite("Markdown")
 struct MarkdownRenderingTests {
     @Test("swift-markdown parses GFM into a document")
@@ -102,6 +108,24 @@ struct MarkdownRenderingTests {
 
             #expect(sawCodeFont) // code is monospaced
             #expect(sawKeywordColor) // the keyword token got its highlight color
+        }
+
+        @Test("block spacing differs per UI: paragraph spacing for text views, blank lines for SwiftUI")
+        func blockSpacingModes() {
+            let markdown = "First paragraph.\n\nSecond paragraph."
+            let textViewMode = Markdown.attributed(markdown: markdown, spacing: .paragraphSpacing)
+            let swiftUIMode = Markdown.attributed(markdown: markdown, spacing: .blankLine)
+
+            // Text-view mode uses single newlines and relies on paragraph spacing...
+            #expect(!textViewMode.string.contains("\n\n"))
+            var sawParagraphSpacing = false
+            textViewMode.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textViewMode.length)) { value, _, _ in
+                if let style = value as? NSParagraphStyle, style.paragraphSpacing > 0 { sawParagraphSpacing = true }
+            }
+            #expect(sawParagraphSpacing)
+
+            // ...while SwiftUI mode separates blocks with an explicit blank line.
+            #expect(swiftUIMode.string.contains("\n\n"))
         }
 
         @Test("document links map relative Apple-docs paths to apple-docs URIs")

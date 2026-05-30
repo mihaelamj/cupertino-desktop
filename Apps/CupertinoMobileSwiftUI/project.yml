@@ -30,6 +30,8 @@ targets:
       - package: CupertinoDesktopPackages
         product: FrameworkBrowserFeature
       - package: CupertinoDesktopPackages
+        product: SearchFeature
+      - package: CupertinoDesktopPackages
         product: MobileBackendImpl
     settings:
       base:

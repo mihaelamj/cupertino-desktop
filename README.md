@@ -1,92 +1,98 @@
 # Cupertino Desktop
 
-Native macOS desktop app for browsing Apple Developer documentation, Swift Evolution proposals, and sample code offline. Provides a graphical interface for Cupertino using MCPClient. Built with SwiftUI/AppKit.
+A native macOS app for browsing Apple developer documentation, Swift Evolution, and
+sample code offline. It is a thin GUI client over the
+[`cupertino`](https://github.com/mihaelamj/cupertino) MCP server: it spawns
+`cupertino serve` as a subprocess and talks to it over stdio via
+[`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient). It does not reimplement
+search, indexing, crawling, or storage; the server owns all of that.
 
-## Overview
+The app reaches the server only through a single `Backend.Documentation` protocol seam, so
+nothing in the UI knows it is MCP over a subprocess.
 
-Cupertino Desktop is a native macOS application that provides a graphical interface for browsing Apple's developer documentation offline. It connects to the [Cupertino](https://github.com/mihaelamj/cupertino) MCP server via the MCPClient library, providing a native UI for all documentation features without reimplementing the search and storage layers.
+## Two UIs over one backend
 
-## Features
+The repo ships two macOS app targets in parallel, **SwiftUI** and **AppKit**, over one
+shared backend, so the two approaches can be compared before a final framework choice. The
+shared view models and the backend seam are identical; only the view code differs. A native
+iOS variant over an in-process (embedded) backend is planned. See
+[docs/DESIGN.md](docs/DESIGN.md) and [docs/MOBILE.md](docs/MOBILE.md).
 
-- 🔍 **Fast Full-Text Search** - Search across 22,000+ documentation pages
-- 📚 **Framework Browser** - Browse 261 frameworks (SwiftUI, UIKit, AppKit, Foundation, etc.)
-- 📖 **Documentation Reader** - Read documentation with native rendering
-- 🎯 **Sample Code Browser** - Browse and view Apple sample code with syntax highlighting
-- ⚡ **Offline-First** - Works completely offline once documentation is downloaded
-- 🎨 **Native macOS Interface** - Built with SwiftUI and AppKit
+## Status
 
-## UI Implementation
+Early development. What works today:
 
-This project will include **both AppKit and SwiftUI** implementations:
+- **Framework browser.** The sidebar lists the real frameworks (with document counts) from
+  the live backend, in both the SwiftUI and AppKit apps, over one shared view model.
 
-- **AppKit version** - More control, better for complex document viewers
-- **SwiftUI version** - Modern, reactive, less code
+Scaffolded behind the backend seam but not yet implemented:
 
-The final UI framework decision will be made after testing both approaches. Both versions will use the same MCPClient backend.
+- **Documentation reader** (`read_document` to a rendered page).
+- **Search** across the corpus.
+- **Sample code browser.**
+- The **iOS variants** and the embedded (in-process) backend.
+
+Milestones are tracked in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Architecture
 
 ```
-┌─────────────────────────┐
-│  Desktop App            │
-│                         │
-│  ┌────────────────┐     │
-│  │ AppKit/SwiftUI │     │  ← UI Layer (both versions)
-│  └────────┬───────┘     │
-│           ↓             │
-│  ┌────────────────┐     │
-│  │  MCPClient     │     │  ← From cupertino package
-│  └────────┬───────┘     │
-│           ↓             │
-│  ┌────────────────┐     │
-│  │cupertino serve │     │  ← Spawned subprocess
-│  └────────────────┘     │
-└─────────────────────────┘
+Apps (SwiftUI / AppKit)        thin entry points, one UI variant + one backend each
+        │
+UI shells + Features           native views over shared @Observable view models
+        │
+Backend.Documentation          the only universal seam (AppModels value types)
+        │
+Backend.LocalSubprocess        the macOS adapter; speaks MCP to a cupertino serve subprocess
+        │
+SwiftMCPClient (external)       JSON-RPC over an injected transport (over SwiftMCPCore)
+        │
+cupertino serve                the Homebrew binary, spawned as a subprocess
 ```
+
+Layers run one direction only: Foundation -> Infrastructure -> Features -> UI -> Apps. The
+MCP client and its wire types live in the external `SwiftMCPClient` / `SwiftMCPCore`
+packages; only the subprocess adapter imports them, and the UI never sees MCP.
 
 ## Requirements
 
-- macOS 15+ (Sequoia)
+- macOS 15+
 - Swift 6.2+
-- Xcode 16.0+
-- [Cupertino](https://github.com/mihaelamj/cupertino) installed with documentation downloaded
+- Xcode 16+
+- The [`cupertino`](https://github.com/mihaelamj/cupertino) binary (Homebrew) with a
+  downloaded corpus in `~/.cupertino`.
 
-## Installation
+## Building
 
-```bash
-# Clone the repository
-git clone https://github.com/mihaelamj/cupertino-desktop.git
-cd cupertino-desktop
+The library packages live under `Packages/`; the app targets are XcodeGen projects under
+`Apps/` (the `.xcodeproj` bundles are generated, not committed).
 
-# Build with Swift Package Manager
+```sh
+# Build and test the packages
+cd Packages
 swift build
+swift test
 
-# Or open in Xcode
-open CupertinoDesktop.xcodeproj
+# Generate the app projects, then open the workspace and pick a scheme
+cd ..
+brew install xcodegen          # once
+./scripts/generate-xcodeproj.sh
+open Main.xcworkspace           # run CupertinoDesktopSwiftUI or CupertinoDesktopAppKit
 ```
 
-## Development Status
+## Related packages
 
-🚧 **In Development** - This project is in early stages
-
-- [ ] Project structure and Package.swift
-- [ ] MCPClient integration
-- [ ] SwiftUI prototype
-- [ ] AppKit prototype
-- [ ] UI framework decision
-- [ ] Core features implementation
-- [ ] First release
-
-## Related Projects
-
-- **[cupertino](https://github.com/mihaelamj/cupertino)** - Main documentation crawler and MCP server
-- **[cupertino-docs](https://github.com/mihaelamj/cupertino-docs)** - Pre-built documentation archive
-- **[cupertino-sample-code](https://github.com/mihaelamj/cupertino-sample-code)** - Apple sample code repository
+- [`cupertino`](https://github.com/mihaelamj/cupertino) - the documentation crawler, MCP
+  server, and search engine this app is a client of.
+- [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient) - the transport-injectable
+  MCP client.
+- [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) - the neutral MCP wire types.
 
 ## Contributing
 
-Contributions are welcome! This is an early-stage project, so major design decisions are still being made.
+See [CONTRIBUTING.md](CONTRIBUTING.md). The project is early, so major design decisions are
+still in flight; start from [docs/DESIGN.md](docs/DESIGN.md).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details
+MIT License, see [LICENSE](LICENSE).

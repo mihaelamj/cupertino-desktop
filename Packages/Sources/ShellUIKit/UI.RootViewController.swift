@@ -43,7 +43,7 @@ import FrameworkBrowserFeature
                 // navigation controller, so the columns are set as plain controllers:
                 // wrapping them again nests a second navigation bar (a stray back button).
                 let sidebar = FrameworkSidebarViewController(model: model, frameworks: frameworks)
-                sidebar.title = "Cupertino"
+                sidebar.title = "Cupertino (UIKit)"
                 setViewController(sidebar, for: .primary)
                 setViewController(Self.placeholder("Select a framework", symbol: "books.vertical"), for: .supplementary)
                 setViewController(SelectionDetailViewController(model: model), for: .secondary)

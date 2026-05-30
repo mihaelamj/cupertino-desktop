@@ -22,7 +22,7 @@ import FrameworkBrowserFeature
             public var body: some View {
                 NavigationSplitView {
                     sidebar
-                        .navigationTitle("Cupertino")
+                        .navigationTitle("Cupertino (SwiftUI)")
                         .task { frameworks.onAppeared() }
                 } content: {
                     ContentUnavailableView(

@@ -1,4 +1,4 @@
-name: CupertinoMobile
+name: CupertinoMobileSwiftUI
 options:
   bundleIdPrefix: com.mihaelamj.cupertinodesktop
   deploymentTarget:
@@ -16,7 +16,7 @@ packages:
   CupertinoDesktopPackages:
     path: ../../Packages
 targets:
-  CupertinoMobile:
+  CupertinoMobileSwiftUI:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
@@ -27,10 +27,14 @@ targets:
         product: ShellSwiftUI
       - package: CupertinoDesktopPackages
         product: AppCore
+      - package: CupertinoDesktopPackages
+        product: FrameworkBrowserFeature
+      - package: CupertinoDesktopPackages
+        product: MobileBackendImpl
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.mobile
-        PRODUCT_NAME: CupertinoMobile
+        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.mobile.swiftui
+        PRODUCT_NAME: CupertinoMobileSwiftUI
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

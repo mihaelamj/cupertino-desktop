@@ -58,11 +58,26 @@ struct FrameworkBrowserViewModelTests {
         #expect(viewModel.errorMessage == nil)
         #expect(viewModel.frameworks.map(\.id) == ["swiftui"])
     }
+
+    @Test("selecting a framework loads and exposes its document")
+    func documentLoads() async {
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: FakeBackend(.success([])))
+        await viewModel.loadDocument(framework: "swiftui")
+        #expect(viewModel.selectedMarkdown == "# Doc")
+        #expect(viewModel.selectedDocumentTitle == "Doc")
+    }
+
+    @Test("deselecting clears the document")
+    func deselectClearsDocument() {
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: FakeBackend(.success([])))
+        viewModel.selectFramework(nil)
+        #expect(viewModel.selectedMarkdown == nil)
+    }
 }
 
 /// A minimal `Backend.Connecting & Backend.FrameworkBrowsing` double. Possible only
 /// because the view model depends on the narrow slices, not the full backend.
-private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing {
+private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing, Backend.Searching, Backend.DocumentReading {
     enum Mode {
         case success([Model.Framework])
         case fail
@@ -81,6 +96,27 @@ private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing {
     }
 
     func disconnect() async {}
+
+    func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+        Model.DocPage(uri: uri, source: .appleDocs, title: "Doc", markdown: "# Doc")
+    }
+
+    func searchDocs(_: Model.DocsQuery) async throws -> [Model.DocHit] {
+        guard let uri = Model.DocURI("apple-docs://swiftui/view") else { return [] }
+        return [Model.DocHit(id: "1", uri: uri, source: .appleDocs, title: "View", framework: "swiftui", snippet: "", score: 1)]
+    }
+
+    func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
+        throw Failure.boom
+    }
+
+    func searchPackages(_: Model.PackageQuery) async throws -> [Model.PackageHit] {
+        throw Failure.boom
+    }
+
+    func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+        throw Failure.boom
+    }
 
     func listFrameworks() async throws -> [Model.Framework] {
         switch mode {

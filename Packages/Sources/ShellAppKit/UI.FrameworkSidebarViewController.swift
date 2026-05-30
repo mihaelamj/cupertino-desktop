@@ -167,7 +167,9 @@ import FrameworkBrowserFeature
             func tableViewSelectionDidChange(_: Notification) {
                 let row = tableView.selectedRow
                 guard row >= 0, row < frameworks.frameworks.count else { return }
-                model.selectedFrameworkID = frameworks.frameworks[row].id
+                let id = frameworks.frameworks[row].id
+                model.selectedFrameworkID = id
+                frameworks.selectFramework(id)
             }
         }
     }

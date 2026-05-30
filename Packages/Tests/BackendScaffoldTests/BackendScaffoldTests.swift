@@ -13,11 +13,13 @@ struct BackendScaffoldTests {
         // tell it is MCP-over-subprocess (enforced at compile time by the
         // `any Backend.Documentation` annotation). This is the contract that lets iOS
         // swap in the embedded adapter later with no change above the seam. We assert
-        // a verb fails honestly with our own `Failure` (no process is spawned: the
-        // unimplemented verb throws before touching the transport).
+        // a still-unimplemented verb fails honestly with our own `Failure` (no process
+        // is spawned: the unimplemented verb throws before touching the transport).
+        // Search and read are now implemented (docs/PROTOCOL.md section 4); sample
+        // browsing is not, so it is the verb that exercises this contract here.
         let backend: any Backend.Documentation = MacBackend.live()
         await #expect(throws: Backend.Failure.self) {
-            _ = try await backend.searchEverything(Model.UnifiedQuery(text: "swiftui"))
+            _ = try await backend.listSamples(framework: nil, limit: 10)
         }
     }
 

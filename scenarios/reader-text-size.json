@@ -1,0 +1,13 @@
+{
+  "id": "reader-text-size",
+  "title": "The reader text-size control resizes the document",
+  "tags": ["reader", "text-size"],
+  "steps": [
+    { "verb": "tap", "target": "framework_row_swiftui" },
+    { "verb": "assert", "target": "framework_browser_reader" },
+    { "verb": "tap", "target": "reader_text_larger" },
+    { "verb": "tap", "target": "reader_text_larger" },
+    { "verb": "tap", "target": "reader_text_smaller" },
+    { "verb": "assert", "target": "framework_browser_reader" }
+  ]
+}

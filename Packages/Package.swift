@@ -43,6 +43,7 @@ let products: [Product] = [
     .singleTargetLibrary("SampleBrowserFeature"),
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
+    .singleTargetLibrary("ShellUIKit"),
     // Concrete (Mobile path)
     .singleTargetLibrary("LocalEmbeddedBackend"),
     // Impl / composition
@@ -58,6 +59,12 @@ let kit = "SwiftMCPClient"
 func kitProduct(_ name: String) -> Target.Dependency {
     .product(name: name, package: kit)
 }
+
+/// CupertinoDataKit (external, cupertino-owned): cupertino's read contract as protocols
+/// + value types only. The embedded (iOS) adapter conforms a data source to its
+/// `Search.DocumentReading` slice and maps results into `AppModels`. Consumed by version;
+/// we never import the `cupertino` package itself.
+let dataKitProduct: Target.Dependency = .product(name: "CupertinoDataKit", package: "CupertinoDataKit")
 
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
@@ -89,13 +96,20 @@ let targets: [Target] = {
     let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "FrameworkBrowserFeature"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
+    let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
 
-    // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches
-    // cupertino in-process (no MCP, no subprocess), because iOS cannot spawn one.
-    // Direct cupertino calls land in a later milestone; this scaffold fixes shape.
-    let localEmbeddedBackend = Target.target(name: "LocalEmbeddedBackend", dependencies: ["BackendAPI", "AppModels"])
+    // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches the
+    // corpus in-process (no MCP, no subprocess), because iOS cannot spawn one. It is a
+    // GoF Adapter over the injected `CupertinoDataKit.Search.DocumentReading` contract,
+    // mapping that adaptee's results into `AppModels`. The read engine is a
+    // constructor-injected strategy, so this adapter depends only on the named protocol,
+    // never on a concrete engine or on the `cupertino` package.
+    let localEmbeddedBackend = Target.target(
+        name: "LocalEmbeddedBackend",
+        dependencies: ["BackendAPI", "AppModels", dataKitProduct],
+    )
 
-    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP
@@ -115,7 +129,7 @@ let targets: [Target] = {
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "LocalEmbeddedBackend"],
+        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
 
@@ -142,7 +156,12 @@ let targets: [Target] = {
         ],
     )
 
-    return api + concrete + impl + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests]
+    let localEmbeddedTests = Target.testTarget(
+        name: "LocalEmbeddedBackendTests",
+        dependencies: ["LocalEmbeddedBackend", dataKitProduct, "BackendAPI", "AppModels"],
+    )
+
+    return api + concrete + impl + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests]
 }()
 
 let package = Package(
@@ -153,13 +172,15 @@ let package = Package(
     ],
     products: products,
     dependencies: [
-        // The neutral MCP client package, pinned to its published 0.1.x line so CI
-        // resolves it reproducibly. Bump the lower bound when adopting a new tagged
-        // release. The `cupertino` package dependency is intentionally absent: the
-        // subprocess path no longer needs cupertino's `MCPCore`, and the future
-        // in-process embedded path (Mobile) will re-add it when it is actually built.
+        // The neutral MCP client package (the macOS subprocess path).
         .package(
             url: "https://github.com/mihaelamj/SwiftMCPClient.git",
+            from: "0.1.0",
+        ),
+        // cupertino's read contract (the iOS embedded path): protocols + value types
+        // only. We depend on it by version and never on the `cupertino` package itself.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoDataKit.git",
             from: "0.1.0",
         ),
     ],

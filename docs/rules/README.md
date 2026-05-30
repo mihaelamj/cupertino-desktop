@@ -32,6 +32,9 @@ project's when you adopt these.
 - [systematic-debugging.md](systematic-debugging.md) - reproduce, isolate,
   explain, fix.
 - [documentation.md](documentation.md) - DocC catalogs and `///` requirements.
+- [documentation-search.md](documentation-search.md) - the cupertino doc index is
+  an FTS search engine, not an agent: query it with keywords and read the results
+  for Apple-API facts; never ask it to reason.
 - [file-naming.md](file-naming.md) - filename conventions.
 - [folder-grouping.md](folder-grouping.md) - when to flatten one-file folders.
 - [package-structure.md](package-structure.md) - workspace and package layout: one

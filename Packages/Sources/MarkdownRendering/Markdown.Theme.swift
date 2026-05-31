@@ -46,12 +46,12 @@ import Foundation
 
             func heading(level: Int) -> PlatformFont {
                 let multiplier: CGFloat = switch level {
-                case 1: 1.7
-                case 2: 1.4
-                case 3: 1.2
-                default: 1.05
+                case 1: 1.4
+                case 2: 1.2
+                case 3: 1.08
+                default: 1.0
                 }
-                return .systemFont(ofSize: basePointSize * multiplier, weight: .bold)
+                return .systemFont(ofSize: basePointSize * multiplier, weight: .semibold)
             }
 
             // MARK: Colors

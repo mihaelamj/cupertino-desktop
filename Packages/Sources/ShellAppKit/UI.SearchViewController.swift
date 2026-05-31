@@ -81,6 +81,10 @@ import SearchFeature
                     split.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     split.trailingAnchor.constraint(equalTo: container.trailingAnchor),
                     resultsScroll.widthAnchor.constraint(greaterThanOrEqualToConstant: 240),
+                    resultsScroll.widthAnchor.constraint(lessThanOrEqualToConstant: 460),
+                    // The reader pane must keep a width, otherwise the results list takes the
+                    // whole split and the selected document has nowhere to render.
+                    readerScroll.widthAnchor.constraint(greaterThanOrEqualToConstant: 360),
                     statusLabel.centerXAnchor.constraint(equalTo: resultsScroll.centerXAnchor),
                     statusLabel.centerYAnchor.constraint(equalTo: resultsScroll.centerYAnchor),
                     statusLabel.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 16),

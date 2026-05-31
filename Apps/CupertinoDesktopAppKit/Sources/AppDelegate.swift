@@ -1,7 +1,9 @@
 import AppCore
 import AppKit
+import BackendAPI
 import FrameworkBrowserFeature
 import MacBackendImpl
+import MobileBackendImpl
 import SearchFeature
 import ShellAppKit
 
@@ -12,6 +14,11 @@ import ShellAppKit
 /// shells are composed into a tabbed window: the framework browser
 /// (`RootExperience`) and the search screen (`UI.SearchViewController`), matching
 /// the other three app targets.
+///
+/// Under the `-uitest-mock` launch argument the deterministic embedded corpus is
+/// injected instead of the live subprocess, so UI tests run offline and reproducibly
+/// (the GUI/test launch environment cannot reach the `cupertino serve` binary). The UI
+/// is identical either way; only the injected `Backend.Documentation` differs.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = UI.RootModel()
@@ -22,7 +29,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
-        let backend = MacBackend.live()
+        let backend: any Backend.Documentation = ProcessInfo.processInfo.arguments.contains("-uitest-mock")
+            ? MobileBackend.mock()
+            : MacBackend.live()
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 

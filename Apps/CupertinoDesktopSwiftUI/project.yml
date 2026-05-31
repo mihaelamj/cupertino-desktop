@@ -31,6 +31,8 @@ targets:
         product: FrameworkBrowserFeature
       - package: CupertinoDesktopPackages
         product: MacBackendImpl
+      - package: CupertinoDesktopPackages
+        product: MobileBackendImpl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.swiftui
@@ -39,3 +41,29 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+  CupertinoDesktopSwiftUIUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: CupertinoDesktopSwiftUI
+      - package: CupertinoDesktopPackages
+        product: UITestPageObjects
+      - package: CupertinoDesktopPackages
+        product: FlowSpec
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.swiftui.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: CupertinoDesktopSwiftUI
+schemes:
+  CupertinoDesktopSwiftUI:
+    build:
+      targets:
+        CupertinoDesktopSwiftUI: all
+        CupertinoDesktopSwiftUIUITests: [test]
+    test:
+      targets:
+        - CupertinoDesktopSwiftUIUITests

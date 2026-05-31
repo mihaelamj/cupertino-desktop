@@ -52,9 +52,12 @@ public extension Page {
         private func locate(_ target: String) -> XCUIElement {
             let byIdentifier = element(target)
             if byIdentifier.exists { return byIdentifier }
-            let link = app.links[target]
+            // A label can legitimately repeat (e.g. the same link text twice in one
+            // document), so resolve to the first match rather than the subscript's
+            // unique-or-throw element.
+            let link = app.links.matching(identifier: target).firstMatch
             if link.exists { return link }
-            return app.staticTexts[target]
+            return app.staticTexts.matching(identifier: target).firstMatch
         }
 
         /// Wait for the step's element and return it, or throw a failure naming the target.

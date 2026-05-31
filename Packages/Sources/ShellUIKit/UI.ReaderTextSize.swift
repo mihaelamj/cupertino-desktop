@@ -14,6 +14,8 @@ import AppModels
             static func barButtonItems(target: AnyObject, larger: Selector, smaller: Selector) -> [UIBarButtonItem] {
                 let increase = UIBarButtonItem(image: UIImage(systemName: "textformat.size.larger"), style: .plain, target: target, action: larger)
                 let decrease = UIBarButtonItem(image: UIImage(systemName: "textformat.size.smaller"), style: .plain, target: target, action: smaller)
+                increase.accessibilityIdentifier = UI.AccessibilityID.Reader.textLarger
+                decrease.accessibilityIdentifier = UI.AccessibilityID.Reader.textSmaller
                 increase.isEnabled = Model.ReaderTextSize.canIncrease
                 decrease.isEnabled = Model.ReaderTextSize.canDecrease
                 return [increase, decrease]

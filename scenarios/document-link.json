@@ -5,7 +5,7 @@
   "steps": [
     { "verb": "tap", "target": "framework_row_swiftui" },
     { "verb": "assert", "target": "framework_browser_reader" },
-    { "verb": "tap", "target": "NavigationLink" },
+    { "verb": "tap", "target": "Declaring a custom view" },
     { "verb": "assert", "target": "framework_browser_reader" }
   ]
 }

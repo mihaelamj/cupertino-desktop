@@ -1,6 +1,8 @@
 import AppCore
+import BackendAPI
 import FrameworkBrowserFeature
 import MacBackendImpl
+import MobileBackendImpl
 import SearchFeature
 import ShellSwiftUI
 import SwiftUI
@@ -13,6 +15,11 @@ import SwiftUI
 /// (`RootExperience`, a `NavigationSplitView`) and the search screen
 /// (`UI.SearchView`, which exposes every `searchDocs` option over every database),
 /// matching the mobile SwiftUI app.
+///
+/// Under the `-uitest-mock` launch argument the deterministic embedded corpus is
+/// injected instead of the live subprocess, so UI tests run offline and reproducibly
+/// (the GUI/test launch environment cannot reach the `cupertino serve` binary). The UI
+/// is identical either way; only the injected `Backend.Documentation` differs.
 @main
 struct CupertinoDesktopSwiftUIApp: App {
     @State private var model = UI.RootModel()
@@ -21,7 +28,9 @@ struct CupertinoDesktopSwiftUIApp: App {
     private let experience = UI.LiveRootExperience()
 
     init() {
-        let backend = MacBackend.live()
+        let backend: any Backend.Documentation = ProcessInfo.processInfo.arguments.contains("-uitest-mock")
+            ? MobileBackend.mock()
+            : MacBackend.live()
         _frameworks = State(initialValue: Feature.FrameworkBrowser.ViewModel(backend: backend))
         _search = State(initialValue: Feature.Search.ViewModel(backend: backend))
     }

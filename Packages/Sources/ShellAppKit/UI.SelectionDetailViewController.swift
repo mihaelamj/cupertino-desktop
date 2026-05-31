@@ -68,13 +68,7 @@ import MarkdownRendering
                 emptyState.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(emptyState)
 
-                let smaller = sizeButton("textformat.size.smaller", action: #selector(textSmaller), tip: "Smaller text")
-                let larger = sizeButton("textformat.size.larger", action: #selector(textLarger), tip: "Larger text")
-                sizeControls.orientation = .horizontal
-                sizeControls.spacing = 4
-                sizeControls.addArrangedSubview(smaller)
-                sizeControls.addArrangedSubview(larger)
-                sizeControls.translatesAutoresizingMaskIntoConstraints = false
+                configureSizeControls()
                 container.addSubview(sizeControls)
 
                 NSLayoutConstraint.activate([
@@ -90,6 +84,18 @@ import MarkdownRendering
                     emptyState.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                 ])
                 view = container
+            }
+
+            private func configureSizeControls() {
+                let smaller = sizeButton("textformat.size.smaller", action: #selector(textSmaller), tip: "Smaller text")
+                let larger = sizeButton("textformat.size.larger", action: #selector(textLarger), tip: "Larger text")
+                smaller.setAccessibilityIdentifier(UI.AccessibilityID.Reader.textSmaller)
+                larger.setAccessibilityIdentifier(UI.AccessibilityID.Reader.textLarger)
+                sizeControls.orientation = .horizontal
+                sizeControls.spacing = 4
+                sizeControls.addArrangedSubview(smaller)
+                sizeControls.addArrangedSubview(larger)
+                sizeControls.translatesAutoresizingMaskIntoConstraints = false
             }
 
             private func sizeButton(_ symbol: String, action: Selector, tip: String) -> NSButton {

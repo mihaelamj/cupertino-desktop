@@ -46,6 +46,7 @@ import FrameworkBrowserFeature
                 tableView.style = .sourceList
                 tableView.dataSource = self
                 tableView.delegate = self
+                tableView.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
                 scrollView.documentView = tableView
                 scrollView.hasVerticalScroller = true
                 scrollView.drawsBackground = false
@@ -144,9 +145,12 @@ import FrameworkBrowserFeature
             func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
                 let framework = frameworks.frameworks[row]
                 let cell = NSTableCellView()
-                cell.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
 
                 let name = NSTextField(labelWithString: framework.name)
+                // The identifier goes on the visible label, not the cell view: an
+                // `NSTableCellView`'s `accessibilityIdentifier` does not surface to XCUITest
+                // (the synthesized AX cell carries no identifier), but the label does.
+                name.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
                 let count = NSTextField(labelWithString: framework.documentCount.formatted())
                 count.textColor = .secondaryLabelColor
                 count.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)

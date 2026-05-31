@@ -31,6 +31,8 @@ targets:
         product: FrameworkBrowserFeature
       - package: CupertinoDesktopPackages
         product: MacBackendImpl
+      - package: CupertinoDesktopPackages
+        product: MobileBackendImpl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.appkit
@@ -40,3 +42,29 @@ targets:
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
+  CupertinoDesktopAppKitUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: UITests
+    dependencies:
+      - target: CupertinoDesktopAppKit
+      - package: CupertinoDesktopPackages
+        product: UITestPageObjects
+      - package: CupertinoDesktopPackages
+        product: FlowSpec
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.appkit.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: CupertinoDesktopAppKit
+schemes:
+  CupertinoDesktopAppKit:
+    build:
+      targets:
+        CupertinoDesktopAppKit: all
+        CupertinoDesktopAppKitUITests: [test]
+    test:
+      targets:
+        - CupertinoDesktopAppKitUITests

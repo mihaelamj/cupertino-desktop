@@ -41,6 +41,7 @@ import FrameworkBrowserFeature
 
                 tableView.dataSource = self
                 tableView.delegate = self
+                tableView.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.sidebar
                 tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellID)
                 tableView.translatesAutoresizingMaskIntoConstraints = false
                 view.addSubview(tableView)

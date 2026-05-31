@@ -20,6 +20,11 @@ final class ScenarioUITests: XCTestCase {
         try runScenario("reader-text-size")
     }
 
+    // The `document-link` scenario (scenarios/document-link.json) is intentionally not run
+    // here: XCUITest cannot address an individual SwiftUI `Text` link, so the tap times out.
+    // Link resolution is covered by MarkdownRendering's `documentURL` unit test; the scenario
+    // is kept for a future UIKit/AppKit UI-test target, whose text-view links are accessible.
+
     // MARK: - Helpers
 
     /// Launch the app, load `scenarios/<id>.json`, and run it through the registry.

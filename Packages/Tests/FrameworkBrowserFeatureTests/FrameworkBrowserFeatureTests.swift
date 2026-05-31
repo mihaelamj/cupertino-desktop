@@ -73,6 +73,71 @@ struct FrameworkBrowserViewModelTests {
         viewModel.selectFramework(nil)
         #expect(viewModel.selectedMarkdown == nil)
     }
+
+    @Test("rapid framework switching serializes loads: no overlapping backend reads, latest wins")
+    func rapidSwitchingSerializes() async {
+        // Walking the list while a page loads used to fire overlapping reads on the one shared
+        // subprocess client and race (an intermittent crash). The view model now waits for the
+        // in-flight load before starting the next, so reads never overlap.
+        let backend = ConcurrencyProbeBackend()
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: backend)
+
+        viewModel.selectFramework("alpha")
+        await Task.yield() // let the first load reach the backend and suspend mid-read
+        viewModel.selectFramework("beta")
+        await Task.yield()
+        viewModel.selectFramework("gamma")
+        await viewModel.awaitDocumentLoad()
+
+        #expect(await backend.maxConcurrent == 1) // the barrier prevents overlapping reads
+        #expect(viewModel.selectedDocumentTitle == "gamma") // the latest selection wins
+    }
+}
+
+/// Records the peak number of overlapping document reads, to prove the view model serializes
+/// loads. `searchDocs` suspends briefly (cooperative yields) so any overlap is observable, and
+/// encodes the queried framework into the result so the test can assert which load won.
+private actor ConcurrencyProbeBackend: Backend.Connecting, Backend.FrameworkBrowsing, Backend.Searching, Backend.DocumentReading {
+    private var inFlight = 0
+    private(set) var maxConcurrent = 0
+
+    func connect() async throws {}
+    func disconnect() async {}
+
+    func searchDocs(_ query: Model.DocsQuery) async throws -> [Model.DocHit] {
+        inFlight += 1
+        maxConcurrent = max(maxConcurrent, inFlight)
+        for _ in 0 ..< 3 {
+            await Task.yield()
+        }
+        inFlight -= 1
+        let framework = query.framework ?? "x"
+        guard let uri = Model.DocURI("apple-docs://\(framework)") else { return [] }
+        return [Model.DocHit(id: "1", uri: uri, source: .appleDocs, title: framework, framework: framework, snippet: "", score: 1)]
+    }
+
+    func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+        let title = uri.rawValue.replacingOccurrences(of: "apple-docs://", with: "")
+        return Model.DocPage(uri: uri, source: .appleDocs, title: title, markdown: "# \(title)")
+    }
+
+    func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
+        throw Boom.boom
+    }
+
+    func searchPackages(_: Model.PackageQuery) async throws -> [Model.PackageHit] {
+        throw Boom.boom
+    }
+
+    func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+        throw Boom.boom
+    }
+
+    func listFrameworks() async throws -> [Model.Framework] {
+        []
+    }
+
+    enum Boom: Error { case boom }
 }
 
 /// A minimal `Backend.Connecting & Backend.FrameworkBrowsing` double. Possible only

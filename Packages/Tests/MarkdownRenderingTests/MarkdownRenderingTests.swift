@@ -17,6 +17,21 @@ struct MarkdownRenderingTests {
         #expect(Markdown.blockCount(of: "# Title\n\nA paragraph with `code`.\n\n```swift\nlet x = 1\n```") == 3)
     }
 
+    @Test("Every font scales with basePointSize so the reader text-size control resizes the whole document")
+    func fontsScaleWithBase() {
+        let small = Markdown.Theme(basePointSize: 14)
+        let big = Markdown.Theme(basePointSize: 28)
+        // Body, headings, and code all grow with the base (previously only code scaled, so
+        // the body never got bigger).
+        #expect(big.body.pointSize > small.body.pointSize)
+        #expect(big.heading(level: 1).pointSize > small.heading(level: 1).pointSize)
+        #expect(big.code.pointSize > small.code.pointSize)
+        #expect(big.body.pointSize == 28)
+        // Headings are larger than body; code is a touch smaller (so blocks aren't oversized).
+        #expect(big.heading(level: 1).pointSize > big.body.pointSize)
+        #expect(big.code.pointSize < big.body.pointSize)
+    }
+
     // The fixture is intentionally a single run-on per line (mirroring the crawler).
     // swiftlint:disable line_length
     /// A representative slice of the dirty Apple-docs body `read_document` returns, with

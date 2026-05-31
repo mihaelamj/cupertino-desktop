@@ -27,24 +27,32 @@ struct CupertinoDesktopSwiftUIApp: App {
     @State private var frameworks: Feature.FrameworkBrowser.ViewModel
     @State private var search: Feature.Search.ViewModel
     private let experience = UI.LiveRootExperience()
+    private let backendMode: Model.BackendMode
 
     init() {
-        let backend = Self.makeBackend()
+        let mode = Self.effectiveMode()
+        let backend = Self.makeBackend(mode: mode)
+        backendMode = mode
         _frameworks = State(initialValue: Feature.FrameworkBrowser.ViewModel(backend: backend))
         _search = State(initialValue: Feature.Search.ViewModel(backend: backend))
     }
 
-    /// Choose the backend from `Model.AppSettings` (default `.mcpSubprocess`, the stdio
-    /// `cupertino serve` route). `-uitest-mock` forces the embedded corpus so UI tests run
-    /// offline. `.embedded` is the App-Sandbox-safe in-process path; until the real
-    /// `CupertinoDataEngine` ships it is served by the bundled mock corpus.
-    private static func makeBackend() -> any Backend.Documentation {
+    /// The backend the app is actually using: `Model.AppSettings` (default `.mcpSubprocess`,
+    /// the stdio `cupertino serve` route), except `-uitest-mock` forces `.embedded` so UI
+    /// tests run offline.
+    private static func effectiveMode() -> Model.BackendMode {
         if ProcessInfo.processInfo.arguments.contains("-uitest-mock") {
-            return MobileBackend.mock()
+            return .embedded
         }
-        switch Model.AppSettings.load().backend {
-        case .mcpSubprocess: return MacBackend.live()
-        case .embedded: return MobileBackend.mock()
+        return Model.AppSettings.load().backend
+    }
+
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` reads the in-process
+    /// corpus (App-Sandbox-safe), served by the bundled mock until `CupertinoDataEngine` ships.
+    private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
+        switch mode {
+        case .mcpSubprocess: MacBackend.live()
+        case .embedded: MobileBackend.mock()
         }
     }
 
@@ -58,5 +66,12 @@ struct CupertinoDesktopSwiftUIApp: App {
             }
         }
         .windowStyle(.titleBar)
+
+        // A menu-bar status item showing the active connection type (its SF Symbol), so the
+        // backend in use is visible at a glance (HIG: symbols belong in menu-bar items).
+        MenuBarExtra(backendMode.label, systemImage: backendMode.systemImage) {
+            Text("Connection: \(backendMode.label)")
+            Text("Edit settings.json to change the backend.")
+        }
     }
 }

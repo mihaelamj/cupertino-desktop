@@ -53,6 +53,8 @@ let products: [Product] = [
     // UI-test support (Page Object Model + scenario engine), for the XCUITest targets.
     .singleTargetLibrary("UITestPageObjects"),
     .singleTargetLibrary("FlowSpec"),
+    // Host CLI that renders the Apple-styled HTML report from scenario results.
+    .executable(name: "FlowSpecReportTool", targets: ["FlowSpecReportTool"]),
 ]
 
 // The MCP client package (external, via SwiftMCPClient): the Transport.Channel byte
@@ -165,6 +167,7 @@ let targets: [Target] = {
     // scenario drives the SwiftUI, AppKit, and UIKit apps.
     let flowSpec = Target.target(name: "FlowSpec")
     let uiTestPageObjects = Target.target(name: "UITestPageObjects", dependencies: ["AppCore", "FlowSpec"])
+    let flowSpecReportTool = Target.executableTarget(name: "FlowSpecReportTool", dependencies: ["FlowSpec"])
 
     // ---------- Tests ----------
     let coreTests = Target.testTarget(name: "AppCoreTests", dependencies: ["AppCore"])
@@ -202,7 +205,7 @@ let targets: [Target] = {
         dependencies: ["MarkdownRendering", "AppModels"],
     )
 
-    return api + concrete + impl + [flowSpec, uiTestPageObjects]
+    return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
         + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
 }()
 

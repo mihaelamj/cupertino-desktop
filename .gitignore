@@ -94,3 +94,4 @@ Apps/*/.spm/
 # Local harness / AI rule system state (AGENTS.md is intentionally tracked)
 .claude/
 .ai-agent-rules
+test-reports/

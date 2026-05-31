@@ -20,8 +20,9 @@ import MarkdownRendering
             private let frameworks: Feature.FrameworkBrowser.ViewModel
             private let scrollView = NSScrollView()
             private let textView = NSTextView()
-            private let progress = NSProgressIndicator()
-            private let emptyState = NSStackView()
+            // The loading, empty, and error states all render through the native
+            // `ContentUnavailableView` replica, matching the SwiftUI and UIKit detail.
+            private let unavailable = UI.ContentUnavailableView()
             private let sizeControls = NSStackView()
 
             init(frameworks: Feature.FrameworkBrowser.ViewModel) {
@@ -48,25 +49,8 @@ import MarkdownRendering
                 scrollView.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(scrollView)
 
-                progress.style = .spinning
-                progress.controlSize = .regular
-                progress.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(progress)
-
-                let image = NSImageView()
-                image.image = NSImage(systemSymbolName: "doc.text", accessibilityDescription: nil)
-                image.symbolConfiguration = .init(pointSize: 36, weight: .regular)
-                image.contentTintColor = .tertiaryLabelColor
-                let label = NSTextField(labelWithString: "Select a framework")
-                label.font = .systemFont(ofSize: NSFont.systemFontSize + 4, weight: .semibold)
-                label.textColor = .secondaryLabelColor
-                emptyState.orientation = .vertical
-                emptyState.alignment = .centerX
-                emptyState.spacing = 8
-                emptyState.addArrangedSubview(image)
-                emptyState.addArrangedSubview(label)
-                emptyState.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(emptyState)
+                unavailable.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(unavailable)
 
                 configureSizeControls()
                 container.addSubview(sizeControls)
@@ -76,12 +60,12 @@ import MarkdownRendering
                     scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                    unavailable.topAnchor.constraint(equalTo: container.topAnchor),
+                    unavailable.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    unavailable.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    unavailable.trailingAnchor.constraint(equalTo: container.trailingAnchor),
                     sizeControls.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
                     sizeControls.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-                    progress.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    progress.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    emptyState.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    emptyState.centerYAnchor.constraint(equalTo: container.centerYAnchor),
                 ])
                 view = container
             }
@@ -148,12 +132,8 @@ import MarkdownRendering
 
             private func render() {
                 let loading = frameworks.isLoadingDocument
-                progress.isHidden = !loading
-                if loading { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
 
                 if let markdown = frameworks.selectedMarkdown {
-                    scrollView.isHidden = false
-                    emptyState.isHidden = true
                     let base = Markdown.Theme().basePointSize
                     textView.textStorage?.setAttributedString(Markdown.attributed(
                         markdown: markdown,
@@ -161,14 +141,20 @@ import MarkdownRendering
                         highlighter: Highlight.Splash(),
                         theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
                     ))
+                } else if loading {
+                    unavailable.showLoading()
                 } else if let error = frameworks.documentError {
-                    scrollView.isHidden = false
-                    emptyState.isHidden = true
-                    textView.string = error
+                    unavailable.show(systemImage: "exclamationmark.triangle", title: "Could not load document", message: error)
                 } else {
-                    scrollView.isHidden = true
-                    emptyState.isHidden = loading
+                    unavailable.show(systemImage: "doc.text", title: "Select a framework")
                 }
+
+                // The reader (and its text-size control) shows only with a loaded document;
+                // every other state is the content-unavailable view.
+                let hasDocument = frameworks.selectedMarkdown != nil
+                scrollView.isHidden = !hasDocument
+                sizeControls.isHidden = !hasDocument
+                unavailable.isHidden = hasDocument
             }
         }
     }

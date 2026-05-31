@@ -3,12 +3,10 @@ import UITestPageObjects
 import XCTest
 
 /// Runs the declarative FlowSpec scenarios (`scenarios/*.json`) against the running SwiftUI
-/// desktop app through the page-object `ScenarioRegistry`, the same scenario files the
-/// mobile targets drive. This app talks to a live `cupertino serve` subprocess, so the two
-/// scenarios run here are the backend-agnostic ones (identifier-based, no hardcoded document
-/// text). The `document-link` scenario is not run: XCUITest cannot address an individual
-/// SwiftUI `Text` link, and its target text is mock-corpus specific; it runs on the
-/// mock-backed UIKit target instead.
+/// desktop app through the page-object `ScenarioRegistry`, the same scenario files the other
+/// targets drive (launched with `-uitest-mock` for the deterministic embedded corpus). On
+/// the desktop (regular width) the detail column is visible at launch, so this target runs
+/// `content-unavailable`, asserting the detail's empty `ContentUnavailableView`.
 final class ScenarioUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -22,6 +20,11 @@ final class ScenarioUITests: XCTestCase {
     @MainActor
     func testReaderTextSizeScenario() throws {
         try runScenario("reader-text-size")
+    }
+
+    @MainActor
+    func testContentUnavailableScenario() throws {
+        try runScenario("content-unavailable")
     }
 
     // MARK: - Helpers

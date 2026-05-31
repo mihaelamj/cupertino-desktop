@@ -40,7 +40,15 @@ public extension Page {
                 }
             case .wait, .assert:
                 let timeout = step.arg.flatMap(TimeInterval.init) ?? defaultTimeout
-                if !element(step.target).waitForExistence(timeout: timeout) {
+                // Match by accessibility identifier first, then fall back to a visible
+                // static-text or link label, so a scenario can assert a content-unavailable
+                // view by its title (e.g. "Could not load document") the same way it asserts
+                // an identifier. The label fallback is checked only if the identifier wait
+                // fails, so identifier asserts keep the full timeout.
+                let found = element(step.target).waitForExistence(timeout: timeout)
+                    || app.staticTexts[step.target].firstMatch.waitForExistence(timeout: timeout)
+                    || app.links[step.target].firstMatch.exists
+                if !found {
                     throw StepRegistryError.stepFailed(key: step.key, reason: "element `\(step.target)` did not appear")
                 }
             }

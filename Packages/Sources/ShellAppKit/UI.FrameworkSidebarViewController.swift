@@ -19,19 +19,13 @@ import FrameworkBrowserFeature
 
             private let tableView = NSTableView()
             private let scrollView = NSScrollView()
-            private let progress = NSProgressIndicator()
-            private let iconView = NSImageView()
-            private let titleLabel = NSTextField(labelWithString: "")
-            private let statusLabel = NSTextField(labelWithString: "")
-            private let retryButton = NSButton()
-            private let statusStack: NSStackView
+            /// AppKit ships no `ContentUnavailableView`; `UI.ContentUnavailableView` is the
+            /// native replica, used for the loading and error states (matching SwiftUI/UIKit).
+            private let unavailable = UI.ContentUnavailableView()
 
             init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.model = model
                 self.frameworks = frameworks
-                // AppKit has no `ContentUnavailableView`, so the icon + title + message + Retry
-                // stack stands in for it, matching the SwiftUI and UIKit empty/error states.
-                statusStack = NSStackView(views: [iconView, titleLabel, progress, statusLabel, retryButton])
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -57,37 +51,18 @@ import FrameworkBrowserFeature
                 scrollView.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(scrollView)
 
-                progress.style = .spinning
-                progress.controlSize = .small
-                iconView.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
-                iconView.symbolConfiguration = .init(pointSize: 28, weight: .regular)
-                iconView.contentTintColor = .tertiaryLabelColor
-                titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize + 1, weight: .semibold)
-                titleLabel.textColor = .labelColor
-                titleLabel.alignment = .center
-                titleLabel.maximumNumberOfLines = 0
-                statusLabel.textColor = .secondaryLabelColor
-                statusLabel.alignment = .center
-                statusLabel.maximumNumberOfLines = 0
-                retryButton.title = "Retry"
-                retryButton.bezelStyle = .rounded
-                retryButton.target = self
-                retryButton.action = #selector(onRetryTapped)
-                statusStack.orientation = .vertical
-                statusStack.alignment = .centerX
-                statusStack.spacing = 8
-                statusStack.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(statusStack)
+                unavailable.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(unavailable)
 
                 NSLayoutConstraint.activate([
                     scrollView.topAnchor.constraint(equalTo: container.topAnchor),
                     scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                    statusStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    statusStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    statusStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 16),
-                    statusStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -16),
+                    unavailable.topAnchor.constraint(equalTo: container.topAnchor),
+                    unavailable.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    unavailable.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    unavailable.trailingAnchor.constraint(equalTo: container.trailingAnchor),
                 ])
                 view = container
             }
@@ -116,25 +91,20 @@ import FrameworkBrowserFeature
             private func render() {
                 let isLoading = frameworks.isLoading
                 let error = frameworks.errorMessage
-                let showStatus = isLoading || error != nil
-
-                progress.isHidden = !isLoading
-                if isLoading { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
-                // The icon + title + Retry belong to the error (content-unavailable) state;
-                // loading shows only the spinner and its label.
-                iconView.isHidden = error == nil
-                titleLabel.isHidden = error == nil
-                retryButton.isHidden = error == nil
-                statusLabel.isHidden = !showStatus
-                statusStack.isHidden = !showStatus
-                scrollView.isHidden = showStatus
 
                 if isLoading {
-                    statusLabel.stringValue = "Loading frameworks"
+                    unavailable.showLoading(title: "Loading frameworks")
                 } else if let error {
-                    titleLabel.stringValue = "Could not load frameworks"
-                    statusLabel.stringValue = error
+                    unavailable.show(
+                        systemImage: "exclamationmark.triangle",
+                        title: "Could not load frameworks",
+                        message: error,
+                        actionTitle: "Retry",
+                    ) { [weak self] in self?.frameworks.onRetried() }
                 }
+                let showUnavailable = isLoading || error != nil
+                unavailable.isHidden = !showUnavailable
+                scrollView.isHidden = showUnavailable
 
                 tableView.reloadData()
                 syncSelectionFromModel()
@@ -147,10 +117,6 @@ import FrameworkBrowserFeature
                 if tableView.selectedRow != row {
                     tableView.selectRowIndexes([row], byExtendingSelection: false)
                 }
-            }
-
-            @objc private func onRetryTapped() {
-                frameworks.onRetried()
             }
 
             // MARK: NSTableViewDataSource / Delegate

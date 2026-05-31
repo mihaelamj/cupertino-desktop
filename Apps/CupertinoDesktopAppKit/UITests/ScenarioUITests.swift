@@ -5,9 +5,10 @@ import XCTest
 /// Runs the declarative FlowSpec scenarios (`scenarios/*.json`) against the running AppKit
 /// desktop app through the page-object `ScenarioRegistry`, the same scenario files the
 /// mobile and SwiftUI targets drive. Launched with `-uitest-mock`, the app injects the
-/// deterministic embedded corpus, so this target also runs `document-link`: AppKit renders
-/// the document into an `NSTextView`, whose inline links are exposed to XCUITest (the
-/// SwiftUI target cannot run that scenario, because XCUITest cannot address a `Text` link).
+/// deterministic embedded corpus. On the desktop (regular width) the detail column is
+/// visible at launch, so this target also runs `content-unavailable`, which asserts the
+/// detail's empty content-unavailable view (the mobile targets push the detail, so it is
+/// not on screen at launch).
 final class ScenarioUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -24,8 +25,8 @@ final class ScenarioUITests: XCTestCase {
     }
 
     @MainActor
-    func testDocumentLinkScenario() throws {
-        try runScenario("document-link")
+    func testContentUnavailableScenario() throws {
+        try runScenario("content-unavailable")
     }
 
     // MARK: - Helpers

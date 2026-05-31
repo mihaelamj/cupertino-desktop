@@ -30,7 +30,7 @@ TARGET_LABELS = {
 METHOD_TO_SCENARIO = {
     "testFrameworkReaderScenario": "framework-reader",
     "testReaderTextSizeScenario": "reader-text-size",
-    "testDocumentLinkScenario": "document-link",
+    "testContentUnavailableScenario": "content-unavailable",
 }
 
 

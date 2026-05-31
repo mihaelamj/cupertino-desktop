@@ -4,9 +4,14 @@ import XCTest
 
 /// Runs the declarative FlowSpec scenarios (`scenarios/*.json`) against the running UIKit
 /// app through the page-object `ScenarioRegistry`, the same scenario files the SwiftUI and
-/// AppKit targets drive. UIKit renders the document into a `UITextView`, whose inline links
-/// are exposed to XCUITest, so this target also runs `document-link` (the SwiftUI target
-/// cannot, because XCUITest cannot address an individual SwiftUI `Text` link).
+/// AppKit targets drive.
+///
+/// In-document link taps are not driven here: XCUITest cannot reliably tap an inline link
+/// rendered inside a `UITextView`/`NSTextView` (the link surfaces as static text, and
+/// tapping it does not invoke the link), so a link-tap scenario would pass without actually
+/// navigating. Link resolution is covered by `MarkdownRendering`'s `documentURL` unit test.
+/// The compact (iPhone) layout pushes the detail, so the `content-unavailable` scenario
+/// (which asserts the detail's empty state at launch) runs on the desktop targets only.
 final class ScenarioUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -20,11 +25,6 @@ final class ScenarioUITests: XCTestCase {
     @MainActor
     func testReaderTextSizeScenario() throws {
         try runScenario("reader-text-size")
-    }
-
-    @MainActor
-    func testDocumentLinkScenario() throws {
-        try runScenario("document-link")
     }
 
     // MARK: - Helpers

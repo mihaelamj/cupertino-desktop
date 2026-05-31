@@ -125,9 +125,15 @@ import Markdown
 
         func appendCodeBlock(_ code: String, language: String?, into out: NSMutableAttributedString) {
             let trimmed = code.hasSuffix("\n") ? String(code.dropLast()) : code
+            // Pad every line to the longest line's width so the per-glyph code background
+            // forms one uniform block (an NSAttributedString background only covers glyphs,
+            // not the full line, so unpadded lines render as ragged, different-width boxes).
+            let lines = trimmed.components(separatedBy: "\n")
+            let width = lines.map(\.count).max() ?? 0
+            let padded = lines.map { $0.padding(toLength: width, withPad: " ", startingAt: 0) }.joined(separator: "\n")
             let paragraph = codeParagraphStyle()
-            let tokens = highlighter?.tokens(in: trimmed, language: language)
-                ?? [Model.SyntaxToken(text: trimmed, role: .plain)]
+            let tokens = highlighter?.tokens(in: padded, language: language)
+                ?? [Model.SyntaxToken(text: padded, role: .plain)]
             let block = NSMutableAttributedString()
             for token in tokens {
                 block.append(NSAttributedString(string: token.text, attributes: [
@@ -278,8 +284,12 @@ import Markdown
             style.firstLineHeadIndent = 12
             style.headIndent = 12
             style.tailIndent = -12
-            style.paragraphSpacing = theme.basePointSize * 0.6
-            style.lineSpacing = theme.basePointSize * 0.1
+            // No spacing BETWEEN the code lines: each line is its own paragraph, so any
+            // paragraphSpacing punches a (background-less) gap between them and breaks the
+            // block into separate rectangles. The spacing after the whole block is added by
+            // blockBreak().
+            style.paragraphSpacing = 0
+            style.lineSpacing = 0
             return style
         }
 

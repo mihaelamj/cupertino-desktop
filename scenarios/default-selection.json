@@ -1,0 +1,9 @@
+{
+  "id": "default-selection",
+  "title": "The first framework is auto-selected on launch and its document shows",
+  "tags": ["framework-browser", "reader", "launch"],
+  "steps": [
+    { "verb": "assert", "target": "framework_browser_sidebar" },
+    { "verb": "assert", "target": "framework_browser_reader" }
+  ]
+}

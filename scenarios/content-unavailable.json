@@ -1,9 +1,0 @@
-{
-  "id": "content-unavailable",
-  "title": "The detail shows a content-unavailable view when nothing is selected",
-  "tags": ["content-unavailable"],
-  "steps": [
-    { "verb": "assert", "target": "framework_browser_sidebar" },
-    { "verb": "assert", "target": "Select a framework" }
-  ]
-}

@@ -108,6 +108,11 @@ import FrameworkBrowserFeature
                 scrollView.isHidden = showUnavailable
 
                 tableView.reloadData()
+                // Pre-select the first framework once the list loads so the detail shows a
+                // document instead of the empty state (selecting the row drives the load).
+                if model.selectedFrameworkID == nil, let first = frameworks.frameworks.first {
+                    model.selectedFrameworkID = first.id
+                }
                 syncSelectionFromModel()
             }
 

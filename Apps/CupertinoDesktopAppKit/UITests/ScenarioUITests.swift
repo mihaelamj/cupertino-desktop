@@ -5,10 +5,9 @@ import XCTest
 /// Runs the declarative FlowSpec scenarios (`scenarios/*.json`) against the running AppKit
 /// desktop app through the page-object `ScenarioRegistry`, the same scenario files the
 /// mobile and SwiftUI targets drive. Launched with `-uitest-mock`, the app injects the
-/// deterministic embedded corpus. On the desktop (regular width) the detail column is
-/// visible at launch, so this target also runs `content-unavailable`, which asserts the
-/// detail's empty content-unavailable view (the mobile targets push the detail, so it is
-/// not on screen at launch).
+/// deterministic embedded corpus. On the desktop (two-column) the first framework is
+/// auto-selected at launch, so this target also runs `default-selection`, which asserts the
+/// reader shows its document (the mobile targets do not auto-select, to keep the list first).
 final class ScenarioUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
@@ -25,8 +24,8 @@ final class ScenarioUITests: XCTestCase {
     }
 
     @MainActor
-    func testContentUnavailableScenario() throws {
-        try runScenario("content-unavailable")
+    func testDefaultSelectionScenario() throws {
+        try runScenario("default-selection")
     }
 
     // MARK: - Helpers

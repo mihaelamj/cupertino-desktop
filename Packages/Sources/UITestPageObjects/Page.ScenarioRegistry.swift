@@ -24,6 +24,7 @@ public extension Page {
             switch step.verb {
             case .open, .tap:
                 let element = try require(step)
+                scrollToHittable(element)
                 element.tap()
             case .type:
                 let element = try require(step)
@@ -45,13 +46,33 @@ public extension Page {
             }
         }
 
+        /// Locate the step's target: first by accessibility identifier, then (for
+        /// in-document links and labels, which carry no identifier) by link or static-text
+        /// label. This is what lets a scenario tap a "Mentioned in" link by its text.
+        private func locate(_ target: String) -> XCUIElement {
+            let byIdentifier = element(target)
+            if byIdentifier.exists { return byIdentifier }
+            let link = app.links[target]
+            if link.exists { return link }
+            return app.staticTexts[target]
+        }
+
         /// Wait for the step's element and return it, or throw a failure naming the target.
         private func require(_ step: Step) throws -> XCUIElement {
-            let element = element(step.target)
+            let element = locate(step.target)
             guard element.waitForExistence(timeout: defaultTimeout) else {
                 throw StepRegistryError.stepFailed(key: step.key, reason: "element `\(step.target)` not found")
             }
             return element
+        }
+
+        /// Scroll the element into a hittable position (links can sit below the fold).
+        private func scrollToHittable(_ element: XCUIElement, maxSwipes: Int = 6) {
+            var swipes = 0
+            while !element.isHittable, swipes < maxSwipes {
+                app.swipeUp()
+                swipes += 1
+            }
         }
     }
 }

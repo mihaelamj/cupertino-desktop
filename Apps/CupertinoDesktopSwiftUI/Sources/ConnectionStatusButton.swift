@@ -4,6 +4,7 @@ import Foundation
 import FrameworkBrowserFeature
 import MacBackendImpl
 import SwiftUI
+import UpcomingSwiftUI
 
 /// The toolbar connection-status control: an SF Symbol tinted by the live connection state
 /// (gray connecting, green connected, red error), showing the backend-mode symbol when
@@ -31,6 +32,17 @@ struct ConnectionStatusButton: View {
     }
 
     var body: some View {
+        chip
+            .help("Connection: \(mode.label)")
+            .popover(isPresented: $showInfo, arrowEdge: .bottom) {
+                ConnectionInfoView(frameworks: frameworks, mode: mode)
+            }
+    }
+
+    /// The chip adopts Liquid Glass via the `.glass` button style (a glass capsule that tracks
+    /// the title bar's material), through the forward-compat shim so there is no inline
+    /// `if #available` ceremony. See `UpcomingSwiftUI`, cross-platform.md Pattern 13, and #52.
+    private var chip: some View {
         Button {
             showInfo.toggle()
         } label: {
@@ -42,11 +54,7 @@ struct ConnectionStatusButton: View {
             }
             .font(.callout)
         }
-        .buttonStyle(.borderless)
-        .help("Connection: \(mode.label)")
-        .popover(isPresented: $showInfo, arrowEdge: .bottom) {
-            ConnectionInfoView(frameworks: frameworks, mode: mode)
-        }
+        .upcoming.glassButtonStyle()
     }
 }
 

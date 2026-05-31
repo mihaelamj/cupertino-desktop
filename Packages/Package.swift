@@ -42,6 +42,7 @@ let products: [Product] = [
     .singleTargetLibrary("FrameworkBrowserFeature"),
     .singleTargetLibrary("DocReaderFeature"),
     .singleTargetLibrary("SampleBrowserFeature"),
+    .singleTargetLibrary("UpcomingSwiftUI"),
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
     .singleTargetLibrary("ShellUIKit"),
@@ -115,8 +116,11 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
+    // UpcomingSwiftUI is the forward-compat Liquid Glass shim (Pattern 13); only the SwiftUI
+    // shell consumes it (the AppKit/UIKit shells reach glass through their native APIs).
+    let upcomingSwiftUI = Target.target(name: "UpcomingSwiftUI")
     let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "CodeHighlighting", "FrameworkBrowserFeature", "SearchFeature"]
-    let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
+    let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies + ["UpcomingSwiftUI"])
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
     let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
 
@@ -131,7 +135,7 @@ let targets: [Target] = {
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
 
-    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP

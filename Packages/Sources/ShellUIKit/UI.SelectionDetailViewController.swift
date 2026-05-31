@@ -36,6 +36,10 @@ import MarkdownRendering
                 textView.isEditable = false
                 textView.delegate = self
                 textView.alwaysBounceVertical = true
+                // The text view is clear (the view behind it holds the content-layer
+                // background), so the document scrolls under the Liquid Glass navigation bar and
+                // the glass refracts the text rather than an opaque panel. See cupertino-desktop #52.
+                textView.backgroundColor = .clear
                 textView.font = .preferredFont(forTextStyle: .body)
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
                 textView.translatesAutoresizingMaskIntoConstraints = false

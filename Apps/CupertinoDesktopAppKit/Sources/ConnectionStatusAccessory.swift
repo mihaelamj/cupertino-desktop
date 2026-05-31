@@ -38,13 +38,41 @@ final class ConnectionStatusAccessory: NSTitlebarAccessoryViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 96, height: 28))
-        container.addSubview(button)
-        NSLayoutConstraint.activate([
-            button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
-            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            container.heightAnchor.constraint(equalToConstant: 28),
-        ])
+        container.heightAnchor.constraint(equalToConstant: 28).isActive = true
+
+        // On macOS 26 the chip rides in a Liquid Glass capsule (NSGlassEffectView), mirroring
+        // the SwiftUI `.glass` button style; on macOS 15 to 25, where the API does not exist, it
+        // falls back to the bare borderless button. See cupertino-desktop #52.
+        if #available(macOS 26, *) {
+            // The button is padded inside an inner view so the glass material has breathing room
+            // around the label rather than clipping it (NSGlassEffectView fills its contentView).
+            let padded = NSView()
+            padded.addSubview(button)
+            NSLayoutConstraint.activate([
+                button.topAnchor.constraint(equalTo: padded.topAnchor),
+                button.bottomAnchor.constraint(equalTo: padded.bottomAnchor),
+                button.leadingAnchor.constraint(equalTo: padded.leadingAnchor, constant: 10),
+                button.trailingAnchor.constraint(equalTo: padded.trailingAnchor, constant: -10),
+            ])
+            let glass = NSGlassEffectView()
+            glass.translatesAutoresizingMaskIntoConstraints = false
+            glass.cornerRadius = 14
+            glass.contentView = padded
+            container.addSubview(glass)
+            NSLayoutConstraint.activate([
+                glass.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                glass.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+                glass.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -10),
+                glass.heightAnchor.constraint(equalToConstant: 26),
+            ])
+        } else {
+            container.addSubview(button)
+            NSLayoutConstraint.activate([
+                button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                button.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
+                button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+            ])
+        }
         view = container
     }
 

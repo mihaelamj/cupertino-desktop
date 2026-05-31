@@ -2,6 +2,7 @@ import AppCore
 import AppModels
 import CodeHighlighting
 import MarkdownRendering
+import UpcomingSwiftUI
 
 #if canImport(SwiftUI)
     import SwiftUI
@@ -25,7 +26,7 @@ import MarkdownRendering
             private static let step = 0.1
 
             var body: some View {
-                Markdown.DocumentView(attributed: attributed)
+                reader
                     .task(id: markdown) { recompute() }
                     .onChange(of: scale) { _, _ in recompute() }
                     .toolbar {
@@ -49,6 +50,15 @@ import MarkdownRendering
                             .accessibilityIdentifier(UI.AccessibilityID.Reader.textLarger)
                         }
                     }
+            }
+
+            /// On macOS 26 / iOS 26 the document extends beneath the Liquid Glass sidebar and
+            /// toolbar so the glass refracts the document instead of empty chrome (the HIG
+            /// "extend content beneath the sidebar" technique), via the forward-compat shim
+            /// (no inline `if #available`; see `UpcomingSwiftUI` and cross-platform.md Pattern 13).
+            private var reader: some View {
+                Markdown.DocumentView(attributed: attributed)
+                    .upcoming.backgroundExtensionEffect()
             }
 
             private func recompute() {

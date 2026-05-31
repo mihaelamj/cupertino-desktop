@@ -33,6 +33,8 @@ targets:
         product: MacBackendImpl
       - package: CupertinoDesktopPackages
         product: MobileBackendImpl
+      - package: CupertinoDesktopPackages
+        product: UpcomingSwiftUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.swiftui

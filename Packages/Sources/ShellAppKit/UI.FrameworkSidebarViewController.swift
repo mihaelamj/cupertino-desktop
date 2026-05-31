@@ -20,6 +20,8 @@ import FrameworkBrowserFeature
             private let tableView = NSTableView()
             private let scrollView = NSScrollView()
             private let progress = NSProgressIndicator()
+            private let iconView = NSImageView()
+            private let titleLabel = NSTextField(labelWithString: "")
             private let statusLabel = NSTextField(labelWithString: "")
             private let retryButton = NSButton()
             private let statusStack: NSStackView
@@ -27,7 +29,9 @@ import FrameworkBrowserFeature
             init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.model = model
                 self.frameworks = frameworks
-                statusStack = NSStackView(views: [progress, statusLabel, retryButton])
+                // AppKit has no `ContentUnavailableView`, so the icon + title + message + Retry
+                // stack stands in for it, matching the SwiftUI and UIKit empty/error states.
+                statusStack = NSStackView(views: [iconView, titleLabel, progress, statusLabel, retryButton])
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -55,6 +59,13 @@ import FrameworkBrowserFeature
 
                 progress.style = .spinning
                 progress.controlSize = .small
+                iconView.image = NSImage(systemSymbolName: "exclamationmark.triangle", accessibilityDescription: nil)
+                iconView.symbolConfiguration = .init(pointSize: 28, weight: .regular)
+                iconView.contentTintColor = .tertiaryLabelColor
+                titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize + 1, weight: .semibold)
+                titleLabel.textColor = .labelColor
+                titleLabel.alignment = .center
+                titleLabel.maximumNumberOfLines = 0
                 statusLabel.textColor = .secondaryLabelColor
                 statusLabel.alignment = .center
                 statusLabel.maximumNumberOfLines = 0
@@ -105,17 +116,23 @@ import FrameworkBrowserFeature
             private func render() {
                 let isLoading = frameworks.isLoading
                 let error = frameworks.errorMessage
+                let showStatus = isLoading || error != nil
 
                 progress.isHidden = !isLoading
                 if isLoading { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
-                statusLabel.isHidden = !isLoading && error == nil
+                // The icon + title + Retry belong to the error (content-unavailable) state;
+                // loading shows only the spinner and its label.
+                iconView.isHidden = error == nil
+                titleLabel.isHidden = error == nil
                 retryButton.isHidden = error == nil
-                statusStack.isHidden = !isLoading && error == nil
-                scrollView.isHidden = isLoading || error != nil
+                statusLabel.isHidden = !showStatus
+                statusStack.isHidden = !showStatus
+                scrollView.isHidden = showStatus
 
                 if isLoading {
                     statusLabel.stringValue = "Loading frameworks"
                 } else if let error {
+                    titleLabel.stringValue = "Could not load frameworks"
                     statusLabel.stringValue = error
                 }
 

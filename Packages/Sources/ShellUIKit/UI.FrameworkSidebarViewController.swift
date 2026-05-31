@@ -18,10 +18,6 @@ import FrameworkBrowserFeature
             private let frameworks: Feature.FrameworkBrowser.ViewModel
 
             private let tableView = UITableView(frame: .zero, style: .insetGrouped)
-            private let spinner = UIActivityIndicatorView(style: .medium)
-            private let statusLabel = UILabel()
-            private let retryButton = UIButton(type: .system)
-            private let statusStack = UIStackView()
             private static let cellID = "framework"
 
             init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
@@ -46,29 +42,11 @@ import FrameworkBrowserFeature
                 tableView.translatesAutoresizingMaskIntoConstraints = false
                 view.addSubview(tableView)
 
-                statusLabel.textColor = .secondaryLabel
-                statusLabel.textAlignment = .center
-                statusLabel.numberOfLines = 0
-                retryButton.setTitle("Retry", for: .normal)
-                retryButton.addTarget(self, action: #selector(onRetryTapped), for: .touchUpInside)
-                statusStack.axis = .vertical
-                statusStack.alignment = .center
-                statusStack.spacing = 8
-                statusStack.addArrangedSubview(spinner)
-                statusStack.addArrangedSubview(statusLabel)
-                statusStack.addArrangedSubview(retryButton)
-                statusStack.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(statusStack)
-
                 NSLayoutConstraint.activate([
                     tableView.topAnchor.constraint(equalTo: view.topAnchor),
                     tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                     tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                     tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                    statusStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    statusStack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    statusStack.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 16),
-                    statusStack.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -16),
                 ])
 
                 trackState()
@@ -103,21 +81,37 @@ import FrameworkBrowserFeature
                 let isLoading = frameworks.isLoading
                 let error = frameworks.errorMessage
 
-                spinner.isHidden = !isLoading
-                if isLoading { spinner.startAnimating() } else { spinner.stopAnimating() }
-                statusLabel.isHidden = !isLoading && error == nil
-                retryButton.isHidden = error == nil
-                statusStack.isHidden = !isLoading && error == nil
-                tableView.isHidden = isLoading || error != nil
-
+                // Loading and error are shown as a system content-unavailable view (the UIKit
+                // counterpart of SwiftUI's `ContentUnavailableView`), so all three UIs present
+                // the same empty/error state; the table is shown only once frameworks load.
                 if isLoading {
-                    statusLabel.text = "Loading frameworks"
+                    contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
                 } else if let error {
-                    statusLabel.text = error
+                    contentUnavailableConfiguration = Self.errorConfiguration(message: error) { [weak self] in
+                        self?.frameworks.onRetried()
+                    }
+                } else {
+                    contentUnavailableConfiguration = nil
                 }
+                tableView.isHidden = isLoading || error != nil
 
                 tableView.reloadData()
                 syncSelectionFromModel()
+            }
+
+            /// A content-unavailable configuration for the load-failure state: an icon, the
+            /// "Could not load frameworks" title, the backend's message (e.g. the install
+            /// hint when cupertino is not installed), and a Retry button.
+            private static func errorConfiguration(message: String, retry: @escaping () -> Void) -> UIContentUnavailableConfiguration {
+                var configuration = UIContentUnavailableConfiguration.empty()
+                configuration.image = UIImage(systemName: "exclamationmark.triangle")
+                configuration.text = "Could not load frameworks"
+                configuration.secondaryText = message
+                var button = UIButton.Configuration.bordered()
+                button.title = "Retry"
+                configuration.button = button
+                configuration.buttonProperties.primaryAction = UIAction { _ in retry() }
+                return configuration
             }
 
             private func syncSelectionFromModel() {
@@ -129,10 +123,6 @@ import FrameworkBrowserFeature
                 if tableView.indexPathForSelectedRow != indexPath {
                     tableView.selectRow(at: indexPath, animated: false, scrollPosition: .none)
                 }
-            }
-
-            @objc private func onRetryTapped() {
-                frameworks.onRetried()
             }
 
             // MARK: UITableViewDataSource / Delegate

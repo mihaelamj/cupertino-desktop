@@ -39,6 +39,26 @@ struct SearchViewModelTests {
         await viewModel.loadEverything(Model.UnifiedQuery(text: "view"))
         #expect(viewModel.unified?.docs.count == 1)
     }
+
+    @Test("doc hits group into a framework tree with canonical titles, preserving order")
+    func groupsDocsIntoFrameworkTree() throws {
+        func hit(_ id: String, _ uri: String, _ framework: String) throws -> Model.DocHit {
+            try Model.DocHit(id: id, uri: #require(Model.DocURI(uri)), source: .appleDocs, title: id, framework: framework, snippet: "", score: 1)
+        }
+        let hits = try [
+            hit("a", "apple-docs://swiftui/navigation", "swiftui"),
+            hit("b", "apple-docs://pdfkit/navigation", "pdfkit"),
+            hit("c", "apple-docs://swiftui/navigationbaritem", "swiftui"),
+        ]
+        let tree = Feature.Search.resultTree(docs: hits)
+        #expect(tree.count == 2) // swiftui, pdfkit, first-seen order
+        #expect(tree[0].title == "SwiftUI") // canonical display name
+        #expect(tree[0].children.count == 2) // both swiftui hits under it
+        #expect(tree[0].children.map(\.id) == ["a", "c"]) // search order preserved
+        #expect(tree[0].uri == nil) // group node
+        #expect(tree[0].children[0].uri?.rawValue == "apple-docs://swiftui/navigation") // leaf opens
+        #expect(tree[1].title == "PDFKit")
+    }
 }
 
 /// A fake `Backend.Searching`: the view model depends only on that slice, so the test

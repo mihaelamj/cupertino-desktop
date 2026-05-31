@@ -1,5 +1,6 @@
 import AppCore
 import AppKit
+import AppModels
 import BackendAPI
 import FrameworkBrowserFeature
 import MacBackendImpl
@@ -29,9 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
-        let backend: any Backend.Documentation = ProcessInfo.processInfo.arguments.contains("-uitest-mock")
-            ? MobileBackend.mock()
-            : MacBackend.live()
+        let backend = Self.makeBackend()
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 
@@ -58,6 +57,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         true
+    }
+
+    /// Choose the backend from `Model.AppSettings` (default `.mcpSubprocess`, the stdio
+    /// `cupertino serve` route). `-uitest-mock` forces the embedded corpus so UI tests run
+    /// offline. `.embedded` is the App-Sandbox-safe in-process path; until the real
+    /// `CupertinoDataEngine` ships it is served by the bundled mock corpus.
+    private static func makeBackend() -> any Backend.Documentation {
+        if ProcessInfo.processInfo.arguments.contains("-uitest-mock") {
+            return MobileBackend.mock()
+        }
+        switch Model.AppSettings.load().backend {
+        case .mcpSubprocess: return MacBackend.live()
+        case .embedded: return MobileBackend.mock()
+        }
     }
 
     private func installMainMenu() {

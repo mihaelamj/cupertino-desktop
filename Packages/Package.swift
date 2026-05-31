@@ -204,9 +204,13 @@ let targets: [Target] = {
         name: "MarkdownRenderingTests",
         dependencies: ["MarkdownRendering", "AppModels"],
     )
+    let appModelsTests = Target.testTarget(
+        name: "AppModelsTests",
+        dependencies: ["AppModels"],
+    )
 
     return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
-        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
+        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests, appModelsTests]
 }()
 
 let package = Package(

@@ -25,14 +25,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = UI.RootModel()
     private let experience: any UI.RootExperience = UI.LiveRootExperience()
     private var window: NSWindow?
-    private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_: Notification) {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
         let mode = Self.effectiveMode()
-        installStatusItem(mode: mode)
         let backend = Self.makeBackend(mode: mode)
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
@@ -51,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: tabs)
         window.setContentSize(NSSize(width: 1000, height: 640))
         window.title = "Cupertino Desktop"
+        window.addTitlebarAccessoryViewController(ConnectionStatusAccessory(frameworks: frameworks, mode: mode))
         window.center()
         window.makeKeyAndOrderFront(nil)
         self.window = window
@@ -79,20 +78,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .mcpSubprocess: MacBackend.live()
         case .embedded: MobileBackend.mock()
         }
-    }
-
-    /// A menu-bar status item showing the active connection type (its SF Symbol), so the
-    /// backend in use is visible at a glance (HIG: symbols belong in menu-bar items).
-    private func installStatusItem(mode: Model.BackendMode) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.image = NSImage(systemSymbolName: mode.systemImage, accessibilityDescription: mode.label)
-        item.button?.toolTip = "Connection: \(mode.label)"
-        let menu = NSMenu()
-        menu.addItem(withTitle: "Connection: \(mode.label)", action: nil, keyEquivalent: "")
-        menu.addItem(.separator())
-        menu.addItem(withTitle: "Edit settings.json to change the backend", action: nil, keyEquivalent: "")
-        item.menu = menu
-        statusItem = item
     }
 
     private func installMainMenu() {

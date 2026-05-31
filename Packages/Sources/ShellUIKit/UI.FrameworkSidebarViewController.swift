@@ -137,7 +137,8 @@ import FrameworkBrowserFeature
                 cell.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.row(framework.id)
 
                 var content = cell.defaultContentConfiguration()
-                content.text = framework.name
+                content.text = framework.displayName
+                content.textProperties.font = .preferredFont(forTextStyle: .title3)
                 cell.contentConfiguration = content
 
                 let count = UILabel()

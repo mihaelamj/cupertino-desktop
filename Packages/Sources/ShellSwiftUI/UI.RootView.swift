@@ -29,6 +29,7 @@ import FrameworkBrowserFeature
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     sidebar
                         .navigationTitle("Cupertino (SwiftUI)")
+                        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
                         .task { frameworks.onAppeared() }
                 } detail: {
                     detailColumn
@@ -92,13 +93,17 @@ import FrameworkBrowserFeature
             let framework: Model.Framework
 
             var body: some View {
-                HStack {
-                    Text(framework.name)
-                    Spacer()
+                HStack(spacing: 12) {
+                    Text(framework.displayName)
+                        .font(.title3)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
                     Text(framework.documentCount.formatted())
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
+                .padding(.vertical, 3)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
             }

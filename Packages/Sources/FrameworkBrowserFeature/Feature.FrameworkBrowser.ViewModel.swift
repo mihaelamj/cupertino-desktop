@@ -41,6 +41,23 @@ public extension Feature.FrameworkBrowser {
             if case let .failed(message) = state { message } else { nil }
         }
 
+        /// The backend connection status, derived from the load lifecycle, for the
+        /// connection-status indicator: connecting until the framework list arrives,
+        /// connected once it does, failed on error.
+        public enum ConnectionState: Sendable, Equatable {
+            case connecting
+            case connected
+            case failed
+        }
+
+        public var connectionState: ConnectionState {
+            switch state {
+            case .idle, .loading: .connecting
+            case .loaded: .connected
+            case .failed: .failed
+            }
+        }
+
         private let backend: any Backend.Connecting & Backend.FrameworkBrowsing & Backend.Searching & Backend.DocumentReading
         private var loadTask: Task<Void, Never>?
         private var didConnect = false
@@ -158,7 +175,11 @@ public extension Feature.FrameworkBrowser {
         /// assuming a synthetic URI. Internal so a test can drive it deterministically.
         func loadDocument(framework id: String) async {
             do {
-                let hits = try await backend.searchDocs(Model.DocsQuery(text: "", framework: id, limit: 1))
+                // Query the framework name (scoped to the framework), NOT an empty string:
+                // live cupertino is FTS5 and rejects an empty query ("Query cannot be
+                // empty"), so selecting a framework loaded nothing. The framework name
+                // surfaces its overview page as the top hit.
+                let hits = try await backend.searchDocs(Model.DocsQuery(text: id, framework: id, limit: 1))
                 guard let uri = hits.first?.uri else {
                     if Task.isCancelled { return }
                     documentState = .empty

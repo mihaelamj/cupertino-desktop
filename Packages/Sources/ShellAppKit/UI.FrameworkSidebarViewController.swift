@@ -42,6 +42,7 @@ import FrameworkBrowserFeature
                 tableView.addTableColumn(column)
                 tableView.headerView = nil
                 tableView.style = .sourceList
+                tableView.rowHeight = 30
                 tableView.dataSource = self
                 tableView.delegate = self
                 tableView.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
@@ -129,7 +130,8 @@ import FrameworkBrowserFeature
                 let framework = frameworks.frameworks[row]
                 let cell = NSTableCellView()
 
-                let name = NSTextField(labelWithString: framework.name)
+                let name = NSTextField(labelWithString: framework.displayName)
+                name.font = .systemFont(ofSize: NSFont.systemFontSize + 3)
                 // The identifier goes on the visible label, not the cell view: an
                 // `NSTableCellView`'s `accessibilityIdentifier` does not surface to XCUITest
                 // (the synthesized AX cell carries no identifier), but the label does.

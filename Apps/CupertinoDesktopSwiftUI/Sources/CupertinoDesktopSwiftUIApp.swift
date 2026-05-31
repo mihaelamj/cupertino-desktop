@@ -64,14 +64,15 @@ struct CupertinoDesktopSwiftUIApp: App {
                 UI.SearchView(model: search)
                     .tabItem { Label("Search", systemImage: "magnifyingglass") }
             }
+            // The live connection status, shown in the window toolbar (always visible; a
+            // menu-bar status item gets silently dropped on a crowded menu bar). Tapping it
+            // opens a popover with real process info.
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    ConnectionStatusButton(frameworks: frameworks, mode: backendMode)
+                }
+            }
         }
         .windowStyle(.titleBar)
-
-        // A menu-bar status item showing the active connection type (its SF Symbol), so the
-        // backend in use is visible at a glance (HIG: symbols belong in menu-bar items).
-        MenuBarExtra(backendMode.label, systemImage: backendMode.systemImage) {
-            Text("Connection: \(backendMode.label)")
-            Text("Edit settings.json to change the backend.")
-        }
     }
 }

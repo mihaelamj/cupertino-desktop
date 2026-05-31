@@ -64,7 +64,10 @@ import Markdown
             let path = destination.dropFirst("/documentation/".count)
             let withoutFragment = path.split(separator: "#", maxSplits: 1).first.map(String.init) ?? String(path)
             guard !withoutFragment.isEmpty else { return nil }
-            return URL(string: "apple-docs://\(withoutFragment)")
+            // Apple-doc links capitalize the framework (`/documentation/SwiftUI`), but
+            // cupertino's corpus URIs are lowercase (`apple-docs://swiftui`), so a tapped link
+            // to a capitalized path would fail to read. Lowercase to match the index.
+            return URL(string: "apple-docs://\(withoutFragment.lowercased())")
         }
     }
 

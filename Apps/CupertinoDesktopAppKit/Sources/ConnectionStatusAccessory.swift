@@ -37,8 +37,11 @@ final class ConnectionStatusAccessory: NSTitlebarAccessoryViewController {
         button.action = #selector(togglePopover)
         button.translatesAutoresizingMaskIntoConstraints = false
 
+        // No explicit container height: the titlebar accessory's clip view sizes this view to
+        // the full titlebar height, and pinning it to 28 conflicted with that (the clip view is
+        // 88pt tall under the macOS 26 unified/glass toolbar). The chip is centered vertically
+        // instead, so it sits right in any titlebar height with no constraint conflict. See #53.
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 96, height: 28))
-        container.heightAnchor.constraint(equalToConstant: 28).isActive = true
 
         // On macOS 26 the chip rides in a Liquid Glass capsule (NSGlassEffectView), mirroring
         // the SwiftUI `.glass` button style; on macOS 15 to 25, where the API does not exist, it

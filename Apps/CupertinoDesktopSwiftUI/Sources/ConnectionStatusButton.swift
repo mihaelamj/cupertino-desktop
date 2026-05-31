@@ -36,21 +36,13 @@ struct ConnectionStatusButton: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: mode.systemImage)
-                    .imageScale(.small)
-                    .foregroundStyle(.secondary)
-                Circle()
-                    .fill(tint)
-                    .frame(width: 7, height: 7)
+                    .foregroundStyle(tint)
                 Text(shortLabel)
-                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4)
-            .background(.quaternary, in: Capsule())
-            .contentShape(Capsule())
+            .font(.callout)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderless)
         .help("Connection: \(mode.label)")
         .popover(isPresented: $showInfo, arrowEdge: .bottom) {
             ConnectionInfoView(frameworks: frameworks, mode: mode)

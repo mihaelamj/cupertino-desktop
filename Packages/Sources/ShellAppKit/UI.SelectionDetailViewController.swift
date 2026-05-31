@@ -40,6 +40,10 @@ import MarkdownRendering
 
                 textView.isEditable = false
                 textView.drawsBackground = false
+                // Read-only reader: keep text selectable (for copy) but don't draw a focus
+                // ring or insertion point when clicked, which is the "redraw on tap" flicker.
+                textView.focusRingType = .none
+                textView.insertionPointColor = .clear
                 textView.textContainerInset = NSSize(width: 16, height: 16)
                 textView.font = .systemFont(ofSize: NSFont.systemFontSize)
                 textView.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.reader)

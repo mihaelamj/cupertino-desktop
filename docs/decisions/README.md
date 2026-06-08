@@ -13,3 +13,6 @@ here.
 - [large-hierarchy-navigation.md](large-hierarchy-navigation.md) - navigate large
   documentation trees (#49/#50) by Degree-of-Interest (Furnas fisheye), not flat
   lazy-loading. Direction only; greenfield in the code today.
+- [ca-list-children-request.md](ca-list-children-request.md) - draft capability
+  request for the cupertino agent: a `list_children` primitive for hierarchical
+  framework navigation (#49/#50). Not needed for #51.

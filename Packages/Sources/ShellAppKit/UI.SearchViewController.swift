@@ -43,6 +43,7 @@ import SearchFeature
             /// A flattened snapshot of the result list: section headers plus item rows.
             private enum Row {
                 case header(String)
+                case leaf(Feature.Search.ResultNode)
                 case doc(Model.DocHit)
                 case sample(Model.SampleProject)
                 case package(Model.PackageHit)
@@ -134,6 +135,7 @@ import SearchFeature
                 tableView.dataSource = self
                 tableView.delegate = self
                 tableView.rowHeight = 48
+                resultsScroll.setAccessibilityIdentifier(UI.AccessibilityID.Search.results)
                 resultsScroll.documentView = tableView
                 resultsScroll.hasVerticalScroller = true
 
@@ -194,7 +196,9 @@ import SearchFeature
             private static func makeRows(_ model: Feature.Search.ViewModel) -> [Row] {
                 switch model.scope {
                 case .docs:
-                    return model.results.map(Row.doc)
+                    return model.docsTree.flatMap { group in
+                        [Row.header("\(group.title) (\(group.children.count))")] + group.children.map(Row.leaf)
+                    }
                 case .everything:
                     guard let unified = model.unified else { return [] }
                     var built: [Row] = []
@@ -247,6 +251,8 @@ import SearchFeature
                 let selected = tableView.selectedRow
                 guard selected >= 0, selected < rows.count else { return }
                 switch rows[selected] {
+                case let .leaf(node):
+                    if let uri = node.uri { read(uri) }
                 case let .doc(hit):
                     read(hit.uri)
                 case let .package(hit):
@@ -326,6 +332,8 @@ import SearchFeature
             switch rows[row] {
             case let .header(title):
                 Self.label(title, secondary: nil, bold: true)
+            case let .leaf(node):
+                Self.label(node.title, secondary: node.subtitle)
             case let .doc(hit):
                 Self.label(hit.title, secondary: [hit.framework, hit.snippet.isEmpty ? nil : hit.snippet].compactMap(\.self).joined(separator: " : "))
             case let .sample(project):

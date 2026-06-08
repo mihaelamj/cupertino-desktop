@@ -51,6 +51,13 @@ public extension Feature.Search {
             if case let .loaded(.docs(hits)) = state { hits } else { [] }
         }
 
+        /// The `docs`-scope hits grouped into a `framework -> hit` tree. This is the shared,
+        /// framework-agnostic Logical Presentation each shell reifies natively (SwiftUI
+        /// sections, AppKit/UIKit header + leaf rows). See cupertino-desktop #51.
+        public var docsTree: [ResultNode] {
+            Feature.Search.resultTree(docs: results)
+        }
+
         /// The unified result (the `everything` scope), or nil otherwise.
         public var unified: Model.UnifiedResults? {
             if case let .loaded(.everything(result)) = state { result } else { nil }

@@ -44,10 +44,10 @@ struct CupertinoExecutableTests {
     }
 
     @Test("On a machine with cupertino installed, it resolves even under a minimal PATH")
-    func installedCupertinoResolvesWithoutPATH() throws {
-        // Skipped on machines without a Homebrew cupertino, so this stays portable; on a dev
-        // machine it proves the resolver finds the binary the GUI launch's PATH would miss.
-        try #require(FileManager.default.isExecutableFile(atPath: "/opt/homebrew/bin/cupertino"))
+    func installedCupertinoResolvesWithoutPATH() {
+        // No-op on machines without a Homebrew cupertino (CI runners, fresh clones); on a
+        // dev machine it proves the resolver finds the binary the GUI launch's PATH would miss.
+        guard FileManager.default.isExecutableFile(atPath: "/opt/homebrew/bin/cupertino") else { return }
         let resolved = CupertinoExecutable.resolve(environment: ["PATH": "/usr/bin:/bin:/usr/sbin:/sbin"])
         #expect(resolved == "/opt/homebrew/bin/cupertino")
         #expect(CupertinoExecutable.isInstalled)

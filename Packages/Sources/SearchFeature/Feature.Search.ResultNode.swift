@@ -38,7 +38,9 @@ public extension Feature.Search {
         }
         return order.map { key in
             let children = (groups[key] ?? []).map { hit in
-                ResultNode(id: hit.id, title: hit.title, subtitle: hit.snippet, uri: hit.uri)
+                let subtitle = [hit.source.scheme, hit.snippet.isEmpty ? nil : hit.snippet]
+                    .compactMap(\.self).joined(separator: " : ")
+                return ResultNode(id: hit.id, title: hit.title, subtitle: subtitle.isEmpty ? nil : subtitle, uri: hit.uri)
             }
             let title = Model.Framework(id: key, name: key, documentCount: 0).displayName
             return ResultNode(id: "framework:\(key)", title: title, subtitle: "\(children.count)", children: children)

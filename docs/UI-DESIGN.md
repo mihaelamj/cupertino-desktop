@@ -146,7 +146,7 @@ is real and variable; the UI must stay responsive and honest.
 |---|---|---|---|
 | Framework browser | shipped | sidebar list of frameworks with document counts | one `listFrameworks()` at connect; the costly step on macOS is the connect itself (5.1). |
 | Document reader | shipped | detail renders the selected framework's document markdown | one `searchDocs` (scoped to the framework) then one `readDocument`; per-selection spinner and cancellation (5.2). |
-| Search | shipped | search field plus a results list feeding the reader; a Docs scope (per-source, with framework and platform-minimum filters) and a unified Everything scope (docs, samples, packages bucketed) | debounced, cancellable, superseding queries (5.3). |
+| Search | shipped | search field plus framework-grouped Docs results (Everything scope source-bucketed) feeding the reader; Docs scope (per-source, with framework and platform-minimum filters) and unified Everything scope (docs, samples, packages bucketed) | debounced, cancellable, superseding queries (5.3). |
 | Samples browser | planned | sample-project list plus a file reader | adopts `CupertinoDataKit.Sample.Index.Reader`; list and per-file reads each get a loading surface. |
 | Code intelligence | planned | symbol / conformance / inheritance results | adopts `Search.SymbolReading`; potentially large result sets, so paginate or cap and say so. |
 

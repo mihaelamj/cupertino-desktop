@@ -1,6 +1,6 @@
 import AppModels
 import BackendAPI
-@_spi(CupertinoInternal) import CupertinoDataEngine
+import CupertinoDataEngine
 import LocalSubprocessBackend
 @testable import MacBackendImpl
 @testable import MobileBackendImpl
@@ -35,7 +35,7 @@ struct BackendScaffoldTests {
 
     @Test("MobileBackend.live(engine:) composes over the external data engine facade")
     func mobileLiveEngineComposes() async throws {
-        let engine = try await CupertinoDataEngine(configuration: .init(sourceCorpusResources: []))
+        let engine = CupertinoDataEngine()
         let backend: any Backend.Documentation = await MobileBackend.live(engine: engine)
         #expect(try await backend.listFrameworks().isEmpty)
         await backend.disconnect()

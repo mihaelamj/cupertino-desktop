@@ -252,9 +252,10 @@ let package = Package(
         ),
         // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
         // code injects this into LocalEmbeddedBackend; UI packages never import it.
+        // v0.2.1 adds a public empty facade initializer for previews/tests without SPI.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
-            from: "0.2.0",
+            from: "0.2.1",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

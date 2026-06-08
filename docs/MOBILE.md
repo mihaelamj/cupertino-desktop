@@ -102,11 +102,11 @@ drift between a public subset and an internal protocol.
 ## MobileData
 
 The desktop-side wiring for the embedded path, and the only part of it this app owns. It
-does **not** reimplement the engine; it embeds the external `CupertinoDataEngine`, feeds it
-a database via a `CatalogStore` (bundled or downloaded), and surfaces it through
-`LocalEmbeddedBackend`, which maps the `CupertinoDataKit` results into `AppModels`. The
-heavy lifting (the FTS-SQLite engine) lives in cupertino's external package; only corpus
-delivery and the adapter live here.
+does **not** reimplement the engine; it accepts the external `CupertinoDataEngine` facade
+through `MobileBackend.live(engine:)` and surfaces it through `LocalEmbeddedBackend`, which
+maps the `CupertinoDataKit` results into `AppModels`. The real DB-backed construction path
+is still Cupertino #1261 work; once Cupertino vends that public path, this app supplies only
+corpus delivery through `CatalogStore` and the adapter mapping.
 
 ## Relationship to the existing design
 
@@ -118,7 +118,8 @@ The two backend localities remain peers over the one `Backend.Documentation` sea
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
 - `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
-  process via `MobileBackend.live(engine:)` and local catalog wiring.
+  process via `MobileBackend.live(engine:)`; real local catalog wiring starts after
+  Cupertino #1261 exposes public DB-backed engine construction.
 
 ## UI variants
 
@@ -144,10 +145,11 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   the accepted target is four distinct iPhone/iPad shells and app schemes, per
   [UI-DESIGN.md](UI-DESIGN.md) and
   [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
-- **`CupertinoDataEngine` published and consumed.** v0.2.0 is on GitHub (cupertino-owned,
-  tagged). `MobileBackend.live(engine:)` injects the engine itself as the composed
-  document/symbol facade and borrows optional sample/package reader slices from it. DB
-  paths and concrete storage readers remain Cupertino-owned composition details.
+- **`CupertinoDataEngine` facade published and consumed.** v0.2.1 is on GitHub
+  (cupertino-owned, tagged). `MobileBackend.live(engine:)` injects the engine itself as
+  the composed document/symbol facade and borrows optional sample/package reader slices
+  from it. DB paths and concrete storage readers remain Cupertino-owned composition
+  details; the real DB-backed construction path is still tracked by Cupertino #1261.
 - **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

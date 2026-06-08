@@ -59,6 +59,13 @@ struct SearchViewModelTests {
         #expect(tree[0].children[0].uri?.rawValue == "apple-docs://swiftui/navigation") // leaf opens
         #expect(tree[1].title == "PDFKit")
     }
+
+    @Test("docsTree mirrors resultTree for loaded doc hits")
+    func docsTreeMirrorsResultTree() async {
+        let viewModel = Feature.Search.ViewModel(backend: FakeSearch())
+        await viewModel.load(Model.DocsQuery(text: "view"))
+        #expect(viewModel.docsTree == Feature.Search.resultTree(docs: viewModel.results))
+    }
 }
 
 /// A fake `Backend.Searching`: the view model depends only on that slice, so the test

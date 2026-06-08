@@ -49,6 +49,11 @@ import SearchFeature
                     .navigationDestination(for: Model.DocHit.self) { hit in
                         DocumentReaderView(model: model, uri: hit.uri, providedTitle: hit.title)
                     }
+                    .navigationDestination(for: Feature.Search.ResultNode.self) { node in
+                        if let uri = node.uri {
+                            DocumentReaderView(model: model, uri: uri, providedTitle: node.title)
+                        }
+                    }
                     .navigationDestination(for: Model.DocURI.self) { uri in
                         DocumentReaderView(model: model, uri: uri, providedTitle: nil)
                     }
@@ -83,8 +88,14 @@ import SearchFeature
                 if model.hasRun, model.results.isEmpty {
                     ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
                 } else {
-                    List(model.results) { hit in
-                        NavigationLink(value: hit) { DocRow(hit: hit) }
+                    List {
+                        ForEach(model.docsTree) { group in
+                            Section("\(group.title) (\(group.children.count))") {
+                                ForEach(group.children) { node in
+                                    NavigationLink(value: node) { NodeRow(node: node) }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -152,6 +163,19 @@ import SearchFeature
                         }
                     }
                 }
+            }
+        }
+
+        private struct NodeRow: View {
+            let node: Feature.Search.ResultNode
+            var body: some View {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(node.title).font(.headline)
+                    if let subtitle = node.subtitle, !subtitle.isEmpty {
+                        Text(subtitle).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 2)
             }
         }
 

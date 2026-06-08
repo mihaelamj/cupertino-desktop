@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Docs-scope search results group by framework in all three shells (SwiftUI sections,
+  AppKit group rows, UIKit section headers), reifying the shared `Feature.Search`
+  `docsTree` / `ResultNode` data. Closes cupertino-desktop #51.
 - Renamed the shared, platform-agnostic packages `DesktopModels` → `AppModels`
   and `DesktopCore` → `AppCore` (they serve both Desktop and Mobile, so the
   `Desktop` prefix was a misnomer); `Desktop`/`Mobile` now name only the platform

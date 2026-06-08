@@ -34,6 +34,7 @@ import SearchFeature
 
             /// A flattened snapshot of what the table shows, rebuilt on every state change.
             private enum Row {
+                case leaf(Feature.Search.ResultNode)
                 case doc(Model.DocHit)
                 case sample(Model.SampleProject)
                 case package(Model.PackageHit)
@@ -124,7 +125,9 @@ import SearchFeature
             private static func makeSections(_ model: Feature.Search.ViewModel) -> [(title: String?, rows: [Row])] {
                 switch model.scope {
                 case .docs:
-                    return [(nil, model.results.map(Row.doc))]
+                    return model.docsTree.map { group in
+                        ("\(group.title) (\(group.children.count))", group.children.map(Row.leaf))
+                    }
                 case .everything:
                     guard let unified = model.unified else { return [] }
                     var built: [(title: String?, rows: [Row])] = []
@@ -178,6 +181,11 @@ import SearchFeature
                 let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
                 var content = cell.defaultContentConfiguration()
                 switch sections[indexPath.section].rows[indexPath.row] {
+                case let .leaf(node):
+                    content.text = node.title
+                    content.secondaryText = node.subtitle
+                    cell.accessoryType = .disclosureIndicator
+                    cell.selectionStyle = .default
                 case let .doc(hit):
                     content.text = hit.title
                     content.secondaryText = [hit.framework, hit.snippet.isEmpty ? nil : hit.snippet]
@@ -202,8 +210,18 @@ import SearchFeature
 
             func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
                 tableView.deselectRow(at: indexPath, animated: true)
-                guard case let .doc(hit) = sections[indexPath.section].rows[indexPath.row] else { return }
-                navigationController?.pushViewController(DocumentReaderViewController(model: model, uri: hit.uri, title: hit.title), animated: true)
+                switch sections[indexPath.section].rows[indexPath.row] {
+                case let .leaf(node):
+                    guard let uri = node.uri else { return }
+                    navigationController?.pushViewController(
+                        DocumentReaderViewController(model: model, uri: uri, title: node.title),
+                        animated: true,
+                    )
+                case let .doc(hit):
+                    navigationController?.pushViewController(DocumentReaderViewController(model: model, uri: hit.uri, title: hit.title), animated: true)
+                case .sample, .package:
+                    break
+                }
             }
         }
     }

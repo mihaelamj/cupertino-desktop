@@ -38,11 +38,11 @@ extension MobileBackend {
             return decoded
         }()
 
-        // Honors every option the captured corpus can answer: `source` (the database),
+        // Honors every option the captured corpus can answer: `source`,
         // `framework`, a free-text `query` over title/summary/body, the platform-minimum
         // floor (`minIOS`/`minMacOS`/.../`minSwift`, keeping rows available at or below
         // the threshold), and `limit`. `language` and `includeArchive` are accepted; the
-        // archive database is selected through `source` rather than the flag here.
+        // archive source is selected through `source` rather than the flag here.
         // swiftlint:disable:next function_parameter_count
         func search(
             query: String, source: String?, framework: String?, language _: String?,

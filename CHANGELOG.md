@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exposes `MobileBackend.live(engine:)`, injecting the engine itself as the composed
   `Search.DocumentReading` / `Search.SymbolReading` facade while borrowing optional sample
   and package reader slices from it. UI packages still receive only
-  `Backend.Documentation`; DB paths and concrete storage readers remain inside
-  Cupertino-owned composition, with real DB-backed construction still tracked upstream
+  `Backend.Documentation`; storage paths and concrete storage readers remain inside
+  Cupertino-owned composition, with real corpus-backed construction still tracked upstream
   by Cupertino #1261.
 - `Backend.LocalEmbedded` now consumes CupertinoDataKit sample and symbol reader
   slices (`Sample.Index.Reader`, `Search.SymbolReading`) in addition to

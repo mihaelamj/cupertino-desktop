@@ -32,8 +32,8 @@ The backend matrix is also fixed:
 - macOS is the only platform that talks to Cupertino through MCP, by spawning the
   local `cupertino serve` process.
 - iPhone, iPad, Linux, and Windows do not use MCP and do not use a remote service.
-  They run a local embedded read engine over downloaded or bundled Cupertino
-  databases.
+  They run a local embedded read engine over a downloaded or bundled Cupertino
+  corpus that only Cupertino-owned code opens.
 - The embedded read path is Cupertino code refactored into app-embeddable packages.
   It is not a second search implementation in this repo.
 

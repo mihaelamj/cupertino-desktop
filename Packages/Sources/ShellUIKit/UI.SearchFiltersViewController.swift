@@ -7,7 +7,7 @@ import SearchFeature
 
     extension UI {
         /// The UIKit filters sheet, the counterpart of the SwiftUI search `Filters` form:
-        /// the eight source databases as toggles, the framework and per-platform minimum
+        /// the eight sources as toggles, the framework and per-platform minimum
         /// fields, and a result limit. It binds the shared `Feature.Search.ViewModel`, so
         /// applying re-runs the same query the other UIs run. View code only.
         @MainActor

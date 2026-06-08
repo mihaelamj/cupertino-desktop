@@ -29,7 +29,7 @@ What the subprocess path needs, and where it comes from:
 
 - **The MCP client lives in [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient)** (an external public package, the client extracted from this repo). It carries an `MCPClient` that speaks JSON-RPC over an injected `Transport.Channel`, layered over [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore), the neutral Foundation-only MCP wire types (`Request`, `CallToolResult`, `Tool`, `Resource`, ... under the `MCP.Core.Protocols.*` namespace, wire-compatible with cupertino). The subprocess adapter depends only on `SwiftMCPClient`'s `Client.MCP` seam, so it never imports cupertino at all.
 - **cupertino's `MCP.Client`** (the upstream client `actor`) is **stdio-hardcoded**: it constructs a `Process` directly with no transport injection point, so we do **not** build on it. `SwiftMCPClient` keeps the subprocess protocol concerns outside the UI and outside `LocalSubprocessBackend` tests.
-- **cupertino's read services, search, indexing, and storage** (the `CompositeToolProvider`, `Services`) are **macOS-only today** (`platforms: [.macOS(.v13)]`, `#if os(macOS)`). We depend on the cupertino package (via the `CupertinoUpstream` symlink) only for the future in-process **embedded** path (section 5.3); the subprocess path no longer touches it. This macOS-only constraint shapes the iOS story (section 5.4).
+- **cupertino's read services, search, indexing, and storage** are external to this repo. The app does not depend on the `cupertino` repository or a symlink for embedded mode; it consumes tagged `CupertinoDataKit` and `CupertinoDataEngine` packages. The subprocess path continues to use the installed `cupertino serve` binary.
 
 ### 2.1 Connection lifecycle (our client, transport-agnostic)
 
@@ -289,16 +289,13 @@ composition root and mapping typed results into `AppModels`. Those cupertino ser
 named **only here**, inside this one adapter; everything above it makes protocol calls and
 never sees them. No MCP, no JSON-RPC, no transport, no database handles, and no leakage.
 
-**Hard upstream constraint (precise).** The cupertino *read code itself is largely
-portable*: the read services (`Services`, `SearchSQLite`, `SampleIndexSQLite`, the
-`*Models`) are SQLite-based and carry no `#if os(macOS)` on the read path. What blocks
-embedding is the **package manifest and target graph**: cupertino declares macOS-only
-platforms today, and the read targets sit alongside macOS-only crawler/indexer/WebKit
-producers. So the real embedded engine is not buildable for iPhone/iPad/Linux/Windows as the
-package stands, but the fix is *additive packaging*, not a rewrite: in the cupertino
-repo, split the read targets out from the macOS-only producers and publish the
-Cupertino-owned data contract/engine packages for app embedding. This is real
-cross-repo work (milestone M7), not a local shim.
+**Upstream constraint (precise).** The published `CupertinoDataEngine` package now supplies
+the embedded read facade over Cupertino-owned readers. Desktop and mobile targets consume
+that facade only through `MobileBackend.live(engine:)` and `Backend.Documentation`; they
+never receive storage paths, database handles, or concrete reader types. The remaining
+app-side work is catalog resolution (downloaded or bundled corpus) and per-platform app
+packaging. Future cupertino refactors may make the concrete storage closure leaner, but
+this repo must continue to consume it only through the facade.
 
 ### 5.4 Backend selection is itself by protocol
 

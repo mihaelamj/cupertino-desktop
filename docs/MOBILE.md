@@ -110,10 +110,9 @@ delivery and the adapter live here.
 
 ## Relationship to the existing design
 
-This supersedes the note in [DESIGN.md](DESIGN.md) that the embedded path would depend on
-the `cupertino` package via a `CupertinoUpstream` symlink. The embedded path does not depend
-on the cupertino repository at all; it depends on the extracted `CupertinoDataKit` protocols
-and `CupertinoDataEngine` package, both versioned, and adds only its own `MobileData` wiring.
+The embedded path does not depend on the `cupertino` repository or a local symlink. It
+depends on the extracted `CupertinoDataKit` protocols and `CupertinoDataEngine` package,
+both versioned, and adds only its own `MobileData` wiring.
 
 The two backend localities remain peers over the one `Backend.Documentation` seam:
 

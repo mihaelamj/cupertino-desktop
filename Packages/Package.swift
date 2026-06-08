@@ -69,9 +69,9 @@ func kitProduct(_ name: String) -> Target.Dependency {
 }
 
 /// CupertinoDataKit (external, cupertino-owned): cupertino's read contract as protocols
-/// + value types only. The embedded adapter conforms a data source to its
-/// `Search.DocumentReading` slice and maps results into `AppModels`. Consumed by version;
-/// we never import the `cupertino` package itself.
+/// + value types only. The embedded adapter consumes document, sample, symbol, and package
+/// reader slices and maps results into `AppModels`. Consumed by version; we never import
+/// the `cupertino` package itself.
 let dataKitProduct: Target.Dependency = .product(name: "CupertinoDataKit", package: "CupertinoDataKit")
 
 let targets: [Target] = {
@@ -238,11 +238,12 @@ let package = Package(
             url: "https://github.com/mihaelamj/SwiftMCPClient.git",
             from: "0.1.0",
         ),
-        // cupertino's read contract (the iOS embedded path): protocols + value types
-        // only. We depend on it by version and never on the `cupertino` package itself.
+        // cupertino's read contract (the embedded path): protocols + value types only.
+        // v0.3.0 adds the package-search reader slice. We depend on it by version and
+        // never on the `cupertino` package itself.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataKit.git",
-            from: "0.1.0",
+            from: "0.3.0",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

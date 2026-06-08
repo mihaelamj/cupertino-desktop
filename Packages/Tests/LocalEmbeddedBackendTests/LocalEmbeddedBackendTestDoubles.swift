@@ -5,6 +5,19 @@ func docResult(_ uri: String, source: String) -> Search.Result {
     Search.Result(uri: uri, source: source, framework: "", title: uri, summary: "", filePath: "", wordCount: 1, rank: -1)
 }
 
+func packageResult(_ uri: String, module: String, title: String, rank: Double = -1.0) -> Search.Result {
+    Search.Result(
+        uri: uri,
+        source: "packages",
+        framework: module,
+        title: title,
+        summary: "Package hit for \(title)",
+        filePath: "",
+        wordCount: 5,
+        rank: rank,
+    )
+}
+
 func sampleProject() -> Sample.Index.Project {
     Sample.Index.Project(
         id: "landmarks",
@@ -154,6 +167,63 @@ actor FakeSampleReader: Sample.Index.Reader {
     }
 
     func disconnect() async {}
+
+    func calls() -> Calls {
+        recordedCalls
+    }
+}
+
+actor FakePackageSearcher: Search.PackagesSearcher {
+    struct Calls {
+        var query: String?
+        var limit: Int?
+        var availabilityPlatform: String?
+        var availabilityMinVersion: String?
+        var swiftToolsMinVersion: String?
+        var appleImport: String?
+        var genericConstraint: String?
+        var genericFramework: String?
+        var genericLimit: Int?
+    }
+
+    private var results: [Search.Result]
+    private var genericResults: [Search.Result]
+    private var recordedCalls = Calls()
+
+    init(
+        results: [Search.Result] = [],
+        genericResults: [Search.Result] = [],
+    ) {
+        self.results = results
+        self.genericResults = genericResults
+    }
+
+    func searchPackages(
+        query: String,
+        limit: Int,
+        availability: Search.AvailabilityFilter?,
+        swiftTools: Search.SwiftToolsFilter?,
+        appleImport: String?,
+    ) async throws -> [Search.Result] {
+        recordedCalls.query = query
+        recordedCalls.limit = limit
+        recordedCalls.availabilityPlatform = availability?.platform
+        recordedCalls.availabilityMinVersion = availability?.minVersion
+        recordedCalls.swiftToolsMinVersion = swiftTools?.minVersion
+        recordedCalls.appleImport = appleImport
+        return Array(results.prefix(limit))
+    }
+
+    func searchPackageSymbolsByGenericConstraint(
+        constraint: String,
+        framework: String?,
+        limit: Int,
+    ) async throws -> [Search.Result] {
+        recordedCalls.genericConstraint = constraint
+        recordedCalls.genericFramework = framework
+        recordedCalls.genericLimit = limit
+        return Array(genericResults.prefix(limit))
+    }
 
     func calls() -> Calls {
         recordedCalls

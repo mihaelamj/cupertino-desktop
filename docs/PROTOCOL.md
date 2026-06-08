@@ -343,8 +343,8 @@ Each verb, the MCP tool the **subprocess** adapter calls, and the in-process ser
 | `readDocument` | `read_document` | **JSON (default)** -> decode | `Search.DocumentReading.getDocumentContent` |
 | `searchDocs` | `search` (source set) / `search_docs` / `search_hig` | markdown -> parse | `Search.DocumentReading.search` |
 | `searchSamples` | `search_samples` | markdown -> parse | `Sample.Index.Reader.searchProjects` + `searchFiles` |
-| `searchPackages` | `search_packages` | markdown -> parse | unsupported until CupertinoDataKit publishes a package-reader protocol |
-| `searchEverything` | `search_all` / `search` | markdown -> parse | `Search.DocumentReading.search` |
+| `searchPackages` | `search_packages` | markdown -> parse | `Search.PackagesSearcher.searchPackages` |
+| `searchEverything` | `search_all` / `search` | markdown -> parse | `Search.DocumentReading.search` + `Search.PackagesSearcher.searchPackages` |
 | `listSamples` | `list_samples` | markdown -> parse | `Sample.Index.Reader.listProjects` |
 | `readSample` | `read_sample` | markdown -> parse | `Sample.Index.Reader.getProject` + `listFiles` |
 | `readSampleFile` | `read_sample_file` | text | `Sample.Index.Reader.getFile` |
@@ -358,7 +358,7 @@ Each verb, the MCP tool the **subprocess** adapter calls, and the in-process ser
 Notes:
 - **`read_document` is JSON by default**, so the document reader gets structured `DocPage` content even through the subprocess adapter. The markdown-scrape cost is confined to the *search-list* tools on the subprocess side; the embedded adapter avoids all scraping by mapping typed services.
 - The subprocess adapter speaks the wire through the external `SwiftMCPClient` (its `MCPClient` over an injected `Transport.Channel`, over the neutral Foundation-only `SwiftMCPCore` wire types); the embedded adapter reuses CupertinoDataKit reader protocols and result models. Both map into the `AppModels` above and expose nothing else.
-- The embedded package-search verb remains unsupported until CupertinoDataKit adds a package-reader protocol. The desktop app must not reach into Cupertino's package index storage to fill that gap.
+- Embedded package search goes through `Search.PackagesSearcher`; the desktop app still does not receive storage paths or know that a package database exists.
 - cupertino clamps `limit` to 100; adapters clamp our `limit` accordingly.
 
 ## 5. Versioning

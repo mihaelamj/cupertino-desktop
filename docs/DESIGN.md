@@ -305,7 +305,7 @@ cross-repo work (milestone M7), not a local shim.
 No package hard-codes which adapter it uses. The choice lives only in the `*Impl` composition packages, which an app target picks:
 
 - **`MacBackendImpl`** = `Backend.LocalSubprocess(MCPClient(Transport.Subprocess(...)))`, wiring the kit's client and subprocess channel into the adapter.
-- **`LocalEmbeddedBackendImpl`** = `LocalEmbeddedBackend(dataSource:symbolReader:sampleReader:)`, used by iPhone, iPad, Linux Qt, and Windows Qt.
+- **`LocalEmbeddedBackendImpl`** = `LocalEmbeddedBackend(dataSource:symbolReader:sampleReader:packageSearcher:)`, used by iPhone, iPad, Linux Qt, and Windows Qt.
 
 ### 5.5 Where the corpus lives on embedded targets (`CatalogStore`)
 
@@ -396,6 +396,6 @@ target is planned: the fixed framework matrix is the product showcase.
 - **M4 (Samples)**: `Backend.LocalEmbedded` already maps `Sample.Index.Reader`; next UI step is `list_samples` -> `read_sample` tree -> `read_sample_file` code viewer.
 - **M5 (Symbols & polish)**: `Backend.LocalEmbedded` already maps `Search.SymbolReading`; next UI step is `get_inheritance` / conformances related panel, connection-status UX, empty/first-run states, error handling.
 - **M6 (Compare & decide, macOS)**: evaluate `macAppKit` vs `macSwiftUI` over the same `MacBackendImpl`, pick one or keep both, delete any losing target.
-- **M7 (Embedded engine, gated on upstream)**: land the cupertino read-engine packaging (section 5.3) so the composition root can provide document, sample, and symbol readers for iPhone, iPad, Linux, and Windows. Add a package-reader protocol before implementing embedded package search. There is **no** macOS-embedded path: the macOS app stays on the brew-binary subprocess by design.
+- **M7 (Embedded engine, gated on upstream)**: land the cupertino read-engine packaging (section 5.3) so the composition root can provide document, sample, symbol, and package readers for iPhone, iPad, Linux, and Windows. There is **no** macOS-embedded path: the macOS app stays on the brew-binary subprocess by design.
 - **M8 (Split Apple mobile apps)**: ship the four iPhone/iPad variants over `LocalEmbeddedBackendImpl` as distinct targets: `CupertinoiPhoneUIKit`, `CupertinoiPhoneSwiftUI`, `CupertinoiPadUIKit`, `CupertinoiPadSwiftUI`. iPhone and iPad are deliberately different UIs over the shared view models.
 - **M9 (Qt desktop apps)**: ship `CupertinoLinuxQt` over `ShellLinuxQt` and `CupertinoWindowsQt` over `ShellWindowsQt`, both using `LocalEmbeddedBackendImpl`. Qt is the native Linux/Windows UI and both apps are local-only over a downloaded or bundled Cupertino corpus.

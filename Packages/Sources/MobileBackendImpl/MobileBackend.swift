@@ -6,18 +6,25 @@ import LocalEmbeddedBackend
 /// in-process embedded adapter instead of MCP-over-subprocess.
 ///
 /// The read engine is a **constructor-injected strategy** (`any Search.DocumentReading`,
-/// optionally paired with `Search.SymbolReading` and `Sample.Index.Reader`), so this root
-/// holds no concrete engine and fabricates no data: the iOS app supplies the real reader
-/// at the composition site. App targets get back an opaque `any Backend.Documentation`
-/// and never see CupertinoDataKit or the `cupertino` package.
+/// optionally paired with `Search.SymbolReading`, `Sample.Index.Reader`, and
+/// `Search.PackagesSearcher`), so this root holds no concrete engine and fabricates no
+/// data: the app supplies the real reader at the composition site. App targets get back an
+/// opaque `any Backend.Documentation` and never see CupertinoDataKit or the `cupertino`
+/// package.
 public enum MobileBackend {
     /// Build the iOS backend over an injected read source.
     public static func live(
         dataSource: any Search.DocumentReading,
         symbolReader: (any Search.SymbolReading)? = nil,
         sampleReader: (any Sample.Index.Reader)? = nil,
+        packageSearcher: (any Search.PackagesSearcher)? = nil,
     ) -> any Backend.Documentation {
-        Backend.LocalEmbedded(dataSource: dataSource, symbolReader: symbolReader, sampleReader: sampleReader)
+        Backend.LocalEmbedded(
+            dataSource: dataSource,
+            symbolReader: symbolReader,
+            sampleReader: sampleReader,
+            packageSearcher: packageSearcher,
+        )
     }
 
     /// A development backend over `MockReader` (a hand-written `Search.DocumentReading`

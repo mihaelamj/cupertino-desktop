@@ -41,13 +41,13 @@ Backends behind the seam:
   (see [docs/PROTOCOL.md](docs/PROTOCOL.md) section 4).
 - **iPhone/iPad** (SwiftUI and UIKit) runs `Backend.LocalEmbedded` over a bundled
   real-data corpus captured from the cupertino index. The adapter now consumes the
-  CupertinoDataKit document, sample, and symbol reader slices when an embedded engine
-  provides them.
+  CupertinoDataKit document, sample, symbol, and package-search reader slices when an
+  embedded engine provides them.
 - **Linux/Windows Qt** is designed as local embedded-engine desktop targets. It is not implemented yet.
 
 Not yet implemented at the UI layer: the **sample-code browser** and **code intelligence**
-screens. Package search on the embedded path still fails honestly until CupertinoDataKit
-publishes a package-reader contract.
+screens. The embedded package-search backend seam is wired; a dedicated package-search UI
+can now be built over `Backend.Documentation.searchPackages`.
 
 Milestones are tracked in [docs/DESIGN.md](docs/DESIGN.md).
 
@@ -80,15 +80,15 @@ flowchart LR
     slices --> nav["M4 navigation hierarchy<br/>active"]
     nav --> samples["Samples UI<br/>planned"]
     samples --> symbols["Code intelligence UI<br/>planned"]
-    symbols --> packageReader["Embedded package search<br/>needs Cupertino contract"]
+    symbols --> packageReader["Embedded package search<br/>adapter wired"]
     packageReader --> embedded["Real embedded engine<br/>requires cupertino packaging"]
     embedded --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
 
     class m0,m1,m2,m3,bridge done
-    class slices partial
+    class slices,packageReader partial
     class nav active
-    class samples,symbols,packageReader,embedded,mobile,qt todo
+    class samples,symbols,embedded,mobile,qt todo
 
     classDef done    fill:#34C759,color:#FFFFFF
     classDef review  fill:#30B0C7,color:#FFFFFF

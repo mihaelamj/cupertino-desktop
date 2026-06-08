@@ -7,15 +7,15 @@ flowchart LR
     slices --> nav["M4 navigation hierarchy\nactive"]
     nav --> samples["Samples UI\nplanned"]
     samples --> symbols["Code intelligence UI\nplanned"]
-    symbols --> packageReader["Embedded package search\nneeds Cupertino contract"]
+    symbols --> packageReader["Embedded package search\nadapter wired"]
     packageReader --> embedded["Real embedded engine\nrequires cupertino packaging"]
     embedded --> mobile["Split iPhone and iPad apps\nplanned"]
     mobile --> qt["Linux and Windows Qt\nplanned"]
 
     class m0,m1,m2,m3,bridge done
-    class slices partial
+    class slices,packageReader partial
     class nav active
-    class samples,symbols,packageReader,embedded,mobile,qt todo
+    class samples,symbols,embedded,mobile,qt todo
 
     classDef done    fill:#34C759,color:#FFFFFF
     classDef review  fill:#30B0C7,color:#FFFFFF

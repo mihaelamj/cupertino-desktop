@@ -7,8 +7,9 @@ public extension Backend {
     /// `Backend.Documentation` adapter for the local, in-process (embedded) path.
     ///
     /// GoF **Adapter**: it adapts cupertino's read contracts
-    /// (`CupertinoDataKit.Search.DocumentReading`, `Search.SymbolReading`, and
-    /// `Sample.Index.Reader`, the adaptees) to our own `Backend.Documentation` target,
+    /// (`CupertinoDataKit.Search.DocumentReading`, `Search.SymbolReading`,
+    /// `Sample.Index.Reader`, and `Search.PackagesSearcher`, the adaptees) to our own
+    /// `Backend.Documentation` target,
     /// translating the adaptees' results into `AppModels` at the boundary. Nothing above
     /// this seam sees CupertinoDataKit, the corpus, or SQLite.
     ///
@@ -22,15 +23,18 @@ public extension Backend {
         private let dataSource: any Search.DocumentReading
         private let symbolReader: (any Search.SymbolReading)?
         private let sampleReader: (any Sample.Index.Reader)?
+        private let packageSearcher: (any Search.PackagesSearcher)?
 
         public init(
             dataSource: any Search.DocumentReading,
             symbolReader: (any Search.SymbolReading)? = nil,
             sampleReader: (any Sample.Index.Reader)? = nil,
+            packageSearcher: (any Search.PackagesSearcher)? = nil,
         ) {
             self.dataSource = dataSource
             self.symbolReader = symbolReader ?? (dataSource as? any Search.SymbolReading)
             self.sampleReader = sampleReader
+            self.packageSearcher = packageSearcher ?? (dataSource as? any Search.PackagesSearcher)
         }
 
         // MARK: Connecting
@@ -126,15 +130,24 @@ public extension Backend {
             )
         }
 
-        public func searchPackages(_: Model.PackageQuery) async throws -> [Model.PackageHit] {
-            throw Failure.unsupported(operation: "searchPackages")
+        public func searchPackages(_ query: Model.PackageQuery) async throws -> [Model.PackageHit] {
+            guard let packageSearcher else {
+                throw Failure.unsupported(operation: "searchPackages")
+            }
+            return try await Self.packageHits(
+                from: packageSearcher,
+                text: query.text,
+                limit: query.limit,
+                floor: query.floor,
+                appleImport: query.appleImport,
+            )
         }
 
         /// One search across every source, bucketed by source into the unified shape:
         /// doc-like sources become `DocHit`s, `samples` rows become `SampleProject`s, and
         /// `packages` rows become `PackageHit`s. Each bucket is capped at `limitPerSource`.
-        /// This reuses the `DocumentReading` slice rather than needing dedicated sample or
-        /// package readers; the real engine can answer each source natively later.
+        /// The docs pass still uses `DocumentReading`; when the dedicated package reader is
+        /// available, it also fills the package bucket without exposing storage to desktop.
         public func searchEverything(_ query: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
             let results = try await dataSource.search(
                 query: query.text,
@@ -160,6 +173,18 @@ public extension Backend {
                     if packages.count < query.limitPerSource { packages.append(Self.packageHit(from: result)) }
                 } else if docs.count < query.limitPerSource, let hit = Self.hit(from: result) {
                     docs.append(hit)
+                }
+            }
+            if packages.count < query.limitPerSource, let packageSearcher {
+                let hits = try await Self.packageHits(
+                    from: packageSearcher,
+                    text: query.text,
+                    limit: query.limitPerSource,
+                    floor: query.floor,
+                    appleImport: query.framework,
+                )
+                for hit in hits where packages.count < query.limitPerSource && !packages.contains(where: { Self.samePackage($0, hit) }) {
+                    packages.append(hit)
                 }
             }
             return Model.UnifiedResults(docs: docs, samples: Model.SampleResults(projects: projects, files: []), packages: packages)

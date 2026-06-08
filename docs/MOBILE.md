@@ -93,11 +93,11 @@ execute; this app only consumes the published package, and **the package itself 
 definitive statement of the shapes** (the exact protocol and value types are finalized
 there, not in any prose here).
 
-**v0.1.0 = cupertino's full read contract**, the entire `Search.Database` protocol (search,
-read, list-frameworks, document-count, disconnect, plus the symbol / inheritance /
-availability surface) and all its value types, moved as-is. It is the full surface rather
-than a trimmed subset on purpose: one package to test in isolation and to extend in one
-place, with no drift between a public subset and an internal protocol.
+**Version shape:** v0.1.0 moved cupertino's original read contract into the external
+package. v0.2.0 added document browsing (`Search.DocumentBrowsing`), and v0.3.0 added
+package search (`Search.PackagesSearcher`). It is the full surface rather than a trimmed
+subset on purpose: one package to test in isolation and to extend in one place, with no
+drift between a public subset and an internal protocol.
 
 ## MobileData
 
@@ -134,12 +134,11 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
 
 ## Status
 
-- **`CupertinoDataKit` published and consumed.** v0.1.0 is on GitHub (cupertino-owned,
+- **`CupertinoDataKit` published and consumed.** v0.3.0 is on GitHub (cupertino-owned,
   tagged); this app depends on it by version and never on the `cupertino` repo. The
   embedded adapter `Backend.LocalEmbedded` maps injected `Search.DocumentReading`,
-  `Search.SymbolReading`, and `Sample.Index.Reader` slices into `AppModels`. Package
-  search remains unsupported on the embedded path until CupertinoDataKit publishes a
-  package-reader protocol.
+  `Search.SymbolReading`, `Sample.Index.Reader`, and `Search.PackagesSearcher` slices
+  into `AppModels`.
 - **Two adaptive mobile apps ship today** over that seam as legacy current state:
   `CupertinoMobileSwiftUI` (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over
   `ShellUIKit`), each handling iPhone and iPad idioms. This is not the final design:
@@ -151,7 +150,8 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
   over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
   second implementation of the same reader contracts, added behind
-  `MobileBackend.live(dataSource:symbolReader:sampleReader:)` with no adapter change.
+  `MobileBackend.live(dataSource:symbolReader:sampleReader:packageSearcher:)` with no
+  adapter change.
 - **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

@@ -249,5 +249,8 @@ struct LocalEmbeddedBackendTests {
         await #expect(throws: Backend.Failure.self) {
             _ = try await backend.searchSymbols(Model.SymbolQuery(text: "View"))
         }
+        await #expect(throws: Backend.Failure.self) {
+            _ = try await backend.searchPackages(Model.PackageQuery(text: "swift"))
+        }
     }
 }

@@ -107,6 +107,42 @@ extension Backend.LocalEmbedded {
         return nil
     }
 
+    /// Package search currently accepts one platform floor plus an orthogonal
+    /// swift-tools-version filter. Preserve the UI model's platform precedence at the
+    /// adapter boundary and leave richer filtering to the Cupertino-owned contract.
+    static func packageAvailability(from floor: Model.PlatformFloor) -> Search.AvailabilityFilter? {
+        if let version = floor.iOS { return Search.AvailabilityFilter(platform: "iOS", minVersion: version) }
+        if let version = floor.macOS { return Search.AvailabilityFilter(platform: "macOS", minVersion: version) }
+        if let version = floor.tvOS { return Search.AvailabilityFilter(platform: "tvOS", minVersion: version) }
+        if let version = floor.watchOS { return Search.AvailabilityFilter(platform: "watchOS", minVersion: version) }
+        if let version = floor.visionOS { return Search.AvailabilityFilter(platform: "visionOS", minVersion: version) }
+        return nil
+    }
+
+    static func packageSwiftTools(from floor: Model.PlatformFloor) -> Search.SwiftToolsFilter? {
+        floor.swift.map { Search.SwiftToolsFilter(minVersion: $0) }
+    }
+
+    static func packageHits(
+        from searcher: any Search.PackagesSearcher,
+        text: String,
+        limit: Int,
+        floor: Model.PlatformFloor,
+        appleImport: String?,
+    ) async throws -> [Model.PackageHit] {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return []
+        }
+        let results = try await searcher.searchPackages(
+            query: text,
+            limit: limit,
+            availability: packageAvailability(from: floor),
+            swiftTools: packageSwiftTools(from: floor),
+            appleImport: appleImport,
+        )
+        return results.map(Self.packageHit(from:))
+    }
+
     /// A `packages` row into a `Model.PackageHit`, parsing owner/repo/path from a
     /// `packages://owner/repo/path` URI.
     static func packageHit(from result: Search.Result) -> Model.PackageHit {
@@ -124,6 +160,10 @@ extension Backend.LocalEmbedded {
             snippet: result.cleanedSummary,
             score: result.score,
         )
+    }
+
+    static func samePackage(_ lhs: Model.PackageHit, _ rhs: Model.PackageHit) -> Bool {
+        lhs.owner == rhs.owner && lhs.repo == rhs.repo && lhs.path == rhs.path
     }
 
     static func symbolHits(

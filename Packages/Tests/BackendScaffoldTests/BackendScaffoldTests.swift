@@ -1,7 +1,9 @@
 import AppModels
 import BackendAPI
+@_spi(CupertinoInternal) import CupertinoDataEngine
 import LocalSubprocessBackend
 @testable import MacBackendImpl
+@testable import MobileBackendImpl
 import SwiftMCPClientAPI
 import Testing
 
@@ -29,6 +31,14 @@ struct BackendScaffoldTests {
         await #expect(throws: Backend.Failure.self) {
             _ = try await backend.searchPackages(Model.PackageQuery(text: "swift"))
         }
+    }
+
+    @Test("MobileBackend.live(engine:) composes over the external data engine facade")
+    func mobileLiveEngineComposes() async throws {
+        let engine = try await CupertinoDataEngine(configuration: .init(sourceCorpusResources: []))
+        let backend: any Backend.Documentation = await MobileBackend.live(engine: engine)
+        #expect(try await backend.listFrameworks().isEmpty)
+        await backend.disconnect()
     }
 
     @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")

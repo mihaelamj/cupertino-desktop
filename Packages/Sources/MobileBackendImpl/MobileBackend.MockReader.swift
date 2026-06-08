@@ -7,8 +7,8 @@ extension MobileBackend {
     /// hig, swift-evolution, swift-org, swift-book, apple-archive, packages, samples):
     /// real framework names, real counts, real titles and abstracts, with availability
     /// metadata so the platform-minimum filters do real work. It lets the embedded
-    /// backend and the shells run with life-like content before the real
-    /// `CupertinoDataEngine` ships; swap to `MobileBackend.live(dataSource:)` then.
+    /// backend and the shells run with life-like content when no local corpus is
+    /// configured; production composition uses `MobileBackend.live(engine:)`.
     struct MockReader: Search.DocumentReading {
         private struct Corpus: Decodable {
             struct Framework: Decodable {

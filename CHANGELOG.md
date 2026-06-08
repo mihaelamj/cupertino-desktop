@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` package and
+  exposes `MobileBackend.live(engine:)`, injecting the engine itself as the composed
+  `Search.DocumentReading` / `Search.SymbolReading` facade while borrowing optional sample
+  and package reader slices from it. UI packages still receive only
+  `Backend.Documentation`; DB paths and concrete storage readers remain inside
+  Cupertino-owned composition.
 - `Backend.LocalEmbedded` now consumes CupertinoDataKit sample and symbol reader
   slices (`Sample.Index.Reader`, `Search.SymbolReading`) in addition to
   `Search.DocumentReading`, so embedded targets can use samples and code-intelligence

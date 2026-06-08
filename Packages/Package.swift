@@ -74,6 +74,11 @@ func kitProduct(_ name: String) -> Target.Dependency {
 /// the `cupertino` package itself.
 let dataKitProduct: Target.Dependency = .product(name: "CupertinoDataKit", package: "CupertinoDataKit")
 
+/// CupertinoDataEngine (external, cupertino-owned): the embedded read engine facade.
+/// Composition packages may inject it into `LocalEmbeddedBackend`; UI packages still
+/// depend only on `BackendAPI` / `AppModels`.
+let dataEngineProduct: Target.Dependency = .product(name: "CupertinoDataEngine", package: "CupertinoDataEngine")
+
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "AppModels")
@@ -159,7 +164,7 @@ let targets: [Target] = {
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct],
+        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct, dataEngineProduct],
         resources: [.process("Resources")],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
@@ -185,7 +190,7 @@ let targets: [Target] = {
     )
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), "BackendAPI", "AppModels"],
+        dependencies: ["MacBackendImpl", "MobileBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), dataEngineProduct, "BackendAPI", "AppModels"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
@@ -244,6 +249,12 @@ let package = Package(
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataKit.git",
             from: "0.3.0",
+        ),
+        // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
+        // code injects this into LocalEmbeddedBackend; UI packages never import it.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
+            from: "0.2.0",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

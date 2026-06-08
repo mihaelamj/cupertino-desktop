@@ -119,7 +119,7 @@ The two backend localities remain peers over the one `Backend.Documentation` sea
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
 - `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
-  process via local catalog wiring.
+  process via `MobileBackend.live(engine:)` and local catalog wiring.
 
 ## UI variants
 
@@ -145,14 +145,11 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   the accepted target is four distinct iPhone/iPad shells and app schemes, per
   [UI-DESIGN.md](UI-DESIGN.md) and
   [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
-- **`CupertinoDataEngine` (the real embedded read engine): designed and accepted, but
-  implementation deferred to a future cupertino release** (maintainer decision, design
-  doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
-  over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
-  second implementation of the same reader contracts, added behind
-  `MobileBackend.live(dataSource:symbolReader:sampleReader:packageSearcher:)` with no
-  adapter change.
-- **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
+- **`CupertinoDataEngine` published and consumed.** v0.2.0 is on GitHub (cupertino-owned,
+  tagged). `MobileBackend.live(engine:)` injects the engine itself as the composed
+  document/symbol facade and borrows optional sample/package reader slices from it. DB
+  paths and concrete storage readers remain Cupertino-owned composition details.
+- **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not
   just abstracts) captured verbatim from the cupertino index. It honours the answerable

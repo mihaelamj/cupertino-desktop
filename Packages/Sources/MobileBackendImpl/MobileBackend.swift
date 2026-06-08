@@ -1,4 +1,5 @@
 import BackendAPI
+import CupertinoDataEngine
 import CupertinoDataKit
 import LocalEmbeddedBackend
 
@@ -7,11 +8,22 @@ import LocalEmbeddedBackend
 ///
 /// The read engine is a **constructor-injected strategy** (`any Search.DocumentReading`,
 /// optionally paired with `Search.SymbolReading`, `Sample.Index.Reader`, and
-/// `Search.PackagesSearcher`), so this root holds no concrete engine and fabricates no
-/// data: the app supplies the real reader at the composition site. App targets get back an
-/// opaque `any Backend.Documentation` and never see CupertinoDataKit or the `cupertino`
-/// package.
+/// `Search.PackagesSearcher`). App targets get back an opaque
+/// `any Backend.Documentation` and never see CupertinoDataKit, CupertinoDataEngine,
+/// storage paths, or the `cupertino` package.
 public enum MobileBackend {
+    /// Build the mobile backend over Cupertino's embedded engine facade.
+    public static func live(engine: CupertinoDataEngine) async -> any Backend.Documentation {
+        let sampleReader = try? await engine.samples()
+        let packageSearcher = try? await engine.packages()
+        return live(
+            dataSource: engine,
+            symbolReader: engine,
+            sampleReader: sampleReader,
+            packageSearcher: packageSearcher,
+        )
+    }
+
     /// Build the iOS backend over an injected read source.
     public static func live(
         dataSource: any Search.DocumentReading,
@@ -28,9 +40,8 @@ public enum MobileBackend {
     }
 
     /// A development backend over `MockReader` (a hand-written `Search.DocumentReading`
-    /// stand-in), for running the iOS app before `CupertinoDataEngine` is published.
-    /// Returns mock content, not the real corpus; replace with `live(dataSource:)` over
-    /// the real engine once it ships, a one-line change at the composition root.
+    /// stand-in). Returns mock content, not the real corpus; production composition uses
+    /// `live(engine:)` over the real engine.
     public static func mock() -> any Backend.Documentation {
         live(dataSource: MockReader())
     }

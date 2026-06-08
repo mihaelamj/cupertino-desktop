@@ -97,11 +97,12 @@ there, not in any prose here).
 **Version shape:** `CupertinoDataKit` v0.1.0 moved cupertino's original read contract
 into the external package; v0.2.0 added document browsing (`Search.DocumentBrowsing`);
 and v0.3.0 added package search (`Search.PackagesSearcher`). `CupertinoDataEngine`
-v0.2.1 is the current embedded facade consumed here: it supports downstream previews
-and composition tests through a public empty-facade initializer, while real
-corpus-backed construction remains upstream #1261 work. It is the full surface rather
-than a trimmed subset on purpose: one package to test in isolation and to extend in one
-place, with no drift between a public subset and an internal protocol.
+v0.2.2 is the current embedded facade consumed here: it supports downstream previews
+and composition tests through a public empty-facade initializer, and adds the first
+public source-corpus construction slice. Samples, packages, and the complete production
+parity path remain upstream #1261 work. It is the full surface rather than a trimmed
+subset on purpose: one package to test in isolation and to extend in one place, with no
+drift between a public subset and an internal protocol.
 
 ## MobileData
 
@@ -149,11 +150,12 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   the accepted target is four distinct iPhone/iPad shells and app schemes, per
   [UI-DESIGN.md](UI-DESIGN.md) and
   [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
-- **`CupertinoDataEngine` facade published and consumed.** v0.2.1 is on GitHub
+- **`CupertinoDataEngine` facade published and consumed.** v0.2.2 is on GitHub
   (cupertino-owned, tagged). `MobileBackend.live(engine:)` injects the engine itself as
   the composed document/symbol facade and borrows optional sample/package reader slices
-  from it. Storage paths and concrete storage readers remain Cupertino-owned composition
-  details; the real corpus-backed construction path is still tracked by Cupertino #1261.
+  from it. Storage paths and concrete storage readers remain Cupertino-owned details;
+  sample/package construction and complete production parity are still tracked by
+  Cupertino #1261.
 - **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

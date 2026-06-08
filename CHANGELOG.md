@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` 0.2.1 package and
+- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` 0.2.2 package and
   exposes `MobileBackend.live(engine:)`, injecting the engine itself as the composed
   `Search.DocumentReading` / `Search.SymbolReading` facade while borrowing optional sample
   and package reader slices from it. UI packages still receive only

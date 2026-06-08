@@ -10,10 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `CatalogStoreAPI` now defines the embedded-target catalog seam. `MobileBackendImpl`
-  accepts `Catalog.Store` or `Catalog.CorpusHandle`, opens `CupertinoDataEngine` 0.2.4
+  accepts `Catalog.Store` or `Catalog.CorpusHandle`, opens `CupertinoDataEngine` 0.2.6
   through its opaque corpus initializer, and still returns only `Backend.Documentation`
   to app/UI code.
-- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` 0.2.4 package and
+- `scripts/check-local-embedded-corpus.sh` now runs an opt-in live
+  `LocalEmbeddedBackend` smoke against an installed Cupertino release corpus. The smoke
+  exercises frameworks, docs search/read, unified search, samples, and package search
+  through the embedded backend without exposing storage paths above CupertinoDataEngine.
+- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` 0.2.6 package and
   exposes `MobileBackend.live(engine:)`, injecting the engine itself as the composed
   `Search.DocumentReading` / `Search.SymbolReading` facade while borrowing optional sample
   and package reader slices from it. UI packages still receive only

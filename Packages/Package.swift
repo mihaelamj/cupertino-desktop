@@ -278,10 +278,10 @@ let package = Package(
         ),
         // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
         // code injects this into LocalEmbeddedBackend; UI packages never import it.
-        // v0.2.4 adds the opaque corpus handle for current Cupertino corpus bundles.
+        // v0.2.6 keeps the opaque corpus handle aligned with release corpus bundles.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
-            from: "0.2.4",
+            from: "0.2.6",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

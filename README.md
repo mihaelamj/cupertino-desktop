@@ -43,7 +43,9 @@ Backends behind the seam:
   real-data corpus captured from the cupertino index. The adapter consumes the
   CupertinoDataKit document, sample, symbol, and package-search reader slices when an
   embedded engine provides them, and `MobileBackendImpl` can now open a
-  CupertinoDataEngine 0.2.4 corpus through `CatalogStoreAPI`.
+  CupertinoDataEngine 0.2.6 corpus through `CatalogStoreAPI`. The opt-in
+  `scripts/check-local-embedded-corpus.sh` smoke passes against the installed
+  `~/.cupertino` release corpus.
 - **Linux/Windows Qt** is designed as local embedded-engine desktop targets. It is not implemented yet.
 
 Not yet implemented at the UI layer: the **sample-code browser** and **code intelligence**
@@ -84,14 +86,16 @@ flowchart LR
     symbols --> packageReader["Embedded package search<br/>adapter wired"]
     packageReader --> catalog["CatalogStoreAPI<br/>opaque corpus handle"]
     catalog --> embedded["Real embedded engine<br/>live corpus smoke"]
-    embedded --> mobile["Split iPhone and iPad apps<br/>planned"]
+    embedded --> stores["Bundled/downloadable<br/>CatalogStore"]
+    stores --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
 
     class m0,m1,m2,m3,bridge done
     class slices,packageReader partial
-    class catalog done
+    class catalog,embedded done
     class nav active
-    class samples,symbols,embedded,mobile,qt todo
+    class stores next
+    class samples,symbols,mobile,qt todo
 
     classDef done    fill:#34C759,color:#FFFFFF
     classDef review  fill:#30B0C7,color:#FFFFFF

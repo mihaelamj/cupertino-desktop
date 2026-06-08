@@ -63,6 +63,50 @@ struct BackendScaffoldTests {
         }
     }
 
+    /// Opt-in integration smoke against a real Cupertino corpus. Enable with
+    /// `CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION=1 swift test`, or run
+    /// `../scripts/check-local-embedded-corpus.sh` from `Packages/`.
+    @Test(
+        "live LocalEmbeddedBackend real corpus smoke",
+        .enabled(if: ProcessInfo.processInfo.environment["CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION"] == "1"),
+        .timeLimit(.minutes(2)),
+    )
+    func liveEmbeddedRealCorpusSmoke() async throws {
+        let corpusURL = Self.embeddedCorpusURL()
+        let store = FixedCatalogStore(handle: Catalog.CorpusHandle(bundleURL: corpusURL))
+        let backend: any Backend.Documentation = try await MobileBackend.live(catalogStore: store)
+
+        do {
+            try await Self.assertLiveEmbeddedCorpus(backend)
+            await backend.disconnect()
+        } catch {
+            await backend.disconnect()
+            throw error
+        }
+    }
+
+    private static func assertLiveEmbeddedCorpus(_ backend: any Backend.Documentation) async throws {
+        let frameworks = try await backend.listFrameworks()
+        #expect(frameworks.contains { $0.id == "swiftui" })
+
+        let hits = try await backend.searchDocs(Model.DocsQuery(text: "View", sources: [.appleDocs], framework: "swiftui", limit: 5))
+        let firstHit = try #require(hits.first)
+        #expect(firstHit.uri.rawValue.hasPrefix("apple-docs://"))
+
+        let page = try await backend.readDocument(firstHit.uri)
+        #expect(page.source == .appleDocs)
+        #expect(!page.markdown.isEmpty)
+
+        let unified = try await backend.searchEverything(Model.UnifiedQuery(text: "View", limitPerSource: 3))
+        #expect(!unified.docs.isEmpty || !unified.samples.projects.isEmpty || !unified.packages.isEmpty)
+
+        let samples = try await backend.listSamples(framework: nil, limit: 1)
+        #expect(!samples.isEmpty)
+
+        let packages = try await backend.searchPackages(Model.PackageQuery(text: "swift", limit: 1))
+        #expect(!packages.isEmpty)
+    }
+
     @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")
     func backendTakesFakeClient() async throws {
         // The payoff of the Client.MCP seam: Backend.LocalSubprocess depends on the protocol,
@@ -87,6 +131,13 @@ struct BackendScaffoldTests {
         #expect(uri.rawValue == "apple-docs://swiftui/view")
         #expect(Model.DocURI("bogus-scheme://x") == nil) // unknown scheme rejected
         #expect(Model.DocURI("apple-docs://") == nil) // empty path rejected
+    }
+
+    private static func embeddedCorpusURL() -> URL {
+        let path = ProcessInfo.processInfo.environment["CUPERTINO_DESKTOP_EMBEDDED_CORPUS"]
+            .flatMap { $0.isEmpty ? nil : $0 }
+            ?? "~/.cupertino"
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
     }
 }
 

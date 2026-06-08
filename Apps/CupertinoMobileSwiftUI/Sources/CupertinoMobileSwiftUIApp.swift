@@ -10,12 +10,11 @@ import SwiftUI
 /// injects it into the feature view models, then composes the shared SwiftUI shells
 /// into a tabbed root: the framework browser (`UI.RootExperience`, a
 /// `NavigationSplitView` that adapts iPhone/iPad) and the search screen
-/// (`UI.SearchView`, which exposes every `searchDocs` option over every database).
+/// (`UI.SearchView`, which exposes every `searchDocs` option over every source).
 ///
 /// The backend is `MobileBackend.mock()` for now: the in-process embedded adapter over
-/// a captured real-data corpus, because the real `CupertinoDataEngine` is not published
-/// yet. Swap to `MobileBackend.live(dataSource:)` over the real engine when it ships, a
-/// one-line change here.
+/// a captured real-data corpus. Swap to `MobileBackend.live(engine:)` once Cupertino
+/// #1261 exposes public corpus-backed engine construction.
 @main
 struct CupertinoMobileSwiftUIApp: App {
     @State private var model = UI.RootModel()

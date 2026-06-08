@@ -14,9 +14,8 @@ import UIKit
 /// view models, so the two frameworks can be compared on one seam (docs/DESIGN.md).
 ///
 /// The backend is `MobileBackend.mock()` for now (see CupertinoMobileSwiftUI): the
-/// embedded adapter over a captured real-data corpus, because the real
-/// `CupertinoDataEngine` is not published yet. Swap to
-/// `MobileBackend.live(dataSource:)` over the real engine when it ships.
+/// embedded adapter over a captured real-data corpus. Swap to `MobileBackend.live(engine:)`
+/// once Cupertino #1261 exposes public corpus-backed engine construction.
 @main
 final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?

@@ -1,0 +1,49 @@
+flowchart TB
+    subgraph apps["App targets"]
+        macSwiftUI["macOS SwiftUI"]
+        macAppKit["macOS AppKit"]
+        phoneSwiftUI["iPhone SwiftUI"]
+        phoneUIKit["iPhone UIKit"]
+        padSwiftUI["iPad SwiftUI"]
+        padUIKit["iPad UIKit"]
+        linuxQt["Linux Qt"]
+        windowsQt["Windows Qt"]
+    end
+
+    subgraph shells["Concrete native shells"]
+        swiftuiShell["SwiftUI views"]
+        appkitShell["AppKit controllers"]
+        uikitShell["UIKit controllers"]
+        qtShell["Qt models and widgets"]
+    end
+
+    bridge["PresentationBridge\npure state, logical trees, stable IDs"]
+    features["Feature view models\nmain-actor intents and coordination"]
+    backend["Backend.Documentation\nAppModels-only protocol"]
+
+    subgraph adapters["Local backend adapters"]
+        subprocess["LocalSubprocess\nmacOS MCP subprocess"]
+        embedded["LocalEmbedded\nembedded Cupertino reader"]
+    end
+
+    cupertino["Cupertino-owned engine\nlocal corpus"]
+
+    macSwiftUI --> swiftuiShell
+    phoneSwiftUI --> swiftuiShell
+    padSwiftUI --> swiftuiShell
+    macAppKit --> appkitShell
+    phoneUIKit --> uikitShell
+    padUIKit --> uikitShell
+    linuxQt --> qtShell
+    windowsQt --> qtShell
+
+    swiftuiShell --> bridge
+    appkitShell --> bridge
+    uikitShell --> bridge
+    qtShell --> bridge
+    bridge --> features
+    features --> backend
+    backend --> subprocess
+    backend --> embedded
+    subprocess --> cupertino
+    embedded --> cupertino

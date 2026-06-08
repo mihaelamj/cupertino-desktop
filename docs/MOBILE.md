@@ -3,8 +3,10 @@
 How the iPhone and iPad variants reach the documentation corpus, and the layering
 that gets them there without depending on the `cupertino` repository.
 
-See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path) and
-[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`).
+See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path),
+[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`), and
+[decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md) (the fixed
+native UI matrix).
 
 ## Why iOS is different
 
@@ -14,19 +16,20 @@ subprocess**, so that path does not apply. The iOS variants must run a read
 implementation **in process**.
 
 The constraint that shapes everything below: **do not depend on the `cupertino`
-repository on iOS.** cupertino is a server and CLI built around an FTS-SQLite corpus
-with an enriched structured front; it is not an iOS-shippable library, and pulling it
-in as a dependency is the wrong move. Instead we **extract its read API as a protocol
-package** and implement that protocol ourselves for the embedded path, the same
-playbook used for [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) and
+repository on iOS.** cupertino is a server and CLI around a local documentation
+corpus with an enriched structured front; it is not an iOS-shippable library, and
+pulling it in as a dependency is the wrong move. Instead we **extract its read API
+as a protocol package** and consume Cupertino-owned read implementations behind
+that contract, the same playbook used for
+[`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) and
 [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient).
 
 ## The layering
 
 ```
-SQLite corpus                  the documentation databases (pure data)
+Cupertino catalog              installed data, opened only by Cupertino code
   │
-CatalogStore                   where the DBs come from (bundled vs downloadable)
+CatalogStore                   where the installed catalog comes from
   │
 CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owned, external.
   │   conformed two ways, both extracted from cupertino, both cupertino-owned/published:
@@ -34,8 +37,8 @@ CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owne
   └── CupertinoDataEngine      cupertino's read engine extracted and made iOS-buildable; a
   │                            separate external package the iOS app embeds in process.
   │
-MobileData                     desktop-side wiring only: feeds CupertinoDataEngine a DB from a
-  │                            CatalogStore and surfaces it through the backend adapter.
+MobileData                     desktop-side wiring only: resolves the local corpus for
+  │                            CupertinoDataEngine and surfaces it through the backend adapter.
   │
 LocalEmbeddedBackend           maps CupertinoDataEngine results into AppModels.
   │
@@ -47,7 +50,8 @@ Two layers are extracted from cupertino into cupertino-owned external packages: 
 **`CupertinoDataKit`** contract and the **`CupertinoDataEngine`** implementation. This app
 owns only the thin parts (`CatalogStore`, `MobileData`, `LocalEmbeddedBackend`). Everything
 above the `Backend.Documentation` seam is identical to the macOS path; only the *locality*
-of the backend differs (out-of-process subprocess on macOS, in-process embedded on iOS).
+of the backend differs (out-of-process subprocess on macOS, in-process embedded on
+iPhone/iPad and Qt desktop targets).
 
 ## CupertinoDataKit
 
@@ -67,9 +71,10 @@ It is conformed **two ways, both extracted from cupertino and both cupertino-own
 - **cupertino (server)** conforms to it with the full FTS-SQLite engine over the full
   corpus. The macOS desktop reaches that implementation over MCP through the subprocess.
 - **`CupertinoDataEngine`** is cupertino's read engine **extracted and made
-  iOS-buildable**, a separate external package that conforms to `CupertinoDataKit` and runs
-  in process. The iOS app embeds it. The desktop does not reimplement the engine; it
-  consumes cupertino's.
+  app-embeddable**, a separate external package that conforms to `CupertinoDataKit` and
+  runs in process. The iPhone/iPad apps embed it; the Linux and Windows Qt apps use the
+  same local embedded family. The desktop app does not reimplement the engine; it consumes
+  cupertino's.
 
 Neither depends on the other; both depend only on the `CupertinoDataKit` protocols.
 **cupertino owns both `CupertinoDataKit` and `CupertinoDataEngine`:** they are cupertino's
@@ -80,45 +85,49 @@ the same gate used for the MCP extractions. `CupertinoDataEngine` is the larger 
 decoupling the read engine from cupertino's server, CLI, and indexer with no iOS-hostile
 dependencies.
 
-`CupertinoDataKit` is not new types. cupertino's read contract already lives inside its
-`SearchModels` target as the `Search.Database` protocol and its value types. cupertino
-**moves** that whole contract out into `CupertinoDataKit` as the single source of truth and
-re-exports it from `SearchModels` (the `SwiftMCPCore` carve-out pattern), so there is one
-definition, never a mirror kept in sync by a bridge. The carve-out is cupertino's to
-execute; this app only consumes the published package, and **the package itself is the
-definitive statement of the shapes** (the exact protocol and value types are finalized
-there, not in any prose here).
+`CupertinoDataKit` is not a mirror of this app's types. cupertino's read contract moved
+out into `CupertinoDataKit` as the single source of truth and is consumed by both
+cupertino and `CupertinoDataEngine`, so there is one definition, never a bridge kept in
+sync by prose here. This app only consumes the published package.
 
-**v0.1.0 = cupertino's full read contract**, the entire `Search.Database` protocol (search,
-read, list-frameworks, document-count, disconnect, plus the symbol / inheritance /
-availability surface) and all its value types, moved as-is. It is the full surface rather
-than a trimmed subset on purpose: one package to test in isolation and to extend in one
-place, with no drift between a public subset and an internal protocol.
+**Version shape:** `CupertinoDataKit` v0.1.0 moved cupertino's original read contract
+into the external package; v0.2.0 added document browsing (`Search.DocumentBrowsing`);
+and v0.3.0 added package search (`Search.PackagesSearcher`). `CupertinoDataEngine`
+v0.2.6 is the current embedded facade consumed here: it supports downstream previews,
+complete current-corpus construction through an opaque corpus handle aligned with release
+catalog layout, including the release `packages.db` package corpus, and sample/package
+reader slices behind Cupertino-owned implementation.
+The live packaged-corpus smoke now passes against the installed `~/.cupertino` release
+corpus. It is the full surface rather than a trimmed subset on purpose:
+one package to test in isolation and to extend in one place, with no drift between a
+public subset and an internal protocol.
 
 ## MobileData
 
 The desktop-side wiring for the embedded path, and the only part of it this app owns. It
-does **not** reimplement the engine; it embeds the external `CupertinoDataEngine`, feeds it
-a database via a `CatalogStore` (bundled or downloaded), and surfaces it through
-`LocalEmbeddedBackend`, which maps the `CupertinoDataKit` results into `AppModels`. The
-heavy lifting (the FTS-SQLite engine) lives in cupertino's external package; only corpus
-delivery and the adapter live here.
+does **not** reimplement the engine; it accepts the external `CupertinoDataEngine` facade
+through `MobileBackend.live(engine:)` and surfaces it through `LocalEmbeddedBackend`, which
+maps the `CupertinoDataKit` results into `AppModels`. The real corpus-backed construction
+path now flows through `MobileBackend.live(catalogStore:)`: this app supplies only corpus
+delivery through `CatalogStoreAPI`, and CupertinoDataEngine owns file naming, schema
+validation, and reader construction.
 
 ## Relationship to the existing design
 
-This supersedes the note in [DESIGN.md](DESIGN.md) that the embedded path would depend on
-the `cupertino` package via a `CupertinoUpstream` symlink. The embedded path does not depend
-on the cupertino repository at all; it depends on the extracted `CupertinoDataKit` protocols
-and `CupertinoDataEngine` package, both versioned, and adds only its own `MobileData` wiring.
+The embedded path does not depend on the `cupertino` repository or a local symlink. It
+depends on the extracted `CupertinoDataKit` protocols and `CupertinoDataEngine` package,
+both versioned, and adds only its own `MobileData` wiring.
 
 The two backend localities remain peers over the one `Backend.Documentation` seam:
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
-- `Backend.LocalEmbedded` (iOS): embeds `CupertinoDataEngine` in process via `MobileData`.
+- `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
+  process via `MobileBackend.live(engine:)` or opens a catalog-resolved corpus through
+  `MobileBackend.live(catalogStore:)`.
 
 ## UI variants
 
-The iOS UI ships as distinct native variants per the six-variant plan in
+The iOS UI ships as distinct native variants per the eight-variant plan in
 [DESIGN.md](DESIGN.md): `ShelliPhoneSwiftUI`, `ShelliPhoneUIKit`, `ShelliPadSwiftUI`,
 `ShelliPadUIKit`. iPhone and iPad are deliberately different presentations, not one
 size-class-adaptive shell. All of them bind the same framework-agnostic view models
@@ -129,22 +138,32 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
 
 ## Status
 
-- **`CupertinoDataKit` published and consumed.** v0.1.0 is on GitHub (cupertino-owned,
+- **`CupertinoDataKit` published and consumed.** v0.3.0 is on GitHub (cupertino-owned,
   tagged); this app depends on it by version and never on the `cupertino` repo. The
-  embedded adapter `Backend.LocalEmbedded` conforms an injected
-  `CupertinoDataKit.Search.DocumentReading` and maps results into `AppModels`.
-- **Two universal mobile apps ship today** over that seam: `CupertinoMobileSwiftUI`
-  (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over `ShellUIKit`), each a single
-  adaptive target handling iPhone (compact) and iPad (regular) idioms. This supersedes
-  the earlier four-device-specific-shell sketch; per-device behaviour is specified in
-  [UI-DESIGN.md](UI-DESIGN.md).
-- **`CupertinoDataEngine` (the real iOS read engine): designed and accepted, but
-  implementation deferred to a future cupertino release** (maintainer decision, design
-  doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
-  over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
-  second implementation of the same `Search.Database` contract, added behind
-  `MobileBackend.live(dataSource:)` with no adapter change.
-- **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
+  embedded adapter `Backend.LocalEmbedded` maps injected `Search.DocumentReading`,
+  `Search.SymbolReading`, `Sample.Index.Reader`, and `Search.PackagesSearcher` slices
+  into `AppModels`.
+- **Two adaptive mobile apps ship today** over that seam as legacy current state:
+  `CupertinoMobileSwiftUI` (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over
+  `ShellUIKit`), each handling iPhone and iPad idioms. This is not the final design:
+  the accepted target is four distinct iPhone/iPad shells and app schemes, per
+  [UI-DESIGN.md](UI-DESIGN.md) and
+  [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
+- **`CupertinoDataEngine` facade published and consumed.** v0.2.6 is on GitHub
+  (cupertino-owned, tagged). `MobileBackend.live(engine:)` injects the engine itself as
+  the composed document/symbol facade and borrows optional sample/package reader slices
+  from it. `MobileBackend.live(catalogStore:)` opens the engine from a
+  `Catalog.CorpusHandle`. Concrete storage readers remain Cupertino-owned details; the
+  live smoke in `scripts/check-local-embedded-corpus.sh` passes against the installed
+  `~/.cupertino` release corpus. `Catalog.DevelopmentStore` now provides a mobile
+  dev-only local catalog store for simulator and local app work; the macOS app targets
+  do not link it and remain on `MacBackendImpl`. Mobile app opt-in uses
+  `CUPERTINO_MOBILE_USE_DEV_CATALOG=1` and optional `CUPERTINO_MOBILE_DEV_CATALOG`;
+  without an explicit path, the app fallback is under Application Support, matching the
+  future downloaded-catalog location.
+  The real mobile catalog installer and
+  app packaging remain before the embedded app targets can ship real data.
+- **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not
   just abstracts) captured verbatim from the cupertino index. It honours the answerable

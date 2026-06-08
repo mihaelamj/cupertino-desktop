@@ -1,7 +1,10 @@
 import AppCore
 import AppKit
+import AppModels
+import BackendAPI
 import FrameworkBrowserFeature
 import MacBackendImpl
+import MobileBackendImpl
 import SearchFeature
 import ShellAppKit
 
@@ -12,6 +15,11 @@ import ShellAppKit
 /// shells are composed into a tabbed window: the framework browser
 /// (`RootExperience`) and the search screen (`UI.SearchViewController`), matching
 /// the other three app targets.
+///
+/// Under the `-uitest-mock` launch argument the deterministic embedded corpus is
+/// injected instead of the live subprocess, so UI tests run offline and reproducibly
+/// (the GUI/test launch environment cannot reach the `cupertino serve` binary). The UI
+/// is identical either way; only the injected `Backend.Documentation` differs.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let model = UI.RootModel()
@@ -22,7 +30,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         installMainMenu()
 
-        let backend = MacBackend.live()
+        let mode = Self.effectiveMode()
+        let backend = Self.makeBackend(mode: mode)
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 
@@ -40,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let window = NSWindow(contentViewController: tabs)
         window.setContentSize(NSSize(width: 1000, height: 640))
         window.title = "Cupertino Desktop"
+        window.addTitlebarAccessoryViewController(ConnectionStatusAccessory(frameworks: frameworks, mode: mode))
         window.center()
         window.makeKeyAndOrderFront(nil)
         self.window = window
@@ -49,6 +59,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         true
+    }
+
+    /// The backend the app is actually using: `Model.AppSettings` (default `.mcpSubprocess`,
+    /// the stdio `cupertino serve` route), except `-uitest-mock` forces `.embedded` so UI
+    /// tests run offline.
+    private static func effectiveMode() -> Model.BackendMode {
+        if ProcessInfo.processInfo.arguments.contains("-uitest-mock") {
+            return .embedded
+        }
+        return Model.AppSettings.load().backend
+    }
+
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is the deterministic
+    /// UI-test mock. Mobile real-catalog composition is kept in the mobile app targets.
+    private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
+        switch mode {
+        case .mcpSubprocess: MacBackend.live()
+        case .embedded: MobileBackend.mock()
+        }
     }
 
     private func installMainMenu() {

@@ -1,3 +1,4 @@
+import AppCore
 import FlowSpec
 import XCTest
 
@@ -24,7 +25,7 @@ public extension Page {
             switch step.verb {
             case .open, .tap:
                 let element = try require(step)
-                scrollToHittable(element)
+                scrollToHittable(element, target: step.target)
                 element.tap()
             case .type:
                 let element = try require(step)
@@ -40,7 +41,15 @@ public extension Page {
                 }
             case .wait, .assert:
                 let timeout = step.arg.flatMap(TimeInterval.init) ?? defaultTimeout
-                if !element(step.target).waitForExistence(timeout: timeout) {
+                // Match by accessibility identifier first, then fall back to a visible
+                // static-text or link label, so a scenario can assert a content-unavailable
+                // view by its title (e.g. "Could not load document") the same way it asserts
+                // an identifier. The label fallback is checked only if the identifier wait
+                // fails, so identifier asserts keep the full timeout.
+                let found = element(step.target).waitForExistence(timeout: timeout)
+                    || app.staticTexts[step.target].firstMatch.waitForExistence(timeout: timeout)
+                    || app.links[step.target].firstMatch.exists
+                if !found {
                     throw StepRegistryError.stepFailed(key: step.key, reason: "element `\(step.target)` did not appear")
                 }
             }
@@ -52,9 +61,12 @@ public extension Page {
         private func locate(_ target: String) -> XCUIElement {
             let byIdentifier = element(target)
             if byIdentifier.exists { return byIdentifier }
-            let link = app.links[target]
+            // A label can legitimately repeat (e.g. the same link text twice in one
+            // document), so resolve to the first match rather than the subscript's
+            // unique-or-throw element.
+            let link = app.links.matching(identifier: target).firstMatch
             if link.exists { return link }
-            return app.staticTexts[target]
+            return app.staticTexts.matching(identifier: target).firstMatch
         }
 
         /// Wait for the step's element and return it, or throw a failure naming the target.
@@ -67,12 +79,27 @@ public extension Page {
         }
 
         /// Scroll the element into a hittable position (links can sit below the fold).
-        private func scrollToHittable(_ element: XCUIElement, maxSwipes: Int = 6) {
+        private func scrollToHittable(_ element: XCUIElement, target: String, maxSwipes: Int = 8) {
+            let surface = scrollSurface(for: target)
             var swipes = 0
             while !element.isHittable, swipes < maxSwipes {
-                app.swipeUp()
+                if element.frame.midY < surface.frame.minY {
+                    surface.swipeDown()
+                } else {
+                    surface.swipeUp()
+                }
                 swipes += 1
             }
+        }
+
+        private func scrollSurface(for target: String) -> XCUIElement {
+            if target.hasPrefix("framework_row_") {
+                let sidebar = element(UI.AccessibilityID.FrameworkBrowser.sidebar)
+                if sidebar.exists {
+                    return sidebar
+                }
+            }
+            return app
         }
     }
 }

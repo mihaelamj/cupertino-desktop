@@ -3,10 +3,11 @@ import AppModels
 import BackendAPI
 import Foundation
 import Observation
+import PresentationBridge
 
 public extension Feature.Search {
     /// The documentation-search view model. Holds the full set of options the UI binds
-    /// to (text, the source databases, framework, the per-platform minimum floor, a
+    /// to (text, source ids, framework, the per-platform minimum floor, a
     /// result limit, and a scope), runs the query through `Backend.Searching`, and
     /// exposes the result as one `state` enum whose payload is either a flat list of doc
     /// hits (the `docs` scope) or a unified, source-bucketed result (the `everything`
@@ -37,18 +38,20 @@ public extension Feature.Search {
             case everything(Model.UnifiedResults)
         }
 
-        public enum State: Sendable {
-            case idle
-            case loading
-            case loaded(Outcome)
-            case failed(String)
-        }
+        public typealias State = Presentation.LoadState<Outcome>
 
         public private(set) var state: State = .idle
 
         /// Flat doc hits (the `docs` scope), or empty otherwise.
         public var results: [Model.DocHit] {
             if case let .loaded(.docs(hits)) = state { hits } else { [] }
+        }
+
+        /// The `docs`-scope hits grouped into a `framework -> hit` tree. This is the shared,
+        /// framework-agnostic Logical Presentation each shell reifies natively (SwiftUI
+        /// sections, AppKit/UIKit header + leaf rows). See cupertino-desktop #51.
+        public var docsTree: [ResultNode] {
+            Feature.Search.resultTree(docs: results)
         }
 
         /// The unified result (the `everything` scope), or nil otherwise.

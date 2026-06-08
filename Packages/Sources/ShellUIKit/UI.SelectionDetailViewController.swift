@@ -18,8 +18,6 @@ import MarkdownRendering
         final class SelectionDetailViewController: UIViewController, UITextViewDelegate {
             private let frameworks: Feature.FrameworkBrowser.ViewModel
             private let textView = UITextView()
-            private let spinner = UIActivityIndicatorView(style: .medium)
-            private let emptyState = UIStackView()
 
             init(frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.frameworks = frameworks
@@ -34,45 +32,25 @@ import MarkdownRendering
             override func viewDidLoad() {
                 super.viewDidLoad()
                 view.backgroundColor = .systemBackground
-                navigationItem.rightBarButtonItems = UI.ReaderTextSize.barButtonItems(target: self, larger: #selector(textLarger), smaller: #selector(textSmaller))
 
                 textView.isEditable = false
                 textView.delegate = self
                 textView.alwaysBounceVertical = true
+                // The text view is clear (the view behind it holds the content-layer
+                // background), so the document scrolls under the Liquid Glass navigation bar and
+                // the glass refracts the text rather than an opaque panel. See cupertino-desktop #52.
+                textView.backgroundColor = .clear
                 textView.font = .preferredFont(forTextStyle: .body)
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
                 textView.translatesAutoresizingMaskIntoConstraints = false
                 textView.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.reader
                 view.addSubview(textView)
 
-                spinner.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(spinner)
-
-                let image = UIImageView(image: UIImage(systemName: "doc.text"))
-                image.tintColor = .tertiaryLabel
-                image.contentMode = .scaleAspectFit
-                image.preferredSymbolConfiguration = .init(pointSize: 36, weight: .regular)
-                let label = UILabel()
-                label.text = "Select a framework"
-                label.font = .preferredFont(forTextStyle: .headline)
-                label.textColor = .secondaryLabel
-                emptyState.axis = .vertical
-                emptyState.alignment = .center
-                emptyState.spacing = 8
-                emptyState.addArrangedSubview(image)
-                emptyState.addArrangedSubview(label)
-                emptyState.translatesAutoresizingMaskIntoConstraints = false
-                view.addSubview(emptyState)
-
                 NSLayoutConstraint.activate([
                     textView.topAnchor.constraint(equalTo: view.topAnchor),
                     textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                     textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                     textView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                    spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-                    emptyState.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                    emptyState.centerYAnchor.constraint(equalTo: view.centerYAnchor),
                 ])
 
                 track()
@@ -92,13 +70,9 @@ import MarkdownRendering
             }
 
             private func render() {
-                let loading = frameworks.isLoadingDocument
-                spinner.isHidden = !loading
-                if loading { spinner.startAnimating() } else { spinner.stopAnimating() }
-
                 if let markdown = frameworks.selectedMarkdown {
+                    contentUnavailableConfiguration = nil
                     textView.isHidden = false
-                    emptyState.isHidden = true
                     let base = Markdown.Theme().basePointSize
                     textView.attributedText = Markdown.attributed(
                         markdown: markdown,
@@ -107,16 +81,34 @@ import MarkdownRendering
                         theme: Markdown.Theme(basePointSize: base * Model.ReaderTextSize.current),
                     )
                     title = frameworks.selectedDocumentTitle
-                } else if let error = frameworks.documentError {
-                    textView.isHidden = false
-                    emptyState.isHidden = true
-                    textView.text = error
-                    title = nil
                 } else {
+                    // Loading, error, and empty all render as a system content-unavailable view
+                    // (matching the SwiftUI and AppKit detail); the reader text view is hidden.
                     textView.isHidden = true
-                    emptyState.isHidden = loading
                     title = nil
+                    if frameworks.isLoadingDocument {
+                        contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
+                    } else if let error = frameworks.documentError {
+                        contentUnavailableConfiguration = Self.configuration(systemImage: "exclamationmark.triangle", title: "Could not load document", message: error)
+                    } else {
+                        contentUnavailableConfiguration = Self.configuration(systemImage: "doc.text", title: "Select a framework", message: nil)
+                    }
                 }
+
+                // The reader text-size control belongs to a loaded document only.
+                let hasDocument = frameworks.selectedMarkdown != nil
+                navigationItem.rightBarButtonItems = hasDocument
+                    ? UI.ReaderTextSize.barButtonItems(target: self, larger: #selector(textLarger), smaller: #selector(textSmaller))
+                    : nil
+            }
+
+            /// A content-unavailable configuration for the detail's empty and error states.
+            private static func configuration(systemImage: String, title: String, message: String?) -> UIContentUnavailableConfiguration {
+                var configuration = UIContentUnavailableConfiguration.empty()
+                configuration.image = UIImage(systemName: systemImage)
+                configuration.text = title
+                configuration.secondaryText = message
+                return configuration
             }
 
             @objc private func textLarger() {

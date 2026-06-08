@@ -29,6 +29,7 @@ import FrameworkBrowserFeature
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     sidebar
                         .navigationTitle("Cupertino (SwiftUI)")
+                        .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 420)
                         .task { frameworks.onAppeared() }
                 } detail: {
                     detailColumn
@@ -37,26 +38,43 @@ import FrameworkBrowserFeature
                 .onChange(of: model.selectedFrameworkID) { _, newID in
                     frameworks.selectFramework(newID)
                 }
+                .onChange(of: frameworks.frameworks.map(\.id)) { _, ids in
+                    autoSelectFirstIfNeeded(ids)
+                }
             }
 
-            @ViewBuilder private var sidebar: some View {
-                if frameworks.isLoading {
-                    ProgressView("Loading frameworks")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let message = frameworks.errorMessage {
-                    ContentUnavailableView {
-                        Label("Could not load frameworks", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(message)
-                    } actions: {
-                        Button("Retry") { frameworks.onRetried() }
+            /// On the Mac (two-column), pre-select the first framework once the list loads so
+            /// the detail shows a document instead of the empty state. Skipped on iPhone, where
+            /// the compact split would push the detail and hide the list the user wants first.
+            private func autoSelectFirstIfNeeded(_ ids: [String]) {
+                #if os(macOS)
+                    if model.selectedFrameworkID == nil, let first = ids.first {
+                        model.selectedFrameworkID = first
                     }
-                } else {
-                    List(frameworks.frameworks, selection: $model.selectedFrameworkID) { framework in
-                        FrameworkRow(framework: framework)
+                #endif
+            }
+
+            private var sidebar: some View {
+                Group {
+                    if frameworks.isLoading {
+                        ProgressView("Loading frameworks")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let message = frameworks.errorMessage {
+                        ContentUnavailableView {
+                            Label("Could not load frameworks", systemImage: "exclamationmark.triangle")
+                        } description: {
+                            Text(message)
+                        } actions: {
+                            Button("Retry") { frameworks.onRetried() }
+                        }
+                    } else {
+                        List(frameworks.frameworks, selection: $model.selectedFrameworkID) { framework in
+                            FrameworkRow(framework: framework)
+                        }
                     }
-                    .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
                 }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
             }
 
             @ViewBuilder private var detailColumn: some View {
@@ -92,13 +110,17 @@ import FrameworkBrowserFeature
             let framework: Model.Framework
 
             var body: some View {
-                HStack {
-                    Text(framework.name)
-                    Spacer()
+                HStack(spacing: 12) {
+                    Text(framework.displayName)
+                        .font(.title3)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
                     Text(framework.documentCount.formatted())
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
+                .padding(.vertical, 3)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
             }

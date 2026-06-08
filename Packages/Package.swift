@@ -16,7 +16,7 @@ import PackageDescription
 // The ONLY universal seam is `Backend.Documentation` (BackendAPI). Conformers are
 // named by locality, not protocol: `Backend.LocalSubprocess` (out-of-process, talks
 // to a local `cupertino serve` subprocess) and `Backend.LocalEmbedded` (in-process,
-// direct calls, no MCP) are peers; a remote conformer is future. MCP is not an
+// direct calls, no MCP) are peers. There is no remote conformer. MCP is not an
 // identity here: it is only the wire the subprocess conformer speaks. The MCP
 // client, its transport seam, and the subprocess transport now live in the external
 // `SwiftMCPClient` package (the neutral client extracted from this repo); we consume
@@ -33,7 +33,9 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
+    .singleTargetLibrary("CatalogStoreAPI"),
     .singleTargetLibrary("AppCore"),
+    .singleTargetLibrary("PresentationBridge"),
     // Concrete
     .singleTargetLibrary("LocalSubprocessBackend"),
     .singleTargetLibrary("MarkdownRendering"),
@@ -42,11 +44,13 @@ let products: [Product] = [
     .singleTargetLibrary("FrameworkBrowserFeature"),
     .singleTargetLibrary("DocReaderFeature"),
     .singleTargetLibrary("SampleBrowserFeature"),
+    .singleTargetLibrary("UpcomingSwiftUI"),
     .singleTargetLibrary("ShellSwiftUI"),
     .singleTargetLibrary("ShellAppKit"),
     .singleTargetLibrary("ShellUIKit"),
-    // Concrete (Mobile path)
+    // Concrete (embedded path)
     .singleTargetLibrary("LocalEmbeddedBackend"),
+    .singleTargetLibrary("DevelopmentCatalogStore"),
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
@@ -67,19 +71,28 @@ func kitProduct(_ name: String) -> Target.Dependency {
 }
 
 /// CupertinoDataKit (external, cupertino-owned): cupertino's read contract as protocols
-/// + value types only. The embedded (iOS) adapter conforms a data source to its
-/// `Search.DocumentReading` slice and maps results into `AppModels`. Consumed by version;
-/// we never import the `cupertino` package itself.
+/// + value types only. The embedded adapter consumes document, sample, symbol, and package
+/// reader slices and maps results into `AppModels`. Consumed by version; we never import
+/// the `cupertino` package itself.
 let dataKitProduct: Target.Dependency = .product(name: "CupertinoDataKit", package: "CupertinoDataKit")
+
+/// CupertinoDataEngine (external, cupertino-owned): the embedded read engine facade.
+/// Composition packages may inject it into `LocalEmbeddedBackend`; UI packages still
+/// depend only on `BackendAPI` / `AppModels`.
+let dataEngineProduct: Target.Dependency = .product(name: "CupertinoDataEngine", package: "CupertinoDataEngine")
 
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
+    let catalogStoreAPI = Target.target(name: "CatalogStoreAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "AppCore")
-    let api = [models, backendAPI, core]
+    // PresentationBridge holds pure presentation values shared by feature view
+    // models and all native shells. It is data and state only, never widgets.
+    let presentationBridge = Target.target(name: "PresentationBridge", dependencies: ["AppModels"])
+    let api = [models, backendAPI, catalogStoreAPI, core, presentationBridge]
 
     // ---------- Concrete packages (import only API packages) ----------
     // The subprocess adapter depends on the client seam (SwiftMCPClientAPI), not
@@ -107,7 +120,7 @@ let targets: [Target] = {
     )
 
     // ---------- Features (framework-agnostic view models) ----------
-    let featureDependencies: [Target.Dependency] = ["AppCore", "AppModels", "BackendAPI", "MarkdownRendering"]
+    let featureDependencies: [Target.Dependency] = ["AppCore", "AppModels", "BackendAPI", "MarkdownRendering", "PresentationBridge"]
     let search = Target.target(name: "SearchFeature", dependencies: featureDependencies)
     let frameworkBrowser = Target.target(name: "FrameworkBrowserFeature", dependencies: featureDependencies)
     let docReader = Target.target(name: "DocReaderFeature", dependencies: featureDependencies)
@@ -115,13 +128,16 @@ let targets: [Target] = {
     let features = [search, frameworkBrowser, docReader, sampleBrowser]
 
     // ---------- UI (parallel per-framework packages) ----------
+    // UpcomingSwiftUI is the forward-compat Liquid Glass shim (Pattern 13); only the SwiftUI
+    // shell consumes it (the AppKit/UIKit shells reach glass through their native APIs).
+    let upcomingSwiftUI = Target.target(name: "UpcomingSwiftUI")
     let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "CodeHighlighting", "FrameworkBrowserFeature", "SearchFeature"]
-    let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies)
+    let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies + ["UpcomingSwiftUI"])
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
     let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
 
-    // The Mobile (iOS) backend conformer: a `Backend.Documentation` that reaches the
-    // corpus in-process (no MCP, no subprocess), because iOS cannot spawn one. It is a
+    // The embedded backend conformer: a `Backend.Documentation` that reaches the
+    // corpus in-process (no MCP, no subprocess). It is a
     // GoF Adapter over the injected `CupertinoDataKit.Search.DocumentReading` contract,
     // mapping that adaptee's results into `AppModels`. The read engine is a
     // constructor-injected strategy, so this adapter depends only on the named protocol,
@@ -130,13 +146,18 @@ let targets: [Target] = {
         name: "LocalEmbeddedBackend",
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
+    let developmentCatalogStore = Target.target(
+        name: "DevelopmentCatalogStore",
+        dependencies: ["CatalogStoreAPI"],
+    )
 
-    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features
+        + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend, developmentCatalogStore]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP
     // client kit, and the subprocess transport meet (Desktop). MobileBackendImpl
-    // composes the local-embedded conformer (Mobile). Both vend an opaque
+    // composes the local-embedded conformer. Both vend an opaque
     // `any Backend.Documentation`.
     let macBackendImpl = Target.target(
         name: "MacBackendImpl",
@@ -151,7 +172,7 @@ let targets: [Target] = {
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct],
+        dependencies: ["BackendAPI", "CatalogStoreAPI", "LocalEmbeddedBackend", dataKitProduct, dataEngineProduct],
         resources: [.process("Resources")],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
@@ -177,7 +198,25 @@ let targets: [Target] = {
     )
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), "BackendAPI", "AppModels"],
+        dependencies: [
+            "MacBackendImpl",
+            "MobileBackendImpl",
+            "LocalSubprocessBackend",
+            kitProduct("SwiftMCPClientAPI"),
+            dataEngineProduct,
+            "BackendAPI",
+            "CatalogStoreAPI",
+            "DevelopmentCatalogStore",
+            "AppModels",
+        ],
+    )
+    let catalogStoreAPITests = Target.testTarget(
+        name: "CatalogStoreAPITests",
+        dependencies: ["CatalogStoreAPI"],
+    )
+    let developmentCatalogStoreTests = Target.testTarget(
+        name: "DevelopmentCatalogStoreTests",
+        dependencies: ["DevelopmentCatalogStore", "CatalogStoreAPI"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
@@ -204,9 +243,29 @@ let targets: [Target] = {
         name: "MarkdownRenderingTests",
         dependencies: ["MarkdownRendering", "AppModels"],
     )
+    let appModelsTests = Target.testTarget(
+        name: "AppModelsTests",
+        dependencies: ["AppModels"],
+    )
+    let presentationBridgeTests = Target.testTarget(
+        name: "PresentationBridgeTests",
+        dependencies: ["PresentationBridge", "AppModels"],
+    )
 
     return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
-        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests]
+        + [
+            coreTests,
+            frameworkBrowserTests,
+            backendTests,
+            catalogStoreAPITests,
+            developmentCatalogStoreTests,
+            localSubprocessTests,
+            localEmbeddedTests,
+            searchFeatureTests,
+            markdownTests,
+            appModelsTests,
+            presentationBridgeTests,
+        ]
 }()
 
 let package = Package(
@@ -222,11 +281,19 @@ let package = Package(
             url: "https://github.com/mihaelamj/SwiftMCPClient.git",
             from: "0.1.0",
         ),
-        // cupertino's read contract (the iOS embedded path): protocols + value types
-        // only. We depend on it by version and never on the `cupertino` package itself.
+        // cupertino's read contract (the embedded path): protocols + value types only.
+        // v0.3.0 adds the package-search reader slice. We depend on it by version and
+        // never on the `cupertino` package itself.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataKit.git",
-            from: "0.1.0",
+            from: "0.3.0",
+        ),
+        // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
+        // code injects this into LocalEmbeddedBackend; UI packages never import it.
+        // v0.2.6 keeps the opaque corpus handle aligned with installed release catalogs.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
+            from: "0.2.6",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

@@ -6,32 +6,29 @@ Load on demand. Triggers: `canImport`, `Linux`, `FoundationNetworking`, `Darwin`
 
 Grounded in Swift Evolution and `swiftlang/swift-foundation`.
 
-> **Scope for this repo:** Cupertino Desktop is **Apple-only** (macOS now, iOS later);
-> there is no Linux or Windows target, so the Linux/Windows portability sections
-> below (FoundationNetworking, Glibc, `.when(platforms:)` for Linux, Docker topology)
-> are inert here. What still applies, and matters from day one, is the **protocol
-> seam pattern** itself: when behaviour diverges across Apple platforms (macOS vs
-> iOS) or across the two UI frameworks (AppKit vs SwiftUI), define a foundation-only
-> protocol, implement it once per platform/framework, and wire the right one at the
-> composition root. The core depends only on the protocol, never on `#if` at call
-> sites. Subprocess and shell-out are available on macOS; the app uses them to spawn
-> `cupertino serve` (see [linux-server.md](linux-server.md) for that lifecycle).
+> **Scope for this repo:** Cupertino Desktop has a fixed native UI matrix: macOS
+> SwiftUI/AppKit, iPhone SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt.
+> The shared core and embedded backend must stay portable enough for the Qt desktop
+> apps; Apple UI packages stay Apple-only; Qt code stays in its own shell. The core depends on
+> foundation-only protocols and value models, never on `#if` at call sites. MCP and
+> subprocess are macOS-only; iPhone, iPad, Linux, and Windows use the local embedded
+> Cupertino reader over an installed catalog.
 
-## Linux portability and the platform seam (mandatory)
+## Linux/Windows portability and the platform seam (mandatory)
 
-The engine targets macOS and Linux. Two obligations follow:
+The shared core and embedded backend target Apple platforms plus Linux/Windows Qt desktop apps. Two obligations follow:
 
 1. Guard every platform-divergent line, preferring `#if canImport(<Framework>)` over `#if os(...)` so future platforms inherit the right branch.
-2. Check Linux availability before adding a dependency. Many Apple frameworks, and the packages that wrap them, do not build on Linux.
+2. Check Linux and Windows availability before adding a dependency. Many Apple frameworks, and the packages that wrap them, do not build on non-Apple platforms.
 
-When the same functionality needs a different implementation per platform, abstract it behind a protocol seam; do not branch at call sites. Define a foundation-only protocol (see [shared-protocols.md](shared-protocols.md)), implement it once per platform (a macOS target using the Apple package, a Linux target using a Linux-available package), and let the composition root wire the correct one (see [dependency-injection.md](dependency-injection.md)). The core depends only on the protocol.
+When the same functionality needs a different implementation per platform, abstract it behind a protocol seam; do not branch at call sites. Define a foundation-only protocol (see [shared-protocols.md](shared-protocols.md)), implement it once per platform family (a macOS target using the Apple package, a Qt desktop target using non-Apple-available packages), and let the composition root wire the correct one (see [dependency-injection.md](dependency-injection.md)). The core depends only on the protocol.
 
 ```swift
 public protocol ClockService: Sendable { var now: Date { get } }
 #if canImport(Darwin)
 let clock: any ClockService = DarwinClock()
 #else
-let clock: any ClockService = LinuxClock()
+let clock: any ClockService = PortableClock()
 #endif
 ```
 
@@ -41,9 +38,8 @@ The rest of this rule depends on which topology your target is in. Mixing them s
 
 1. **Apple-only.** iOS, macOS, plus optional visionOS/tvOS/watchOS. UI-heavy, SwiftUI or UIKit/AppKit primary. No Linux build, no server-side targets.
 2. **Apple clients + Linux server (split package).** UI lives on Apple, one or more server products build to Linux. The Linux-buildable surface is narrow (typically a single server product). Apple-only stuff is wrapped in conditional product/target arrays in `Package.swift`.
-3. **Cross-platform library or CLI.** Runs identically on Apple + Linux + Windows. No UI. Probably uses URLSession-via-FoundationNetworking, Darwin/Glibc conditionals, swift-system. The TileKit engine lives here (macOS + Linux): both platforms support subprocess and shell-out, so the engine may spawn subprocesses when needed.
-
-A "Linux UI" topology technically exists but is not production-grade. Do not try to render SwiftUI on Linux; if a server needs UI, ship HTTP responses (templates, JSON for an SPA), not native widgets.
+3. **Cross-platform library or CLI.** Runs identically on Apple + Linux + Windows. No UI. Probably uses URLSession-via-FoundationNetworking, Darwin/Glibc conditionals, swift-system.
+4. **Native Qt desktop UI.** This repo uses this topology for `ShellLinuxQt` and `ShellWindowsQt`: Qt owns the Linux and Windows UI, and shared state crosses through a narrow local adapter. Do not try to render SwiftUI on Linux/Windows, and do not replace Qt with a web or remote UI.
 
 ## Three layers of platform conditioning
 
@@ -103,7 +99,7 @@ Avoid spreading platform conditioning across both Layer A and Layer C for the sa
 
 These patterns (Patterns 1-7 and Pattern 13: iOS-only SwiftUI modifiers, UIKit/AppKit app shells, the forward-compat SDK shim, and the `@available(iOS ...)` examples) describe the planned native Apple UI app, NOT the TileKit engine. The engine targets macOS + Linux and has no UI. Apply these only in the app tier.
 
-Linux UI is out of scope (no SwiftUI on Linux).
+Linux and Windows UI means Qt in this repo. SwiftUI on Linux/Windows is out of scope.
 
 ### Pattern 1: Apple-only UI file (outer gate)
 
@@ -546,4 +542,4 @@ The `#else` arm is reserved for platforms you genuinely do not run on; every pla
 | Logging | `os.log` directly | `canImport(os)` + `print` fallback or `swift-log` | `swift-log` or `canImport(os)` + fallback |
 | Tests | Swift Testing | Swift Testing, Linux-buildable suites separate | Swift Testing |
 | CI | macOS only | macOS + Linux Docker job for the Linux product | macOS + Linux + (Windows) |
-| Linux UI | n/a | server-side: HTTP responses, not native widgets | n/a |
+| Linux/Windows UI | Qt shell in this repo | server-side: HTTP responses, not native widgets | n/a |

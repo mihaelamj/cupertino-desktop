@@ -115,48 +115,142 @@ struct LocalEmbeddedBackendTests {
         #expect(unified.packages.first?.repo == "swift-async-algorithms")
     }
 
-    @Test("an unadopted slice (samples) fails honestly")
+    @Test("searchSamples reads projects and file hits through the sample reader")
+    func searchSamples() async throws {
+        let sampleReader = FakeSampleReader(
+            projects: [sampleProject()],
+            fileResults: [
+                Sample.Index.FileSearchResult(
+                    projectId: "landmarks",
+                    path: "Sources/ContentView.swift",
+                    filename: "ContentView.swift",
+                    snippet: "struct ContentView",
+                    rank: -2.5,
+                ),
+            ],
+        )
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(), sampleReader: sampleReader)
+        let results = try await backend.searchSamples(Model.SampleQuery(
+            text: "landmark",
+            framework: "swiftui",
+            floor: Model.PlatformFloor(iOS: "17.0"),
+            includeFiles: true,
+            limit: 5,
+        ))
+
+        #expect(results.projects.map(\.id.rawValue) == ["landmarks"])
+        #expect(results.projects.first?.deploymentTargets[.iOS] == "17.0")
+        #expect(results.files.first?.path == "Sources/ContentView.swift")
+        #expect(results.files.first?.score == 2.5)
+
+        let sampleCalls = await sampleReader.calls()
+        #expect(sampleCalls.projectFramework == "swiftui")
+        #expect(sampleCalls.projectMinIOS == "17.0")
+        #expect(sampleCalls.filePlatform == "iOS")
+        #expect(sampleCalls.fileMinVersion == "17.0")
+    }
+
+    @Test("sample listing and reads use the sample reader")
+    func sampleBrowsing() async throws {
+        let sampleReader = FakeSampleReader(
+            projects: [sampleProject()],
+            files: [Sample.Index.File(projectId: "landmarks", path: "Sources/ContentView.swift", content: "struct ContentView {}")],
+        )
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(), sampleReader: sampleReader)
+
+        let listed = try await backend.listSamples(framework: "swiftui", limit: 10)
+        #expect(listed.map(\.id.rawValue) == ["landmarks"])
+
+        let project = try await backend.readSample(Model.SampleID("landmarks"))
+        #expect(project.filePaths == ["Sources/ContentView.swift"])
+        #expect(project.readme == "# Landmarks")
+
+        let file = try await backend.readSampleFile(Model.SampleID("landmarks"), path: "Sources/ContentView.swift")
+        #expect(file.filename == "ContentView.swift")
+        #expect(file.language == "swift")
+        #expect(file.contents == "struct ContentView {}")
+    }
+
+    @Test("searchSymbols uses the symbol reader and platform minima")
+    func searchSymbols() async throws {
+        let symbolReader = FakeSymbolReader(
+            symbolResults: [
+                symbolResult(uri: "apple-docs://swiftui/view", name: "View", kind: "struct"),
+                symbolResult(uri: "apple-docs://swiftui/newview", name: "NewView", kind: "struct"),
+            ],
+            platformMinima: [
+                "apple-docs://swiftui/view": Search.PlatformMinima(minIOS: "16.0"),
+                "apple-docs://swiftui/newview": Search.PlatformMinima(minIOS: "18.0"),
+            ],
+        )
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(), symbolReader: symbolReader)
+        let hits = try await backend.searchSymbols(Model.SymbolQuery(
+            text: "View",
+            kind: .structure,
+            isAsync: false,
+            framework: "swiftui",
+            floor: Model.PlatformFloor(iOS: "17.0"),
+            limit: 10,
+        ))
+
+        #expect(hits.map(\.name) == ["View"])
+        #expect(hits.first?.kind == .structure)
+        #expect(hits.first?.attributes == ["@MainActor"])
+        #expect(hits.first?.conformances == ["Sendable", "View"])
+
+        let calls = await symbolReader.calls()
+        #expect(calls.symbolKind == "struct")
+        #expect(calls.symbolFramework == "swiftui")
+        #expect(calls.fetchMinimaURIs == ["apple-docs://swiftui/view", "apple-docs://swiftui/newview"])
+    }
+
+    @Test("code intelligence methods dispatch to the symbol reader")
+    func codeIntelligenceDispatch() async throws {
+        let tree = Search.InheritanceTree(
+            startURI: "apple-docs://uikit/uibutton",
+            ancestors: [Search.InheritanceNode(uri: "apple-docs://uikit/uicontrol")],
+            descendants: [],
+        )
+        let symbolReader = FakeSymbolReader(
+            symbolResults: [symbolResult(uri: "apple-docs://uikit/uibutton", name: "UIButton", kind: "class")],
+            inheritanceCandidates: [
+                Search.InheritanceCandidate(uri: "apple-docs://swiftui/button", framework: "swiftui", title: "Button", kind: "struct"),
+                Search.InheritanceCandidate(uri: "apple-docs://uikit/uibutton", framework: "uikit", title: "UIButton", kind: "class"),
+            ],
+            inheritanceTree: tree,
+        )
+        let backend = Backend.LocalEmbedded(dataSource: FakeDataSource(), symbolReader: symbolReader)
+
+        _ = try await backend.searchConformances(to: "View", framework: "swiftui", limit: 3)
+        _ = try await backend.searchPropertyWrappers("@State", framework: nil, limit: 4)
+        _ = try await backend.searchConcurrency(.mainActor, framework: "swiftui", limit: 5)
+        _ = try await backend.searchGenerics(constraint: "Sendable", framework: nil, limit: 6)
+        let inheritance = try await backend.inheritance(of: "UIButton", direction: .ancestors, depth: 2, framework: "uikit")
+
+        #expect(inheritance.startURI.rawValue == "apple-docs://uikit/uibutton")
+        #expect(inheritance.ancestors.first?.title == "uicontrol")
+
+        let calls = await symbolReader.calls()
+        #expect(calls.protocolName == "View")
+        #expect(calls.wrapper == "@State")
+        #expect(calls.concurrencyPattern == "mainactor")
+        #expect(calls.genericConstraint == "Sendable")
+        #expect(calls.inheritanceStartURI == "apple-docs://uikit/uibutton")
+        #expect(calls.inheritanceDirection == .up)
+        #expect(calls.inheritanceDepth == 2)
+    }
+
+    @Test("missing optional reader slices fail honestly")
     func unsupportedVerb() async {
         let backend = Backend.LocalEmbedded(dataSource: FakeDataSource())
         await #expect(throws: Backend.Failure.self) {
             _ = try await backend.listSamples(framework: nil, limit: 10)
         }
+        await #expect(throws: Backend.Failure.self) {
+            _ = try await backend.searchSymbols(Model.SymbolQuery(text: "View"))
+        }
+        await #expect(throws: Backend.Failure.self) {
+            _ = try await backend.searchPackages(Model.PackageQuery(text: "swift"))
+        }
     }
-}
-
-/// A minimal `Search.Result` for the given URI and source, enough to map to a DocHit.
-private func docResult(_ uri: String, source: String) -> Search.Result {
-    Search.Result(uri: uri, source: source, framework: "", title: uri, summary: "", filePath: "", wordCount: 1, rank: -1)
-}
-
-/// A fake `Search.DocumentReading`: the adapter depends on the protocol, so the read
-/// engine is replaced with canned data, no SQLite, no corpus.
-private struct FakeDataSource: Search.DocumentReading {
-    var frameworks: [String: Int] = [:]
-    var documents: [String: String] = [:]
-    var results: [Search.Result] = []
-
-    // swiftlint:disable:next function_parameter_count
-    func search(
-        query _: String, source _: String?, framework _: String?, language _: String?,
-        limit _: Int, includeArchive _: Bool,
-        minIOS _: String?, minMacOS _: String?, minTvOS _: String?,
-        minWatchOS _: String?, minVisionOS _: String?, minSwift _: String?,
-    ) async throws -> [Search.Result] {
-        results
-    }
-
-    func getDocumentContent(uri: String, format _: Search.DocumentFormat) async throws -> String? {
-        documents[uri]
-    }
-
-    func listFrameworks() async throws -> [String: Int] {
-        frameworks
-    }
-
-    func documentCount() async throws -> Int {
-        documents.count
-    }
-
-    func disconnect() async {}
 }

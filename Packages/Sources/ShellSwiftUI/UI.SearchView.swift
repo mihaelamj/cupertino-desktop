@@ -83,9 +83,18 @@ import SearchFeature
                 if model.hasRun, model.results.isEmpty {
                     ContentUnavailableView("No matches", systemImage: "magnifyingglass", description: Text("Adjust the query or the filters."))
                 } else {
-                    List(model.results) { hit in
-                        NavigationLink(value: hit) { DocRow(hit: hit) }
+                    List {
+                        ForEach(model.docsTree) { group in
+                            Section("\(group.title) (\(group.children.count))") {
+                                ForEach(group.children) { node in
+                                    if let uri = node.uri {
+                                        NavigationLink(value: uri) { NodeRow(node: node) }
+                                    }
+                                }
+                            }
+                        }
                     }
+                    .accessibilityIdentifier(UI.AccessibilityID.Search.results)
                 }
             }
 
@@ -113,6 +122,7 @@ import SearchFeature
                             ContentUnavailableView("No matches", systemImage: "magnifyingglass")
                         }
                     }
+                    .accessibilityIdentifier(UI.AccessibilityID.Search.results)
                 } else {
                     Color.clear
                 }
@@ -152,6 +162,19 @@ import SearchFeature
                         }
                     }
                 }
+            }
+        }
+
+        private struct NodeRow: View {
+            let node: Feature.Search.ResultNode
+            var body: some View {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(node.title).font(.headline)
+                    if let subtitle = node.subtitle, !subtitle.isEmpty {
+                        Text(subtitle).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                }
+                .padding(.vertical, 2)
             }
         }
 

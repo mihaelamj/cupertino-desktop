@@ -21,9 +21,9 @@ project's when you adopt these.
   collaborator through `init`, protocol seams.
 - [concurrency.md](concurrency.md) - Swift 6 strict concurrency: `Sendable`,
   actors, `@MainActor`.
-- [cross-platform.md](cross-platform.md) - Apple-only here (macOS now, iOS later);
-  guard platform-divergent code behind a protocol seam and share logic across the
-  SwiftUI and AppKit targets. The Linux-portability sections are inert for this repo.
+- [cross-platform.md](cross-platform.md) - fixed native matrix: macOS
+  SwiftUI/AppKit, iPhone SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt. Guard
+  platform-divergent code behind protocol/value seams and keep every shell native.
 - [testing.md](testing.md) - Swift Testing, `@Test` / `#expect`, test isolation.
 - [testing-discipline.md](testing-discipline.md) - run the suite on every code
   change; write tests where none exist.
@@ -54,7 +54,7 @@ Open decisions live in [docs/decisions/](../decisions/).
 - [git-discipline.md](git-discipline.md) - issues, labels, PRs, branches, commits,
   remotes.
 
-## Native UI (SwiftUI + AppKit, both app targets, from day one)
+## Native UI (SwiftUI + AppKit + UIKit + Qt)
 
 - [views.md](views.md) - SwiftUI view architecture and identity.
 - [view-models.md](view-models.md) - ViewModel responsibilities and patterns.

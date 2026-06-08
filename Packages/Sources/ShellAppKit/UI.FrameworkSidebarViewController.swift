@@ -19,15 +19,13 @@ import FrameworkBrowserFeature
 
             private let tableView = NSTableView()
             private let scrollView = NSScrollView()
-            private let progress = NSProgressIndicator()
-            private let statusLabel = NSTextField(labelWithString: "")
-            private let retryButton = NSButton()
-            private let statusStack: NSStackView
+            /// AppKit ships no `ContentUnavailableView`; `UI.ContentUnavailableView` is the
+            /// native replica, used for the loading and error states (matching SwiftUI/UIKit).
+            private let unavailable = UI.ContentUnavailableView()
 
             init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
                 self.model = model
                 self.frameworks = frameworks
-                statusStack = NSStackView(views: [progress, statusLabel, retryButton])
                 super.init(nibName: nil, bundle: nil)
             }
 
@@ -44,38 +42,28 @@ import FrameworkBrowserFeature
                 tableView.addTableColumn(column)
                 tableView.headerView = nil
                 tableView.style = .sourceList
+                tableView.rowHeight = 30
                 tableView.dataSource = self
                 tableView.delegate = self
+                tableView.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
                 scrollView.documentView = tableView
                 scrollView.hasVerticalScroller = true
                 scrollView.drawsBackground = false
                 scrollView.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(scrollView)
 
-                progress.style = .spinning
-                progress.controlSize = .small
-                statusLabel.textColor = .secondaryLabelColor
-                statusLabel.alignment = .center
-                statusLabel.maximumNumberOfLines = 0
-                retryButton.title = "Retry"
-                retryButton.bezelStyle = .rounded
-                retryButton.target = self
-                retryButton.action = #selector(onRetryTapped)
-                statusStack.orientation = .vertical
-                statusStack.alignment = .centerX
-                statusStack.spacing = 8
-                statusStack.translatesAutoresizingMaskIntoConstraints = false
-                container.addSubview(statusStack)
+                unavailable.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(unavailable)
 
                 NSLayoutConstraint.activate([
                     scrollView.topAnchor.constraint(equalTo: container.topAnchor),
                     scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                    statusStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-                    statusStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-                    statusStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 16),
-                    statusStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: -16),
+                    unavailable.topAnchor.constraint(equalTo: container.topAnchor),
+                    unavailable.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+                    unavailable.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    unavailable.trailingAnchor.constraint(equalTo: container.trailingAnchor),
                 ])
                 view = container
             }
@@ -105,20 +93,26 @@ import FrameworkBrowserFeature
                 let isLoading = frameworks.isLoading
                 let error = frameworks.errorMessage
 
-                progress.isHidden = !isLoading
-                if isLoading { progress.startAnimation(nil) } else { progress.stopAnimation(nil) }
-                statusLabel.isHidden = !isLoading && error == nil
-                retryButton.isHidden = error == nil
-                statusStack.isHidden = !isLoading && error == nil
-                scrollView.isHidden = isLoading || error != nil
-
                 if isLoading {
-                    statusLabel.stringValue = "Loading frameworks"
+                    unavailable.showLoading(title: "Loading frameworks")
                 } else if let error {
-                    statusLabel.stringValue = error
+                    unavailable.show(
+                        systemImage: "exclamationmark.triangle",
+                        title: "Could not load frameworks",
+                        message: error,
+                        actionTitle: "Retry",
+                    ) { [weak self] in self?.frameworks.onRetried() }
                 }
+                let showUnavailable = isLoading || error != nil
+                unavailable.isHidden = !showUnavailable
+                scrollView.isHidden = showUnavailable
 
                 tableView.reloadData()
+                // Pre-select the first framework once the list loads so the detail shows a
+                // document instead of the empty state (selecting the row drives the load).
+                if model.selectedFrameworkID == nil, let first = frameworks.frameworks.first {
+                    model.selectedFrameworkID = first.id
+                }
                 syncSelectionFromModel()
             }
 
@@ -131,10 +125,6 @@ import FrameworkBrowserFeature
                 }
             }
 
-            @objc private func onRetryTapped() {
-                frameworks.onRetried()
-            }
-
             // MARK: NSTableViewDataSource / Delegate
 
             func numberOfRows(in _: NSTableView) -> Int {
@@ -144,9 +134,13 @@ import FrameworkBrowserFeature
             func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
                 let framework = frameworks.frameworks[row]
                 let cell = NSTableCellView()
-                cell.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
 
-                let name = NSTextField(labelWithString: framework.name)
+                let name = NSTextField(labelWithString: framework.displayName)
+                name.font = .systemFont(ofSize: NSFont.systemFontSize + 3)
+                // The identifier goes on the visible label, not the cell view: an
+                // `NSTableCellView`'s `accessibilityIdentifier` does not surface to XCUITest
+                // (the synthesized AX cell carries no identifier), but the label does.
+                name.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
                 let count = NSTextField(labelWithString: framework.documentCount.formatted())
                 count.textColor = .secondaryLabelColor
                 count.font = .monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)

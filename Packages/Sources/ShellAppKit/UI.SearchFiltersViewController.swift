@@ -7,7 +7,7 @@ import SearchFeature
 
     extension UI {
         /// The AppKit filters popover, the counterpart of the SwiftUI search `Filters`
-        /// form and the UIKit filters sheet: the eight source databases as checkboxes,
+        /// form and the UIKit filters sheet: the eight sources as checkboxes,
         /// the framework and per-platform minimum fields, and a result limit. It binds
         /// the shared `Feature.Search.ViewModel`; applying re-runs the same query the
         /// other UIs run. View code only.

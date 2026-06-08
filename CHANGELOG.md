@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `DevelopmentCatalogStore` now provides a mobile dev-only `Catalog.Store`
+  implementation that resolves a local installed catalog, defaulting to `~/.cupertino`
+  or `CUPERTINO_MOBILE_DEV_CATALOG` when set. `MobileBackendImpl` adds
+  `MobileBackend.deferred(catalogStore:)`, so mobile app composition can inject
+  `Backend.Documentation` synchronously while the catalog-backed embedded engine opens
+  lazily on first use. The macOS app targets do not link the development catalog store
+  and remain on `MacBackendImpl`. The package-smoke script still accepts
+  `CUPERTINO_DESKTOP_EMBEDDED_CORPUS` for local regression runs.
+- `CatalogStoreAPI` now defines the embedded-target catalog seam. `MobileBackendImpl`
+  accepts `Catalog.Store` or `Catalog.CorpusHandle`, opens `CupertinoDataEngine` 0.2.6
+  through its opaque corpus initializer, and still returns only `Backend.Documentation`
+  to app/UI code.
+- `scripts/check-local-embedded-corpus.sh` now runs an opt-in live
+  `LocalEmbeddedBackend` smoke against an installed Cupertino release corpus. The smoke
+  exercises frameworks, docs search/read, unified search, samples, and package search
+  through the embedded backend without exposing storage paths above CupertinoDataEngine.
+- `MobileBackendImpl` now depends on the published `CupertinoDataEngine` 0.2.6 package and
+  exposes `MobileBackend.live(engine:)`, injecting the engine itself as the composed
+  `Search.DocumentReading` / `Search.SymbolReading` facade while borrowing optional sample
+  and package reader slices from it. UI packages still receive only
+  `Backend.Documentation`; concrete storage readers remain inside Cupertino-owned
+  composition, with live packaged-corpus smoke still tracked upstream by Cupertino #1261.
+- `Backend.LocalEmbedded` now consumes CupertinoDataKit sample and symbol reader
+  slices (`Sample.Index.Reader`, `Search.SymbolReading`) in addition to
+  `Search.DocumentReading`, so embedded targets can use samples and code-intelligence
+  commands without exposing storage details to the desktop app. Embedded package search
+  still fails honestly until CupertinoDataKit publishes a package-reader contract.
+- `PresentationBridge`, a framework-neutral presentation layer between native
+  shells and feature view models. It currently owns reusable load state and the
+  logical Docs-scope search result tree, with tests and GitHub-rendered Mermaid
+  diagrams in the README.
 - M0 skeleton: the `Packages/` SPM package with the layered target tree, both
   `Apps/` targets (SwiftUI and AppKit) generated from XcodeGen `project.yml`, and
   `Main.xcworkspace`. The UI ships as parallel native packages `ShellSwiftUI` /
@@ -36,6 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Docs-scope search results group by framework in all three shells (SwiftUI sections,
+  AppKit group rows, UIKit section headers), reifying the shared `Feature.Search`
+  `docsTree` / `ResultNode` data. Closes #51.
 - Renamed the shared, platform-agnostic packages `DesktopModels` → `AppModels`
   and `DesktopCore` → `AppCore` (they serve both Desktop and Mobile, so the
   `Desktop` prefix was a misnomer); `Desktop`/`Mobile` now name only the platform

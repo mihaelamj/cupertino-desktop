@@ -7,8 +7,8 @@ extension MobileBackend {
     /// hig, swift-evolution, swift-org, swift-book, apple-archive, packages, samples):
     /// real framework names, real counts, real titles and abstracts, with availability
     /// metadata so the platform-minimum filters do real work. It lets the embedded
-    /// backend and the shells run with life-like content before the real
-    /// `CupertinoDataEngine` ships; swap to `MobileBackend.live(dataSource:)` then.
+    /// backend and the shells run with life-like content when no local corpus is
+    /// configured; production composition uses `MobileBackend.live(engine:)`.
     struct MockReader: Search.DocumentReading {
         private struct Corpus: Decodable {
             struct Framework: Decodable {
@@ -38,11 +38,11 @@ extension MobileBackend {
             return decoded
         }()
 
-        // Honors every option the captured corpus can answer: `source` (the database),
+        // Honors every option the captured corpus can answer: `source`,
         // `framework`, a free-text `query` over title/summary/body, the platform-minimum
         // floor (`minIOS`/`minMacOS`/.../`minSwift`, keeping rows available at or below
         // the threshold), and `limit`. `language` and `includeArchive` are accepted; the
-        // archive database is selected through `source` rather than the flag here.
+        // archive source is selected through `source` rather than the flag here.
         // swiftlint:disable:next function_parameter_count
         func search(
             query: String, source: String?, framework: String?, language _: String?,

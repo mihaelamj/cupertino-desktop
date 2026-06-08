@@ -23,27 +23,35 @@ import Foundation
             public var basePointSize: CGFloat
 
             public init(basePointSize: CGFloat? = nil) {
-                self.basePointSize = basePointSize ?? PlatformFont.preferredFont(forTextStyle: .body).pointSize
+                // A comfortable reader default (macOS .body is only 13pt). Every font derives
+                // from this, so the reader's text-size control scales the WHOLE document.
+                self.basePointSize = basePointSize ?? max(PlatformFont.preferredFont(forTextStyle: .body).pointSize, 15)
             }
 
             // MARK: Fonts
 
+            // All fonts derive from `basePointSize` so the text-size control scales body,
+            // headings, and code together (previously body/headings used a fixed
+            // `preferredFont`, so only code scaled and the body never changed size).
+
             var body: PlatformFont {
-                .preferredFont(forTextStyle: .body)
+                .systemFont(ofSize: basePointSize)
             }
 
             var code: PlatformFont {
-                .monospacedSystemFont(ofSize: basePointSize, weight: .regular)
+                // Slightly smaller than body: monospaced glyphs read larger at the same point
+                // size, so matching body made code blocks look oversized.
+                .monospacedSystemFont(ofSize: basePointSize * 0.92, weight: .regular)
             }
 
             func heading(level: Int) -> PlatformFont {
-                let style: PlatformFont.TextStyle = switch level {
-                case 1: .title1
-                case 2: .title2
-                case 3: .title3
-                default: .headline
+                let multiplier: CGFloat = switch level {
+                case 1: 1.4
+                case 2: 1.2
+                case 3: 1.08
+                default: 1.0
                 }
-                return .preferredFont(forTextStyle: style)
+                return .systemFont(ofSize: basePointSize * multiplier, weight: .semibold)
             }
 
             // MARK: Colors

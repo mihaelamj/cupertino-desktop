@@ -1,6 +1,9 @@
 import AppCore
+import AppModels
+import BackendAPI
 import FrameworkBrowserFeature
 import MacBackendImpl
+import MobileBackendImpl
 import SearchFeature
 import ShellSwiftUI
 import SwiftUI
@@ -11,19 +14,46 @@ import SwiftUI
 /// route). One backend instance is injected into both feature view models, then
 /// the shared shells are composed into a tabbed root: the framework browser
 /// (`RootExperience`, a `NavigationSplitView`) and the search screen
-/// (`UI.SearchView`, which exposes every `searchDocs` option over every database),
+/// (`UI.SearchView`, which exposes every `searchDocs` option over every source),
 /// matching the mobile SwiftUI app.
+///
+/// Under the `-uitest-mock` launch argument the deterministic embedded corpus is
+/// injected instead of the live subprocess, so UI tests run offline and reproducibly
+/// (the GUI/test launch environment cannot reach the `cupertino serve` binary). The UI
+/// is identical either way; only the injected `Backend.Documentation` differs.
 @main
 struct CupertinoDesktopSwiftUIApp: App {
     @State private var model = UI.RootModel()
     @State private var frameworks: Feature.FrameworkBrowser.ViewModel
     @State private var search: Feature.Search.ViewModel
     private let experience = UI.LiveRootExperience()
+    private let backendMode: Model.BackendMode
 
     init() {
-        let backend = MacBackend.live()
+        let mode = Self.effectiveMode()
+        let backend = Self.makeBackend(mode: mode)
+        backendMode = mode
         _frameworks = State(initialValue: Feature.FrameworkBrowser.ViewModel(backend: backend))
         _search = State(initialValue: Feature.Search.ViewModel(backend: backend))
+    }
+
+    /// The backend the app is actually using: `Model.AppSettings` (default `.mcpSubprocess`,
+    /// the stdio `cupertino serve` route), except `-uitest-mock` forces `.embedded` so UI
+    /// tests run offline.
+    private static func effectiveMode() -> Model.BackendMode {
+        if ProcessInfo.processInfo.arguments.contains("-uitest-mock") {
+            return .embedded
+        }
+        return Model.AppSettings.load().backend
+    }
+
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is the deterministic
+    /// UI-test mock. Mobile real-catalog composition is kept in the mobile app targets.
+    private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
+        switch mode {
+        case .mcpSubprocess: MacBackend.live()
+        case .embedded: MobileBackend.mock()
+        }
     }
 
     var body: some Scene {
@@ -33,6 +63,14 @@ struct CupertinoDesktopSwiftUIApp: App {
                     .tabItem { Label("Frameworks", systemImage: "books.vertical") }
                 UI.SearchView(model: search)
                     .tabItem { Label("Search", systemImage: "magnifyingglass") }
+            }
+            // The live connection status, shown in the window toolbar (always visible; a
+            // menu-bar status item gets silently dropped on a crowded menu bar). Tapping it
+            // opens a popover with real process info.
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    ConnectionStatusButton(frameworks: frameworks, mode: backendMode)
+                }
             }
         }
         .windowStyle(.titleBar)

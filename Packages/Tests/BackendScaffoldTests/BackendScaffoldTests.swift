@@ -2,6 +2,7 @@ import AppModels
 import BackendAPI
 import CatalogStoreAPI
 import CupertinoDataEngine
+import DevelopmentCatalogStore
 import Foundation
 import LocalSubprocessBackend
 @testable import MacBackendImpl
@@ -63,6 +64,27 @@ struct BackendScaffoldTests {
         }
     }
 
+    @Test("MobileBackend.deferred(catalogStore:) propagates catalog failures on first use")
+    func mobileDeferredCatalogStorePropagatesStoreFailure() async throws {
+        let backend = MobileBackend.deferred(catalogStore: FailingCatalogStore())
+
+        await #expect(throws: CatalogFailure.unavailable) {
+            _ = try await backend.listFrameworks()
+        }
+    }
+
+    @Test("MobileBackend.deferred(catalogStore:) opens development catalog stores lazily")
+    func mobileDeferredCatalogStoreOpensDevelopmentStoreLazily() async throws {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cupertino-missing-development-corpus-\(UInt64.random(in: 0 ..< .max))", isDirectory: true)
+        let store = Catalog.DevelopmentStore(corpusURL: missingDirectory)
+        let backend = MobileBackend.deferred(catalogStore: store)
+
+        await #expect(throws: Catalog.DevelopmentStore.Error.missingCorpusDirectory(path: missingDirectory.path)) {
+            _ = try await backend.listFrameworks()
+        }
+    }
+
     /// Opt-in integration smoke against a real Cupertino corpus. Enable with
     /// `CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION=1 swift test`, or run
     /// `../scripts/check-local-embedded-corpus.sh` from `Packages/`.
@@ -73,8 +95,8 @@ struct BackendScaffoldTests {
     )
     func liveEmbeddedRealCorpusSmoke() async throws {
         let corpusURL = Self.embeddedCorpusURL()
-        let store = FixedCatalogStore(handle: Catalog.CorpusHandle(bundleURL: corpusURL))
-        let backend: any Backend.Documentation = try await MobileBackend.live(catalogStore: store)
+        let store = Catalog.DevelopmentStore(corpusURL: corpusURL)
+        let backend: any Backend.Documentation = MobileBackend.deferred(catalogStore: store)
 
         do {
             try await Self.assertLiveEmbeddedCorpus(backend)

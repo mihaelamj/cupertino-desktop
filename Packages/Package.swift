@@ -50,6 +50,7 @@ let products: [Product] = [
     .singleTargetLibrary("ShellUIKit"),
     // Concrete (embedded path)
     .singleTargetLibrary("LocalEmbeddedBackend"),
+    .singleTargetLibrary("DevelopmentCatalogStore"),
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
@@ -145,8 +146,13 @@ let targets: [Target] = {
         name: "LocalEmbeddedBackend",
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
+    let developmentCatalogStore = Target.target(
+        name: "DevelopmentCatalogStore",
+        dependencies: ["CatalogStoreAPI"],
+    )
 
-    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features
+        + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend, developmentCatalogStore]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP
@@ -200,12 +206,17 @@ let targets: [Target] = {
             dataEngineProduct,
             "BackendAPI",
             "CatalogStoreAPI",
+            "DevelopmentCatalogStore",
             "AppModels",
         ],
     )
     let catalogStoreAPITests = Target.testTarget(
         name: "CatalogStoreAPITests",
         dependencies: ["CatalogStoreAPI"],
+    )
+    let developmentCatalogStoreTests = Target.testTarget(
+        name: "DevelopmentCatalogStoreTests",
+        dependencies: ["DevelopmentCatalogStore", "CatalogStoreAPI"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
@@ -247,6 +258,7 @@ let targets: [Target] = {
             frameworkBrowserTests,
             backendTests,
             catalogStoreAPITests,
+            developmentCatalogStoreTests,
             localSubprocessTests,
             localEmbeddedTests,
             searchFeatureTests,
@@ -278,7 +290,7 @@ let package = Package(
         ),
         // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
         // code injects this into LocalEmbeddedBackend; UI packages never import it.
-        // v0.2.6 keeps the opaque corpus handle aligned with release corpus bundles.
+        // v0.2.6 keeps the opaque corpus handle aligned with installed release catalogs.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
             from: "0.2.6",

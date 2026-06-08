@@ -5,8 +5,8 @@ sample code offline across macOS, iPhone, iPad, Linux, and Windows. On the Mac i
 client over the [`cupertino`](https://github.com/mihaelamj/cupertino) MCP server: it
 spawns `cupertino serve` as a subprocess and talks to it over stdio via
 [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient). On iPhone, iPad, Linux,
-and Windows it uses an in-process Cupertino-owned embedded read engine over a downloaded
-or bundled corpus. There is no remote backend path. Either way it does not reimplement
+and Windows it uses an in-process Cupertino-owned embedded read engine over an installed
+catalog. There is no remote backend path. Either way it does not reimplement
 search, indexing, crawling, or storage; Cupertino-owned engine code owns all of that.
 
 The app reaches its backend only through a single `Backend.Documentation` protocol seam, so
@@ -39,11 +39,12 @@ Backends behind the seam:
 - **macOS** runs the live `Backend.LocalSubprocess` over `cupertino serve`, which implements
   `listFrameworks`, `readDocument`, `searchDocs`, and `searchEverything`
   (see [docs/PROTOCOL.md](docs/PROTOCOL.md) section 4).
-- **iPhone/iPad** (SwiftUI and UIKit) runs `Backend.LocalEmbedded` over a bundled
-  real-data corpus captured from the cupertino index. The adapter consumes the
+- **iPhone/iPad** (SwiftUI and UIKit) runs `Backend.LocalEmbedded` over the captured
+  mock by default, and can opt into a local installed catalog for dev builds. The adapter consumes the
   CupertinoDataKit document, sample, symbol, and package-search reader slices when an
   embedded engine provides them, and `MobileBackendImpl` can now open a
-  CupertinoDataEngine 0.2.6 corpus through `CatalogStoreAPI`. The opt-in
+  CupertinoDataEngine 0.2.6 corpus through `CatalogStoreAPI`. The mobile app targets
+  can use `Catalog.DevelopmentStore` with `CUPERTINO_MOBILE_USE_DEV_CATALOG=1`, and the opt-in
   `scripts/check-local-embedded-corpus.sh` smoke passes against the installed
   `~/.cupertino` release corpus.
 - **Linux/Windows Qt** is designed as local embedded-engine desktop targets. It is not implemented yet.
@@ -86,13 +87,14 @@ flowchart LR
     symbols --> packageReader["Embedded package search<br/>adapter wired"]
     packageReader --> catalog["CatalogStoreAPI<br/>opaque corpus handle"]
     catalog --> embedded["Real embedded engine<br/>live corpus smoke"]
-    embedded --> stores["Bundled/downloadable<br/>CatalogStore"]
+    embedded --> devStore["DevelopmentCatalogStore<br/>mobile dev path"]
+    devStore --> stores["Mobile catalog install<br/>CatalogStore"]
     stores --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
 
     class m0,m1,m2,m3,bridge done
     class slices,packageReader partial
-    class catalog,embedded done
+    class catalog,embedded,devStore done
     class nav active
     class stores next
     class samples,symbols,mobile,qt todo
@@ -171,9 +173,12 @@ the subprocess adapter imports them, and the UI never sees which backend answers
   Windows + Qt for the planned Qt apps
 - Swift 6.2+
 - Xcode 16+
-- The [`cupertino`](https://github.com/mihaelamj/cupertino) binary (Homebrew) with a
-  downloaded corpus in `~/.cupertino`, for the macOS apps. The iOS apps run over a bundled
-  corpus and need no binary.
+- The [`cupertino`](https://github.com/mihaelamj/cupertino) binary (Homebrew) with an
+  installed corpus in `~/.cupertino`, for the macOS apps. The iOS apps need no binary;
+  dev builds can opt into a local installed catalog through
+  `CUPERTINO_MOBILE_USE_DEV_CATALOG=1`, pointing at one with
+  `CUPERTINO_MOBILE_DEV_CATALOG`; without an explicit path, mobile uses its Application
+  Support fallback.
 
 ## Building
 

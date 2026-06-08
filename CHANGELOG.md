@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `DevelopmentCatalogStore` now provides a mobile dev-only `Catalog.Store`
+  implementation that resolves a local installed catalog, defaulting to `~/.cupertino`
+  or `CUPERTINO_MOBILE_DEV_CATALOG` when set. `MobileBackendImpl` adds
+  `MobileBackend.deferred(catalogStore:)`, so mobile app composition can inject
+  `Backend.Documentation` synchronously while the catalog-backed embedded engine opens
+  lazily on first use. The macOS app targets do not link the development catalog store
+  and remain on `MacBackendImpl`. The package-smoke script still accepts
+  `CUPERTINO_DESKTOP_EMBEDDED_CORPUS` for local regression runs.
 - `CatalogStoreAPI` now defines the embedded-target catalog seam. `MobileBackendImpl`
   accepts `Catalog.Store` or `Catalog.CorpusHandle`, opens `CupertinoDataEngine` 0.2.6
   through its opaque corpus initializer, and still returns only `Backend.Documentation`

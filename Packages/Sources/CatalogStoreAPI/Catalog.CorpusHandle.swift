@@ -1,9 +1,9 @@
 import Foundation
 
 public extension Catalog {
-    /// Opaque handle to a downloaded or bundled Cupertino corpus.
+    /// Opaque handle to an installed Cupertino corpus.
     ///
-    /// The handle identifies the corpus bundle as a whole. File names, schemas, and
+    /// The handle identifies the installed catalog as a whole. File names, schemas, and
     /// readers stay inside CupertinoDataEngine.
     struct CorpusHandle: Sendable, Hashable {
         public let bundleURL: URL

@@ -8,14 +8,18 @@ flowchart LR
     nav --> samples["Samples UI\nplanned"]
     samples --> symbols["Code intelligence UI\nplanned"]
     symbols --> packageReader["Embedded package search\nadapter wired"]
-    packageReader --> embedded["Real embedded engine\nrequires cupertino packaging"]
-    embedded --> mobile["Split iPhone and iPad apps\nplanned"]
+    packageReader --> embedded["Real embedded engine\nlive corpus smoke"]
+    embedded --> devStore["DevelopmentCatalogStore\nmobile dev path"]
+    devStore --> stores["Mobile catalog install\nplanned"]
+    stores --> mobile["Split iPhone and iPad apps\nplanned"]
     mobile --> qt["Linux and Windows Qt\nplanned"]
 
     class m0,m1,m2,m3,bridge done
     class slices,packageReader partial
+    class embedded,devStore done
     class nav active
-    class samples,symbols,embedded,mobile,qt todo
+    class stores next
+    class samples,symbols,mobile,qt todo
 
     classDef done    fill:#34C759,color:#FFFFFF
     classDef review  fill:#30B0C7,color:#FFFFFF

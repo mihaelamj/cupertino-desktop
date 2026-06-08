@@ -14,7 +14,7 @@ import LocalEmbeddedBackend
 /// database file names, reader handles, or the `cupertino` package.
 public enum MobileBackend {
     /// Build the mobile backend from a catalog store. The catalog resolves where the
-    /// corpus bundle is; CupertinoDataEngine owns file naming, schema checks, and readers.
+    /// installed corpus is; CupertinoDataEngine owns file naming, schema checks, and readers.
     public static func live(catalogStore: any Catalog.Store) async throws -> any Backend.Documentation {
         let corpus = try await catalogStore.currentCorpus()
         return try await live(corpus: corpus)

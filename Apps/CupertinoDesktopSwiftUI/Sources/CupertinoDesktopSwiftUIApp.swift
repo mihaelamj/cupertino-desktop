@@ -47,8 +47,8 @@ struct CupertinoDesktopSwiftUIApp: App {
         return Model.AppSettings.load().backend
     }
 
-    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is served by the
-    /// bundled mock until Cupertino #1261 exposes public corpus-backed engine construction.
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is the deterministic
+    /// UI-test mock. Mobile real-catalog composition is kept in the mobile app targets.
     private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
         switch mode {
         case .mcpSubprocess: MacBackend.live()

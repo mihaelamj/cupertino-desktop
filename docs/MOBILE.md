@@ -27,9 +27,9 @@ that contract, the same playbook used for
 ## The layering
 
 ```
-Cupertino corpus               downloaded or bundled data, opened only by Cupertino code
+Cupertino catalog              installed data, opened only by Cupertino code
   │
-CatalogStore                   where the corpus comes from (bundled vs downloadable)
+CatalogStore                   where the installed catalog comes from
   │
 CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owned, external.
   │   conformed two ways, both extracted from cupertino, both cupertino-owned/published:
@@ -95,7 +95,7 @@ into the external package; v0.2.0 added document browsing (`Search.DocumentBrows
 and v0.3.0 added package search (`Search.PackagesSearcher`). `CupertinoDataEngine`
 v0.2.6 is the current embedded facade consumed here: it supports downstream previews,
 complete current-corpus construction through an opaque corpus handle aligned with release
-corpus bundles, including the release `packages.db` package corpus, and sample/package
+catalog layout, including the release `packages.db` package corpus, and sample/package
 reader slices behind Cupertino-owned implementation.
 The live packaged-corpus smoke now passes against the installed `~/.cupertino` release
 corpus. It is the full surface rather than a trimmed subset on purpose:
@@ -155,8 +155,14 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   from it. `MobileBackend.live(catalogStore:)` opens the engine from a
   `Catalog.CorpusHandle`. Concrete storage readers remain Cupertino-owned details; the
   live smoke in `scripts/check-local-embedded-corpus.sh` passes against the installed
-  `~/.cupertino` release corpus. Concrete bundled/downloadable catalog stores and app
-  packaging remain before the embedded app targets can ship real data.
+  `~/.cupertino` release corpus. `Catalog.DevelopmentStore` now provides a mobile
+  dev-only local catalog store for simulator and local app work; the macOS app targets
+  do not link it and remain on `MacBackendImpl`. Mobile app opt-in uses
+  `CUPERTINO_MOBILE_USE_DEV_CATALOG=1` and optional `CUPERTINO_MOBILE_DEV_CATALOG`;
+  without an explicit path, the app fallback is under Application Support, matching the
+  future downloaded-catalog location.
+  The real mobile catalog installer and
+  app packaging remain before the embedded app targets can ship real data.
 - **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

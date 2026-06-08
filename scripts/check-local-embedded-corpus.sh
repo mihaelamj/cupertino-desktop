@@ -9,11 +9,11 @@ CORPUS="${CUPERTINO_DESKTOP_EMBEDDED_CORPUS:-$HOME/.cupertino}"
 
 if [ ! -d "$CORPUS" ]; then
   echo "embedded-corpus: missing corpus directory: $CORPUS" >&2
-  echo "embedded-corpus: set CUPERTINO_DESKTOP_EMBEDDED_CORPUS to a Cupertino corpus bundle" >&2
+  echo "embedded-corpus: set CUPERTINO_DESKTOP_EMBEDDED_CORPUS to an installed Cupertino corpus directory" >&2
   exit 1
 fi
 
 cd "$ROOT/Packages"
 CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION=1 \
 CUPERTINO_DESKTOP_EMBEDDED_CORPUS="$CORPUS" \
-swift test --filter "liveEmbeddedRealCorpusSmoke"
+swift test --filter "liveEmbeddedRealCorpusSmoke|DevelopmentCatalogStoreTests"

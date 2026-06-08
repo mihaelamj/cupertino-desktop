@@ -1,4 +1,7 @@
 import AppCore
+import BackendAPI
+import CatalogStoreAPI
+import DevelopmentCatalogStore
 import FrameworkBrowserFeature
 import MobileBackendImpl
 import SearchFeature
@@ -12,9 +15,9 @@ import SwiftUI
 /// `NavigationSplitView` that adapts iPhone/iPad) and the search screen
 /// (`UI.SearchView`, which exposes every `searchDocs` option over every source).
 ///
-/// The backend is `MobileBackend.mock()` for now: the in-process embedded adapter over
-/// a captured real-data corpus. Swap to `MobileBackend.live(engine:)` once Cupertino
-/// #1261 exposes public corpus-backed engine construction.
+/// The backend defaults to `MobileBackend.mock()` for no-catalog simulator work. Set
+/// `CUPERTINO_MOBILE_USE_DEV_CATALOG=1` and optionally `CUPERTINO_MOBILE_DEV_CATALOG`
+/// to exercise the real embedded engine through a development catalog.
 @main
 struct CupertinoMobileSwiftUIApp: App {
     @State private var model = UI.RootModel()
@@ -23,9 +26,24 @@ struct CupertinoMobileSwiftUIApp: App {
     private let experience = UI.LiveRootExperience()
 
     init() {
-        let backend = MobileBackend.mock()
+        let backend = Self.makeBackend()
         _frameworks = State(initialValue: Feature.FrameworkBrowser.ViewModel(backend: backend))
         _search = State(initialValue: Feature.Search.ViewModel(backend: backend))
+    }
+
+    private static func makeBackend() -> any Backend.Documentation {
+        guard ProcessInfo.processInfo.environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" else {
+            return MobileBackend.mock()
+        }
+        return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: Catalog.DevelopmentStore.corpusURL(
+            environment: ProcessInfo.processInfo.environment,
+            homeDirectory: catalogHomeDirectory(),
+        )))
+    }
+
+    private static func catalogHomeDirectory() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
     }
 
     var body: some Scene {

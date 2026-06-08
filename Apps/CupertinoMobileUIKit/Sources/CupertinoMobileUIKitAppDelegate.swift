@@ -1,4 +1,7 @@
 import AppCore
+import BackendAPI
+import CatalogStoreAPI
+import DevelopmentCatalogStore
 import FrameworkBrowserFeature
 import MobileBackendImpl
 import SearchFeature
@@ -13,9 +16,9 @@ import UIKit
 /// the UIKit counterpart to the SwiftUI mobile app, the same backend and the same
 /// view models, so the two frameworks can be compared on one seam (docs/DESIGN.md).
 ///
-/// The backend is `MobileBackend.mock()` for now (see CupertinoMobileSwiftUI): the
-/// embedded adapter over a captured real-data corpus. Swap to `MobileBackend.live(engine:)`
-/// once Cupertino #1261 exposes public corpus-backed engine construction.
+/// The backend defaults to `MobileBackend.mock()` for no-catalog simulator work. Set
+/// `CUPERTINO_MOBILE_USE_DEV_CATALOG=1` and optionally `CUPERTINO_MOBILE_DEV_CATALOG`
+/// to exercise the real embedded engine through a development catalog.
 @main
 final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
@@ -26,7 +29,7 @@ final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate 
         _: UIApplication,
         didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil,
     ) -> Bool {
-        let backend = MobileBackend.mock()
+        let backend = Self.makeBackend()
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 
@@ -44,5 +47,20 @@ final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate 
         window.makeKeyAndVisible()
         self.window = window
         return true
+    }
+
+    private static func makeBackend() -> any Backend.Documentation {
+        guard ProcessInfo.processInfo.environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" else {
+            return MobileBackend.mock()
+        }
+        return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: Catalog.DevelopmentStore.corpusURL(
+            environment: ProcessInfo.processInfo.environment,
+            homeDirectory: catalogHomeDirectory(),
+        )))
+    }
+
+    private static func catalogHomeDirectory() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
     }
 }

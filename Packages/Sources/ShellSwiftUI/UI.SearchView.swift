@@ -49,11 +49,6 @@ import SearchFeature
                     .navigationDestination(for: Model.DocHit.self) { hit in
                         DocumentReaderView(model: model, uri: hit.uri, providedTitle: hit.title)
                     }
-                    .navigationDestination(for: Feature.Search.ResultNode.self) { node in
-                        if let uri = node.uri {
-                            DocumentReaderView(model: model, uri: uri, providedTitle: node.title)
-                        }
-                    }
                     .navigationDestination(for: Model.DocURI.self) { uri in
                         DocumentReaderView(model: model, uri: uri, providedTitle: nil)
                     }
@@ -92,11 +87,14 @@ import SearchFeature
                         ForEach(model.docsTree) { group in
                             Section("\(group.title) (\(group.children.count))") {
                                 ForEach(group.children) { node in
-                                    NavigationLink(value: node) { NodeRow(node: node) }
+                                    if let uri = node.uri {
+                                        NavigationLink(value: uri) { NodeRow(node: node) }
+                                    }
                                 }
                             }
                         }
                     }
+                    .accessibilityIdentifier(UI.AccessibilityID.Search.results)
                 }
             }
 
@@ -124,6 +122,7 @@ import SearchFeature
                             ContentUnavailableView("No matches", systemImage: "magnifyingglass")
                         }
                     }
+                    .accessibilityIdentifier(UI.AccessibilityID.Search.results)
                 } else {
                     Color.clear
                 }

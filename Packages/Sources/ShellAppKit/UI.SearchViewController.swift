@@ -135,6 +135,7 @@ import SearchFeature
                 tableView.dataSource = self
                 tableView.delegate = self
                 tableView.rowHeight = 48
+                resultsScroll.setAccessibilityIdentifier(UI.AccessibilityID.Search.results)
                 resultsScroll.documentView = tableView
                 resultsScroll.hasVerticalScroller = true
 

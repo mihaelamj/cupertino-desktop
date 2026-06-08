@@ -137,11 +137,11 @@ The patterns above were checked against the actual sources, not assumed:
   the Fowler synchronization tradeoff instantiated: the SwiftUI shell pays no manual
   sync, the AppKit/UIKit shells are deliberately the dumbest possible view. The
   asymmetry in shell thickness is the pattern working, not a defect to normalize.
-- **`ResultNode` is a seed, not yet load-bearing.** `Feature.Search.ResultNode` is a
-  recursive `Hashable, Identifiable` tree, but no shell renders it; the shells show
-  flat `model.results` / `model.unified`. `resultTree(docs:)` groups only one level
-  (framework to hits). So the "grow the Logical Presentation as data" consequence
-  below is partly latent: the data type exists, the rendering does not.
+- **`ResultNode` is load-bearing for Docs-scope search (#51).** `Feature.Search.ResultNode` is a
+  recursive `Hashable, Identifiable` tree; `resultTree(docs:)` groups one level (framework to
+  hits) and all three search shells reify `docsTree` natively. The framework browser tree
+  (#49/#50) is still unwired, so the "grow the Logical Presentation as data" consequence
+  below remains latent for browse.
 - **Color/typography is already shared as data; no token decision is warranted.**
   `MarkdownRendering/Markdown.Theme` is a token-like table (semantic roles, an
   11-entry syntax-role color map, fonts derived from one `basePointSize`, platform

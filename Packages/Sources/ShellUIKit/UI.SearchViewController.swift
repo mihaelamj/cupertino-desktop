@@ -72,6 +72,7 @@ import SearchFeature
                 tableView.dataSource = self
                 tableView.delegate = self
                 tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+                tableView.accessibilityIdentifier = UI.AccessibilityID.Search.results
                 tableView.translatesAutoresizingMaskIntoConstraints = false
                 view.addSubview(tableView)
 

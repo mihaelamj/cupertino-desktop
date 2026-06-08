@@ -4,7 +4,7 @@ Status: **canonical.** This is the protocol of record. `docs/DESIGN.md` referenc
 
 ## 0. The law (restated)
 
-Cupertino is a backend reached **only** through this protocol. We design the protocol for *us*: clean, typed, digestible. Every way of reaching cupertino, the local `cupertino serve` subprocess, the in-process embedded read path, or a future remote server, is an **adapter** that implements this protocol and is the **sole** place cupertino types or calls appear. Nothing above an adapter, no feature, view, or view model, ever imports cupertino. Only protocol calls. The package import contract enforces this mechanically: only adapter packages may depend on the `cupertino` package.
+Cupertino is a backend reached **only** through this protocol. We design the protocol for *us*: clean, typed, digestible. Every local way of reaching cupertino, the macOS `cupertino serve` subprocess or the in-process embedded read path, is an **adapter** that implements this protocol and is the **sole** place cupertino types or calls appear. There is no remote backend path. Nothing above an adapter, no feature, view, or view model, ever imports cupertino. Only protocol calls. The package import contract enforces this mechanically: only adapter packages may depend on the `cupertino` package.
 
 The protocol lives in `BackendAPI`; the value types in `AppModels`; both are dependency-free seam packages.
 
@@ -339,25 +339,26 @@ Each verb, the MCP tool the **subprocess** adapter calls, and the in-process ser
 
 | Protocol verb | Subprocess adapter (MCP tool) | Subprocess output | Embedded adapter (service) |
 |---|---|---|---|
-| `listFrameworks` | `list_frameworks` | markdown -> parse | `DocsSearchService.listFrameworks()` |
-| `readDocument` | `read_document` | **JSON (default)** -> decode | `ReadService.read` / `DocsSearchService.read(format: .json)` |
-| `searchDocs` | `search` (source set) / `search_docs` / `search_hig` | markdown -> parse | `UnifiedSearchService` / `DocsSearchService.search` |
-| `searchSamples` | `search_samples` | markdown -> parse | `Sample.Search.Service.search` |
+| `listFrameworks` | `list_frameworks` | markdown -> parse | `Search.DocumentReading.listFrameworks` |
+| `readDocument` | `read_document` | **JSON (default)** -> decode | `Search.DocumentReading.getDocumentContent` |
+| `searchDocs` | `search` (source set) / `search_docs` / `search_hig` | markdown -> parse | `Search.DocumentReading.search` |
+| `searchSamples` | `search_samples` | markdown -> parse | `Sample.Index.Reader.searchProjects` + `searchFiles` |
 | `searchPackages` | `search_packages` | markdown -> parse | `Search.PackagesSearcher.searchPackages` |
-| `searchEverything` | `search_all` / `search` | markdown -> parse | `UnifiedSearchService.searchAll` |
-| `listSamples` | `list_samples` | markdown -> parse | `Sample.Search.Service.listProjects` |
-| `readSample` | `read_sample` | markdown -> parse | `getProject` + `listFiles` |
-| `readSampleFile` | `read_sample_file` | text | `getFile` |
-| `searchSymbols` | `search_symbols` | markdown -> parse | `Search.Database.searchSymbols` |
-| `searchConformances` | `search_conformances` | markdown -> parse | `searchConformances` |
-| `searchPropertyWrappers` | `search_property_wrappers` | markdown -> parse | `searchPropertyWrappers` |
-| `searchConcurrency` | `search_concurrency` | markdown -> parse | `searchConcurrencyPatterns` |
-| `searchGenerics` | `search_generics` | markdown -> parse | `searchByGenericConstraint` (+ cross-DB) |
-| `inheritance` | `get_inheritance` | markdown -> parse | `resolveSymbolURIs` + `walkInheritance` |
+| `searchEverything` | `search_all` / `search` | markdown -> parse | `Search.DocumentReading.search` + `Search.PackagesSearcher.searchPackages` |
+| `listSamples` | `list_samples` | markdown -> parse | `Sample.Index.Reader.listProjects` |
+| `readSample` | `read_sample` | markdown -> parse | `Sample.Index.Reader.getProject` + `listFiles` |
+| `readSampleFile` | `read_sample_file` | text | `Sample.Index.Reader.getFile` |
+| `searchSymbols` | `search_symbols` | markdown -> parse | `Search.SymbolReading.searchSymbols` |
+| `searchConformances` | `search_conformances` | markdown -> parse | `Search.SymbolReading.searchConformances` |
+| `searchPropertyWrappers` | `search_property_wrappers` | markdown -> parse | `Search.SymbolReading.searchPropertyWrappers` |
+| `searchConcurrency` | `search_concurrency` | markdown -> parse | `Search.SymbolReading.searchConcurrencyPatterns` |
+| `searchGenerics` | `search_generics` | markdown -> parse | `Search.SymbolReading.searchByGenericConstraint` |
+| `inheritance` | `get_inheritance` | markdown -> parse | `Search.SymbolReading.resolveSymbolURIs` + `walkInheritance` |
 
 Notes:
 - **`read_document` is JSON by default**, so the document reader gets structured `DocPage` content even through the subprocess adapter. The markdown-scrape cost is confined to the *search-list* tools on the subprocess side; the embedded adapter avoids all scraping by mapping typed services.
-- The subprocess adapter speaks the wire through the external `SwiftMCPClient` (its `MCPClient` over an injected `Transport.Channel`, over the neutral Foundation-only `SwiftMCPCore` wire types); the embedded adapter reuses cupertino's typed read services and result models. Both map into the `AppModels` above and expose nothing else.
+- The subprocess adapter speaks the wire through the external `SwiftMCPClient` (its `MCPClient` over an injected `Transport.Channel`, over the neutral Foundation-only `SwiftMCPCore` wire types); the embedded adapter reuses CupertinoDataKit reader protocols and result models. Both map into the `AppModels` above and expose nothing else.
+- Embedded package search goes through `Search.PackagesSearcher`; the desktop app still does not receive storage paths or know that a package database exists.
 - cupertino clamps `limit` to 100; adapters clamp our `limit` accordingly.
 
 ## 5. Versioning

@@ -3,6 +3,7 @@ import AppModels
 import BackendAPI
 import Foundation
 import Observation
+import PresentationBridge
 
 public extension Feature.Search {
     /// The documentation-search view model. Holds the full set of options the UI binds
@@ -37,12 +38,7 @@ public extension Feature.Search {
             case everything(Model.UnifiedResults)
         }
 
-        public enum State: Sendable {
-            case idle
-            case loading
-            case loaded(Outcome)
-            case failed(String)
-        }
+        public typealias State = Presentation.LoadState<Outcome>
 
         public private(set) var state: State = .idle
 

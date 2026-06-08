@@ -3,8 +3,10 @@
 How the iPhone and iPad variants reach the documentation corpus, and the layering
 that gets them there without depending on the `cupertino` repository.
 
-See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path) and
-[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`).
+See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path),
+[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`), and
+[decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md) (the fixed
+native UI matrix).
 
 ## Why iOS is different
 
@@ -24,9 +26,9 @@ playbook used for [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) an
 ## The layering
 
 ```
-SQLite corpus                  the documentation databases (pure data)
+Cupertino corpus               downloaded or bundled data, opened only by Cupertino code
   │
-CatalogStore                   where the DBs come from (bundled vs downloadable)
+CatalogStore                   where the corpus comes from (bundled vs downloadable)
   │
 CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owned, external.
   │   conformed two ways, both extracted from cupertino, both cupertino-owned/published:
@@ -34,8 +36,8 @@ CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owne
   └── CupertinoDataEngine      cupertino's read engine extracted and made iOS-buildable; a
   │                            separate external package the iOS app embeds in process.
   │
-MobileData                     desktop-side wiring only: feeds CupertinoDataEngine a DB from a
-  │                            CatalogStore and surfaces it through the backend adapter.
+MobileData                     desktop-side wiring only: resolves the local corpus for
+  │                            CupertinoDataEngine and surfaces it through the backend adapter.
   │
 LocalEmbeddedBackend           maps CupertinoDataEngine results into AppModels.
   │
@@ -47,7 +49,8 @@ Two layers are extracted from cupertino into cupertino-owned external packages: 
 **`CupertinoDataKit`** contract and the **`CupertinoDataEngine`** implementation. This app
 owns only the thin parts (`CatalogStore`, `MobileData`, `LocalEmbeddedBackend`). Everything
 above the `Backend.Documentation` seam is identical to the macOS path; only the *locality*
-of the backend differs (out-of-process subprocess on macOS, in-process embedded on iOS).
+of the backend differs (out-of-process subprocess on macOS, in-process embedded on
+iPhone/iPad and Qt desktop targets).
 
 ## CupertinoDataKit
 
@@ -67,9 +70,10 @@ It is conformed **two ways, both extracted from cupertino and both cupertino-own
 - **cupertino (server)** conforms to it with the full FTS-SQLite engine over the full
   corpus. The macOS desktop reaches that implementation over MCP through the subprocess.
 - **`CupertinoDataEngine`** is cupertino's read engine **extracted and made
-  iOS-buildable**, a separate external package that conforms to `CupertinoDataKit` and runs
-  in process. The iOS app embeds it. The desktop does not reimplement the engine; it
-  consumes cupertino's.
+  app-embeddable**, a separate external package that conforms to `CupertinoDataKit` and
+  runs in process. The iPhone/iPad apps embed it; the Linux and Windows Qt apps use the
+  same local embedded family. The desktop app does not reimplement the engine; it consumes
+  cupertino's.
 
 Neither depends on the other; both depend only on the `CupertinoDataKit` protocols.
 **cupertino owns both `CupertinoDataKit` and `CupertinoDataEngine`:** they are cupertino's
@@ -89,11 +93,11 @@ execute; this app only consumes the published package, and **the package itself 
 definitive statement of the shapes** (the exact protocol and value types are finalized
 there, not in any prose here).
 
-**v0.1.0 = cupertino's full read contract**, the entire `Search.Database` protocol (search,
-read, list-frameworks, document-count, disconnect, plus the symbol / inheritance /
-availability surface) and all its value types, moved as-is. It is the full surface rather
-than a trimmed subset on purpose: one package to test in isolation and to extend in one
-place, with no drift between a public subset and an internal protocol.
+**Version shape:** v0.1.0 moved cupertino's original read contract into the external
+package. v0.2.0 added document browsing (`Search.DocumentBrowsing`), and v0.3.0 added
+package search (`Search.PackagesSearcher`). It is the full surface rather than a trimmed
+subset on purpose: one package to test in isolation and to extend in one place, with no
+drift between a public subset and an internal protocol.
 
 ## MobileData
 
@@ -114,11 +118,12 @@ and `CupertinoDataEngine` package, both versioned, and adds only its own `Mobile
 The two backend localities remain peers over the one `Backend.Documentation` seam:
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
-- `Backend.LocalEmbedded` (iOS): embeds `CupertinoDataEngine` in process via `MobileData`.
+- `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
+  process via local catalog wiring.
 
 ## UI variants
 
-The iOS UI ships as distinct native variants per the six-variant plan in
+The iOS UI ships as distinct native variants per the eight-variant plan in
 [DESIGN.md](DESIGN.md): `ShelliPhoneSwiftUI`, `ShelliPhoneUIKit`, `ShelliPadSwiftUI`,
 `ShelliPadUIKit`. iPhone and iPad are deliberately different presentations, not one
 size-class-adaptive shell. All of them bind the same framework-agnostic view models
@@ -129,21 +134,24 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
 
 ## Status
 
-- **`CupertinoDataKit` published and consumed.** v0.1.0 is on GitHub (cupertino-owned,
+- **`CupertinoDataKit` published and consumed.** v0.3.0 is on GitHub (cupertino-owned,
   tagged); this app depends on it by version and never on the `cupertino` repo. The
-  embedded adapter `Backend.LocalEmbedded` conforms an injected
-  `CupertinoDataKit.Search.DocumentReading` and maps results into `AppModels`.
-- **Two universal mobile apps ship today** over that seam: `CupertinoMobileSwiftUI`
-  (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over `ShellUIKit`), each a single
-  adaptive target handling iPhone (compact) and iPad (regular) idioms. This supersedes
-  the earlier four-device-specific-shell sketch; per-device behaviour is specified in
-  [UI-DESIGN.md](UI-DESIGN.md).
-- **`CupertinoDataEngine` (the real iOS read engine): designed and accepted, but
+  embedded adapter `Backend.LocalEmbedded` maps injected `Search.DocumentReading`,
+  `Search.SymbolReading`, `Sample.Index.Reader`, and `Search.PackagesSearcher` slices
+  into `AppModels`.
+- **Two adaptive mobile apps ship today** over that seam as legacy current state:
+  `CupertinoMobileSwiftUI` (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over
+  `ShellUIKit`), each handling iPhone and iPad idioms. This is not the final design:
+  the accepted target is four distinct iPhone/iPad shells and app schemes, per
+  [UI-DESIGN.md](UI-DESIGN.md) and
+  [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
+- **`CupertinoDataEngine` (the real embedded read engine): designed and accepted, but
   implementation deferred to a future cupertino release** (maintainer decision, design
   doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
   over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
-  second implementation of the same `Search.Database` contract, added behind
-  `MobileBackend.live(dataSource:)` with no adapter change.
+  second implementation of the same reader contracts, added behind
+  `MobileBackend.live(dataSource:symbolReader:sampleReader:packageSearcher:)` with no
+  adapter change.
 - **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `Backend.LocalEmbedded` now consumes CupertinoDataKit sample and symbol reader
+  slices (`Sample.Index.Reader`, `Search.SymbolReading`) in addition to
+  `Search.DocumentReading`, so embedded targets can use samples and code-intelligence
+  commands without exposing storage details to the desktop app. Embedded package search
+  still fails honestly until CupertinoDataKit publishes a package-reader contract.
+- `PresentationBridge`, a framework-neutral presentation layer between native
+  shells and feature view models. It currently owns reusable load state and the
+  logical Docs-scope search result tree, with tests and GitHub-rendered Mermaid
+  diagrams in the README.
 - M0 skeleton: the `Packages/` SPM package with the layered target tree, both
   `Apps/` targets (SwiftUI and AppKit) generated from XcodeGen `project.yml`, and
   `Main.xcworkspace`. The UI ships as parallel native packages `ShellSwiftUI` /

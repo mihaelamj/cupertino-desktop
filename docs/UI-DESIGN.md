@@ -5,22 +5,32 @@ while the backend is working. The guiding constraint: the same feature view mode
 the same `Backend.Documentation` seam drive every shell, so this document specifies the
 **presentation** (layout, navigation idiom, state surfaces) per target, not new logic.
 
-See [DESIGN.md](DESIGN.md) for the architecture and the backend seam, [MOBILE.md](MOBILE.md)
-for the iOS data path, and [PROTOCOL.md](PROTOCOL.md) for the per-verb model mapping.
+See [DESIGN.md](DESIGN.md) for the architecture and the backend seam,
+[MOBILE.md](MOBILE.md) for the iPhone/iPad data path, [PROTOCOL.md](PROTOCOL.md) for
+the per-verb model mapping, and
+[decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md) for the
+fixed framework matrix.
 
 ## 1. Targets and shells
 
-Two platforms, two UI frameworks each, over one backend:
+The framework matrix is fixed and every shell is native:
 
-| Platform | SwiftUI shell | Imperative shell | Devices |
+| Platform / idiom | SwiftUI shell | Imperative/native shell | Backend |
 |---|---|---|---|
-| macOS | `ShellSwiftUI` (`CupertinoDesktopSwiftUI`) | `ShellAppKit` (`CupertinoDesktopAppKit`) | Mac |
-| iOS | `ShellSwiftUI` (`CupertinoMobileSwiftUI`) | `ShellUIKit` (`CupertinoMobileUIKit`) | iPhone, iPad |
+| macOS | `ShellMacSwiftUI` | `ShellMacAppKit` | `Backend.LocalSubprocess` over local `cupertino serve` |
+| iPhone | `ShelliPhoneSwiftUI` | `ShelliPhoneUIKit` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| iPad | `ShelliPadSwiftUI` | `ShelliPadUIKit` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| Linux | n/a | `ShellLinuxQt` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| Windows | n/a | `ShellWindowsQt` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
 
-Each mobile app is a **single universal, adaptive target**, not a per-device build: one
-SwiftUI app and one UIKit app, each handling the iPhone and iPad idioms by size class.
-`ShellSwiftUI` is shared by the macOS and iOS SwiftUI apps. The shells differ only in
-view code; they bind the identical `Feature.*` view models.
+The current code still has legacy package/app names (`ShellSwiftUI`, `ShellUIKit`,
+`ShellAppKit`, `CupertinoMobileSwiftUI`, `CupertinoMobileUIKit`) and adaptive mobile
+targets. The design target is split per idiom as shown above. iPhone and iPad are
+different native presentations, not one hidden size-class-adaptive shell.
+
+No shortcut counts as implementing a target: no SwiftUI hosted inside UIKit/AppKit, no
+UIKit/AppKit wrapped to satisfy SwiftUI, no Qt replacement with a web UI or remote UI.
+Each shell binds the identical `Feature.*` view models and owns only presentation.
 
 ## 2. Backends and their latency profiles (the thing the UI must absorb)
 
@@ -30,8 +40,8 @@ designed around the slowest one and degrades gracefully on the faster ones.
 | Backend | Used by | Connect cost | Per-call cost | Failure modes |
 |---|---|---|---|---|
 | `Backend.LocalSubprocess` (MCP over `cupertino serve`) | macOS | **High**: spawns a subprocess, performs the MCP `initialize` + `notifications/initialized` handshake. Seconds on a cold start. | **Variable**: stdio round-trip plus a server-side FTS query. Tens to hundreds of ms, occasionally more for large results. | subprocess fails to launch, handshake hang, decode error, server crash, timeout. |
-| `Backend.LocalEmbedded` + `MockReader` | iOS today | None (in-memory JSON). | Effectively zero. | none in practice (a decode failure yields an empty corpus). |
-| `Backend.LocalEmbedded` + `CupertinoDataEngine` (future) | iOS later | Low: open a read-only SQLite file (mmap), assert it exists. | Low: single-digit to tens of ms; first query and very large result sets cost more. | corpus file missing or unreadable (`corpusUnavailable`). |
+| `Backend.LocalEmbedded` + `MockReader` | iPhone/iPad today | None (in-memory JSON). | Effectively zero. | none in practice (a decode failure yields an empty corpus). |
+| `Backend.LocalEmbedded` + `CupertinoDataEngine` | iPhone/iPad/Linux/Windows planned | Low: initialize Cupertino's local read engine and assert corpus compatibility. | Low: single-digit to tens of ms; first query and very large result sets cost more. | corpus file missing, unreadable, stale, or download/cache failure. |
 
 **Design rule:** treat every backend call as asynchronous and cancellable, show progress
 the moment a call is in flight, never block the whole window on one column's load, and
@@ -83,15 +93,24 @@ section 6.)
 Each data region renders one of four states from its view model. The surface differs per
 UI framework; the states do not.
 
-| State | SwiftUI | AppKit | UIKit |
-|---|---|---|---|
-| Loading | `ProgressView` | `NSProgressIndicator` (spinning) | `UIActivityIndicatorView` |
-| Loaded | content | content | content |
-| Empty | `ContentUnavailableView` | centered symbol + label | centered symbol + label |
-| Error | `ContentUnavailableView` + Retry | label + Retry button | label + Retry button |
+| State | SwiftUI | AppKit | UIKit | Qt |
+|---|---|---|---|---|
+| Loading | `ProgressView` | `NSProgressIndicator` (spinning) | `UIActivityIndicatorView` | `QProgressBar` or busy indicator |
+| Loaded | content | content | content | content |
+| Empty | `ContentUnavailableView` | centered symbol + label | centered symbol + label | empty-state widget |
+| Error | `ContentUnavailableView` + Retry | label + Retry button | label + Retry button | error widget + Retry action |
 
 The view models already model this with a single `state` / `documentState` enum so the
 invalid combinations (loading and failed at once) are unrepresentable.
+
+## 4.1 Main-thread binding
+
+Every concrete shell updates UI objects on its UI thread. SwiftUI makes this feel less
+manual through `@MainActor` views and Observation, but the shared view models remain
+main-actor-facing so UIKit, AppKit, and Qt cannot receive accidental background-thread
+updates. UIKit and AppKit controllers render from the main actor. Qt widgets, models,
+and signal handlers render on the Qt GUI thread; embedded-engine callbacks marshal back
+before touching `QObject`, `QAbstractItemModel`, or widgets.
 
 ## 5. Loading and delay design (the cupertino-runtime targets)
 
@@ -103,9 +122,10 @@ is real and variable; the UI must stay responsive and honest.
   sidebar shows a **connecting** state (spinner plus "Starting cupertino...") rather than
   an empty list, until `listFrameworks()` returns. The window chrome (toolbar, empty
   detail) paints immediately so the app never looks frozen.
-- iOS mock: instant, so the connecting state flashes by or is skipped. The state is kept
-  in the view model regardless, because the future SQLite engine reintroduces a small
-  open cost and the same code then shows a brief skeleton.
+- Embedded targets: the current iPhone/iPad mock is instant, so the connecting state
+  flashes by or is skipped. The state is kept in the view model because the real SQLite
+  engine reintroduces an open/download/cache cost, and Qt desktop targets need the same
+  honest startup surface.
 
 ### 5.2 Per-selection load
 - Selecting a framework starts an async document load; the detail shows a spinner while
@@ -130,15 +150,15 @@ is real and variable; the UI must stay responsive and honest.
 - Any failure (subprocess launch, handshake, decode, timeout, server crash) surfaces as
   the error state with a Retry that re-runs only the failed call. A successful connect is
   not torn down by a later failed call, so Retry does not respawn the subprocess.
-- The mobile mock does not fail in practice; the future engine surfaces a missing-corpus
-  error through the same path.
+- The mobile mock does not fail in practice; the embedded engine surfaces missing,
+  stale, unreadable, or not-yet-downloaded corpus errors through the same path.
 
 ### 5.5 What not to do
 - Do not block the whole window or the sidebar on one detail load.
 - Do not show a blank pane during a load; show the loading surface.
 - Do not leave a spinner with no escape; every long operation can fail into Retry.
 - Do not tune the UI to the instant mock; verify the loading and error states against the
-  MCP runtime (and, later, against a cold SQLite open).
+  MCP runtime and against a cold embedded SQLite open/download path.
 
 ## 6. Feature screens
 
@@ -147,8 +167,8 @@ is real and variable; the UI must stay responsive and honest.
 | Framework browser | shipped | sidebar list of frameworks with document counts | one `listFrameworks()` at connect; the costly step on macOS is the connect itself (5.1). |
 | Document reader | shipped | detail renders the selected framework's document markdown | one `searchDocs` (scoped to the framework) then one `readDocument`; per-selection spinner and cancellation (5.2). |
 | Search | shipped | search field plus framework-grouped Docs results (Everything scope source-bucketed) feeding the reader; Docs scope (per-source, with framework and platform-minimum filters) and unified Everything scope (docs, samples, packages bucketed) | debounced, cancellable, superseding queries (5.3). |
-| Samples browser | planned | sample-project list plus a file reader | adopts `CupertinoDataKit.Sample.Index.Reader`; list and per-file reads each get a loading surface. |
-| Code intelligence | planned | symbol / conformance / inheritance results | adopts `Search.SymbolReading`; potentially large result sets, so paginate or cap and say so. |
+| Samples browser | backend wired, UI planned | sample-project list plus a file reader | `Backend.LocalEmbedded` adopts `CupertinoDataKit.Sample.Index.Reader`; list and per-file reads each get a loading surface. |
+| Code intelligence | backend wired, UI planned | symbol / conformance / inheritance results | `Backend.LocalEmbedded` adopts `Search.SymbolReading`; potentially large result sets, so paginate or cap and say so. |
 
 Planned features adopt the matching CupertinoDataKit slice at the backend seam and reuse
 the four state surfaces in section 4; none of them change the latency rules in section 5.

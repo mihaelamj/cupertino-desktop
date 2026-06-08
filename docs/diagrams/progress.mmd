@@ -1,0 +1,25 @@
+flowchart LR
+    m0["M0 skeleton\nshipped"] --> m1["M1 backend seam\nshipped"]
+    m1 --> m2["M2 read path\nshipped"]
+    m2 --> m3["M3 search\nshipped"]
+    m3 --> bridge["PresentationBridge\nshipped"]
+    bridge --> slices["Embedded samples + symbols\nadapter wired"]
+    slices --> nav["M4 navigation hierarchy\nactive"]
+    nav --> samples["Samples UI\nplanned"]
+    samples --> symbols["Code intelligence UI\nplanned"]
+    symbols --> packageReader["Embedded package search\nadapter wired"]
+    packageReader --> embedded["Real embedded engine\nrequires cupertino packaging"]
+    embedded --> mobile["Split iPhone and iPad apps\nplanned"]
+    mobile --> qt["Linux and Windows Qt\nplanned"]
+
+    class m0,m1,m2,m3,bridge done
+    class slices,packageReader partial
+    class nav active
+    class samples,symbols,embedded,mobile,qt todo
+
+    classDef done    fill:#34C759,color:#FFFFFF
+    classDef review  fill:#30B0C7,color:#FFFFFF
+    classDef active  fill:#007AFF,color:#FFFFFF
+    classDef next    fill:#5856D6,color:#FFFFFF
+    classDef partial fill:#FF9500,color:#FFFFFF
+    classDef todo    fill:#8E8E93,color:#FFFFFF

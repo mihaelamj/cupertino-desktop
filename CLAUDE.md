@@ -4,21 +4,25 @@ Guidance for Claude Code (and other coding agents) working in this repository.
 
 ## Project
 
-Cupertino Desktop is a **native macOS app for browsing Apple developer documentation,
-Swift Evolution, and sample code offline**. It is a thin GUI client over the
+Cupertino Desktop is a native UI showcase for browsing Apple developer documentation,
+Swift Evolution, and sample code offline across macOS, iPhone, iPad, Linux, and
+Windows. macOS is a thin GUI client over the
 [`cupertino`](https://github.com/mihaelamj/cupertino) MCP server: it spawns
 `cupertino serve` as a subprocess and talks to it over stdio via the `MCPClient`
-library. It does **not** reimplement search, indexing, crawling, or storage; the
-server owns all of that.
+library. iPhone, iPad, Linux, and Windows use a local embedded read engine over
+downloaded or bundled databases. It does **not** reimplement search, indexing,
+crawling, or storage; Cupertino-owned engine code owns all of that.
 
-The repo ships **two app targets in parallel, SwiftUI and AppKit**, over one shared
-backend, so the two UI approaches can be compared before a final framework choice.
-A native iOS variant over the same backend is a possible future concern. Types
-are namespaced under short per-module semantic anchors (`Model`, `Backend`,
-`Feature`, `UI`, `Markdown`); there is no project-name root prefix, the Swift
-module already namespaces each target. Architecture: [docs/DESIGN.md](docs/DESIGN.md).
+The repo ships a fixed native framework matrix: macOS SwiftUI/AppKit, iPhone
+SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt. These are showcase
+variants, not options to collapse into one winner. No variant may be satisfied by
+hosting one framework inside another. Types are namespaced under short per-module
+semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`); there is no
+project-name root prefix, the Swift module already namespaces each target.
+Architecture: [docs/DESIGN.md](docs/DESIGN.md) and
+[docs/decisions/fixed-native-ui-matrix.md](docs/decisions/fixed-native-ui-matrix.md).
 
-Target platform: macOS 15+, Swift 6.2+, Xcode 16+.
+Target platforms: macOS 15+, iOS 17+, Linux/Windows Qt, Swift 6.2+, Xcode 16+.
 
 ## Rule loading (do this first)
 
@@ -31,15 +35,16 @@ have not loaded them.
 
 - [AGENTS.md](AGENTS.md) - the agent guide: language policy, workflow, commands.
 - [docs/DESIGN.md](docs/DESIGN.md) - the architecture: backend seam, package layout,
-  the two app targets, milestones.
+  fixed native UI matrix, milestones.
 - [docs/rules/](docs/rules/) - the coding conventions. Start at
   [docs/rules/README.md](docs/rules/README.md).
 - [CONTRIBUTING.md](CONTRIBUTING.md) - contributor workflow.
 
 ## Non-negotiables
 
-- **Swift only.** Documentation content arrives from the server as markdown/text and
-  is rendered natively (AttributedString / WebKit). No JavaScript, no web build step.
+- **Swift for shared Apple/core code; Qt for Linux/Windows UI.** Documentation content
+  arrives from the server or embedded engine as markdown/text and is rendered natively.
+  No JavaScript, no web build step.
 - **Clarify before coding.** Do not assume requirements. Surface options when a
   real trade-off exists. Do not pre-abstract; add abstraction only at the second
   real consumer.
@@ -48,10 +53,9 @@ have not loaded them.
   through the `DocumentationBackend` protocol seam; `MCP.Client` stays out of the UI.
 - **Namespace every public type** under an `enum`/`struct` that mirrors its
   folder; one non-private type per file; file named for the qualified type.
-- **Apple-only, two UI frameworks.** This is a macOS app (iOS later), not a Linux
-  product. Where SwiftUI and AppKit diverge, share logic in the Features layer and
-  keep each framework's view code thin over the same `@Observable` view model.
-  Spawning the `cupertino serve` subprocess is expected and allowed.
+- **Fixed native UI matrix.** macOS uses SwiftUI and AppKit, iPhone uses SwiftUI and
+  UIKit, iPad uses SwiftUI and UIKit, and Linux/Windows use Qt. Each shell is native;
+  no SwiftUI/AppKit/UIKit hosting shortcut counts. MCP subprocess is macOS-only.
 - **Verify before claiming done.** Run `swift build` and `swift test`; cite the
   output. Never say "should pass".
 - **No AI attribution, no em dashes** in any committed text (commits, comments,
@@ -61,16 +65,16 @@ have not loaded them.
 
 ExtremePackaging monorepo: `Main.xcworkspace` at root, one `Package.swift` under
 `Packages/`, app targets under `Apps/`. Layers run one direction only:
-**Foundation → Infrastructure → Features → Apps**. `MCPBackend` (Infrastructure) is
-the only module that imports the `cupertino` package; everything above it sees the
-`DocumentationBackend` protocol. See [docs/DESIGN.md](docs/DESIGN.md).
+**Foundation -> Infrastructure -> Features -> UI -> Apps**. Backend adapters are the
+only modules that touch Cupertino-specific implementation; everything above them sees
+the `Backend.Documentation` protocol. See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Commands
 
 ```sh
 swift build                 # build all packages
 swift test                  # run package tests
-open Main.xcworkspace       # then run an app target (SwiftUI or AppKit) in Xcode
+open Main.xcworkspace       # then run an app target in Xcode
 ```
 
 The `Packages/Package.swift` and app targets are not committed yet; these are the

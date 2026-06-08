@@ -8,8 +8,8 @@ public extension Backend {
     /// talks to a `cupertino serve` subprocess on the same machine. The fact that
     /// the boundary is crossed with MCP/JSON-RPC is a detail of the client it holds
     /// (`Client.MCP`), not of this adapter; nothing above the protocol sees MCP.
-    /// Local-remote is the axis: a future remote adapter would talk to a hosted
-    /// cupertino over the network instead.
+    /// The sibling local path is `Backend.LocalEmbedded`, which reads the local
+    /// corpus in process without MCP.
     ///
     /// The verb-to-tool mapping is docs/PROTOCOL.md section 4: `read_document`
     /// returns JSON (decoded straight into `DocPage`); the search-list tools return

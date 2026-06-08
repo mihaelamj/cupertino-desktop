@@ -30,7 +30,13 @@ targets:
       - package: CupertinoDesktopPackages
         product: FrameworkBrowserFeature
       - package: CupertinoDesktopPackages
+        product: SearchFeature
+      - package: CupertinoDesktopPackages
         product: MobileBackendImpl
+      - package: CupertinoDesktopPackages
+        product: CatalogStoreAPI
+      - package: CupertinoDesktopPackages
+        product: DevelopmentCatalogStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mihaelamj.cupertinodesktop.mobile.uikit

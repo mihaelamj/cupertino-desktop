@@ -1,7 +1,12 @@
 import AppModels
 import BackendAPI
+import CatalogStoreAPI
+import CupertinoDataEngine
+import DevelopmentCatalogStore
+import Foundation
 import LocalSubprocessBackend
 @testable import MacBackendImpl
+@testable import MobileBackendImpl
 import SwiftMCPClientAPI
 import Testing
 
@@ -31,6 +36,99 @@ struct BackendScaffoldTests {
         }
     }
 
+    @Test("MobileBackend.live(engine:) composes over the external data engine facade")
+    func mobileLiveEngineComposes() async throws {
+        let engine = CupertinoDataEngine()
+        let backend: any Backend.Documentation = await MobileBackend.live(engine: engine)
+        #expect(try await backend.listFrameworks().isEmpty)
+        await backend.disconnect()
+    }
+
+    @Test("MobileBackend.live(catalogStore:) opens the opaque corpus handle through CupertinoDataEngine")
+    func mobileLiveCatalogStoreUsesCorpusHandle() async throws {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cupertino-missing-corpus-\(UInt64.random(in: 0 ..< .max))", isDirectory: true)
+        let store = FixedCatalogStore(handle: Catalog.CorpusHandle(bundleURL: missingDirectory))
+
+        await #expect(throws: CupertinoDataEngine.Error.missingCorpusDirectory(path: missingDirectory.path)) {
+            _ = try await MobileBackend.live(catalogStore: store)
+        }
+    }
+
+    @Test("MobileBackend.live(catalogStore:) propagates catalog resolution failures")
+    func mobileLiveCatalogStorePropagatesStoreFailure() async throws {
+        let store = FailingCatalogStore()
+
+        await #expect(throws: CatalogFailure.unavailable) {
+            _ = try await MobileBackend.live(catalogStore: store)
+        }
+    }
+
+    @Test("MobileBackend.deferred(catalogStore:) propagates catalog failures on first use")
+    func mobileDeferredCatalogStorePropagatesStoreFailure() async throws {
+        let backend = MobileBackend.deferred(catalogStore: FailingCatalogStore())
+
+        await #expect(throws: CatalogFailure.unavailable) {
+            _ = try await backend.listFrameworks()
+        }
+    }
+
+    @Test("MobileBackend.deferred(catalogStore:) opens development catalog stores lazily")
+    func mobileDeferredCatalogStoreOpensDevelopmentStoreLazily() async throws {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cupertino-missing-development-corpus-\(UInt64.random(in: 0 ..< .max))", isDirectory: true)
+        let store = Catalog.DevelopmentStore(corpusURL: missingDirectory)
+        let backend = MobileBackend.deferred(catalogStore: store)
+
+        await #expect(throws: Catalog.DevelopmentStore.Error.missingCorpusDirectory(path: missingDirectory.path)) {
+            _ = try await backend.listFrameworks()
+        }
+    }
+
+    /// Opt-in integration smoke against a real Cupertino corpus. Enable with
+    /// `CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION=1 swift test`, or run
+    /// `../scripts/check-local-embedded-corpus.sh` from `Packages/`.
+    @Test(
+        "live LocalEmbeddedBackend real corpus smoke",
+        .enabled(if: ProcessInfo.processInfo.environment["CUPERTINO_DESKTOP_EMBEDDED_INTEGRATION"] == "1"),
+        .timeLimit(.minutes(2)),
+    )
+    func liveEmbeddedRealCorpusSmoke() async throws {
+        let corpusURL = Self.embeddedCorpusURL()
+        let store = Catalog.DevelopmentStore(corpusURL: corpusURL)
+        let backend: any Backend.Documentation = MobileBackend.deferred(catalogStore: store)
+
+        do {
+            try await Self.assertLiveEmbeddedCorpus(backend)
+            await backend.disconnect()
+        } catch {
+            await backend.disconnect()
+            throw error
+        }
+    }
+
+    private static func assertLiveEmbeddedCorpus(_ backend: any Backend.Documentation) async throws {
+        let frameworks = try await backend.listFrameworks()
+        #expect(frameworks.contains { $0.id == "swiftui" })
+
+        let hits = try await backend.searchDocs(Model.DocsQuery(text: "View", sources: [.appleDocs], framework: "swiftui", limit: 5))
+        let firstHit = try #require(hits.first)
+        #expect(firstHit.uri.rawValue.hasPrefix("apple-docs://"))
+
+        let page = try await backend.readDocument(firstHit.uri)
+        #expect(page.source == .appleDocs)
+        #expect(!page.markdown.isEmpty)
+
+        let unified = try await backend.searchEverything(Model.UnifiedQuery(text: "View", limitPerSource: 3))
+        #expect(!unified.docs.isEmpty || !unified.samples.projects.isEmpty || !unified.packages.isEmpty)
+
+        let samples = try await backend.listSamples(framework: nil, limit: 1)
+        #expect(!samples.isEmpty)
+
+        let packages = try await backend.searchPackages(Model.PackageQuery(text: "swift", limit: 1))
+        #expect(!packages.isEmpty)
+    }
+
     @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")
     func backendTakesFakeClient() async throws {
         // The payoff of the Client.MCP seam: Backend.LocalSubprocess depends on the protocol,
@@ -56,6 +154,13 @@ struct BackendScaffoldTests {
         #expect(Model.DocURI("bogus-scheme://x") == nil) // unknown scheme rejected
         #expect(Model.DocURI("apple-docs://") == nil) // empty path rejected
     }
+
+    private static func embeddedCorpusURL() -> URL {
+        let path = ProcessInfo.processInfo.environment["CUPERTINO_DESKTOP_EMBEDDED_CORPUS"]
+            .flatMap { $0.isEmpty ? nil : $0 }
+            ?? "~/.cupertino"
+        return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
+    }
 }
 
 /// A `Client.MCP` test double. Possible only because `Backend.LocalSubprocess` depends on the
@@ -80,4 +185,22 @@ private actor FakeClient: Client.MCP {
     }
 
     enum Failure: Error { case unused }
+}
+
+private struct FixedCatalogStore: Catalog.Store {
+    let handle: Catalog.CorpusHandle
+
+    func currentCorpus() async throws -> Catalog.CorpusHandle {
+        handle
+    }
+}
+
+private struct FailingCatalogStore: Catalog.Store {
+    func currentCorpus() async throws -> Catalog.CorpusHandle {
+        throw CatalogFailure.unavailable
+    }
+}
+
+private enum CatalogFailure: Error, Equatable {
+    case unavailable
 }

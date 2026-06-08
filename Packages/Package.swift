@@ -33,6 +33,7 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
+    .singleTargetLibrary("CatalogStoreAPI"),
     .singleTargetLibrary("AppCore"),
     .singleTargetLibrary("PresentationBridge"),
     // Concrete
@@ -49,6 +50,7 @@ let products: [Product] = [
     .singleTargetLibrary("ShellUIKit"),
     // Concrete (embedded path)
     .singleTargetLibrary("LocalEmbeddedBackend"),
+    .singleTargetLibrary("DevelopmentCatalogStore"),
     // Impl / composition
     .singleTargetLibrary("MacBackendImpl"),
     .singleTargetLibrary("MobileBackendImpl"),
@@ -74,17 +76,23 @@ func kitProduct(_ name: String) -> Target.Dependency {
 /// the `cupertino` package itself.
 let dataKitProduct: Target.Dependency = .product(name: "CupertinoDataKit", package: "CupertinoDataKit")
 
+/// CupertinoDataEngine (external, cupertino-owned): the embedded read engine facade.
+/// Composition packages may inject it into `LocalEmbeddedBackend`; UI packages still
+/// depend only on `BackendAPI` / `AppModels`.
+let dataEngineProduct: Target.Dependency = .product(name: "CupertinoDataEngine", package: "CupertinoDataEngine")
+
 let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
+    let catalogStoreAPI = Target.target(name: "CatalogStoreAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "AppCore")
     // PresentationBridge holds pure presentation values shared by feature view
     // models and all native shells. It is data and state only, never widgets.
     let presentationBridge = Target.target(name: "PresentationBridge", dependencies: ["AppModels"])
-    let api = [models, backendAPI, core, presentationBridge]
+    let api = [models, backendAPI, catalogStoreAPI, core, presentationBridge]
 
     // ---------- Concrete packages (import only API packages) ----------
     // The subprocess adapter depends on the client seam (SwiftMCPClientAPI), not
@@ -138,8 +146,13 @@ let targets: [Target] = {
         name: "LocalEmbeddedBackend",
         dependencies: ["BackendAPI", "AppModels", dataKitProduct],
     )
+    let developmentCatalogStore = Target.target(
+        name: "DevelopmentCatalogStore",
+        dependencies: ["CatalogStoreAPI"],
+    )
 
-    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend]
+    let concrete = [localSubprocessBackend, markdown, codeHighlighting] + features
+        + [upcomingSwiftUI, shellSwiftUI, shellAppKit, shellUIKit, localEmbeddedBackend, developmentCatalogStore]
 
     // ---------- Impl / composition packages (wire concretes together) ----------
     // MacBackendImpl is the only place the local-subprocess conformer, the MCP
@@ -159,7 +172,7 @@ let targets: [Target] = {
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct],
+        dependencies: ["BackendAPI", "CatalogStoreAPI", "LocalEmbeddedBackend", dataKitProduct, dataEngineProduct],
         resources: [.process("Resources")],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
@@ -185,7 +198,25 @@ let targets: [Target] = {
     )
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), "BackendAPI", "AppModels"],
+        dependencies: [
+            "MacBackendImpl",
+            "MobileBackendImpl",
+            "LocalSubprocessBackend",
+            kitProduct("SwiftMCPClientAPI"),
+            dataEngineProduct,
+            "BackendAPI",
+            "CatalogStoreAPI",
+            "DevelopmentCatalogStore",
+            "AppModels",
+        ],
+    )
+    let catalogStoreAPITests = Target.testTarget(
+        name: "CatalogStoreAPITests",
+        dependencies: ["CatalogStoreAPI"],
+    )
+    let developmentCatalogStoreTests = Target.testTarget(
+        name: "DevelopmentCatalogStoreTests",
+        dependencies: ["DevelopmentCatalogStore", "CatalogStoreAPI"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
@@ -222,7 +253,19 @@ let targets: [Target] = {
     )
 
     return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
-        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests, appModelsTests, presentationBridgeTests]
+        + [
+            coreTests,
+            frameworkBrowserTests,
+            backendTests,
+            catalogStoreAPITests,
+            developmentCatalogStoreTests,
+            localSubprocessTests,
+            localEmbeddedTests,
+            searchFeatureTests,
+            markdownTests,
+            appModelsTests,
+            presentationBridgeTests,
+        ]
 }()
 
 let package = Package(
@@ -244,6 +287,13 @@ let package = Package(
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataKit.git",
             from: "0.3.0",
+        ),
+        // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
+        // code injects this into LocalEmbeddedBackend; UI packages never import it.
+        // v0.2.6 keeps the opaque corpus handle aligned with installed release catalogs.
+        .package(
+            url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
+            from: "0.2.6",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

@@ -71,8 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return Model.AppSettings.load().backend
     }
 
-    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` reads the in-process
-    /// corpus (App-Sandbox-safe), served by the bundled mock until `CupertinoDataEngine` ships.
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is the deterministic
+    /// UI-test mock. Mobile real-catalog composition is kept in the mobile app targets.
     private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
         switch mode {
         case .mcpSubprocess: MacBackend.live()

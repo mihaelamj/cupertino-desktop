@@ -14,7 +14,7 @@ import SwiftUI
 /// route). One backend instance is injected into both feature view models, then
 /// the shared shells are composed into a tabbed root: the framework browser
 /// (`RootExperience`, a `NavigationSplitView`) and the search screen
-/// (`UI.SearchView`, which exposes every `searchDocs` option over every database),
+/// (`UI.SearchView`, which exposes every `searchDocs` option over every source),
 /// matching the mobile SwiftUI app.
 ///
 /// Under the `-uitest-mock` launch argument the deterministic embedded corpus is
@@ -47,8 +47,8 @@ struct CupertinoDesktopSwiftUIApp: App {
         return Model.AppSettings.load().backend
     }
 
-    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` reads the in-process
-    /// corpus (App-Sandbox-safe), served by the bundled mock until `CupertinoDataEngine` ships.
+    /// `.mcpSubprocess` spawns the local `cupertino serve`; `.embedded` is the deterministic
+    /// UI-test mock. Mobile real-catalog composition is kept in the mobile app targets.
     private static func makeBackend(mode: Model.BackendMode) -> any Backend.Documentation {
         switch mode {
         case .mcpSubprocess: MacBackend.live()

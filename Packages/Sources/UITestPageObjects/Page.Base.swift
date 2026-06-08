@@ -1,3 +1,4 @@
+import AppCore
 import XCTest
 
 public extension Page {
@@ -35,6 +36,7 @@ public extension Page {
 
         open func tap(_ identifier: String, timeout: TimeInterval = 5) {
             let element = waitForElement(identifier, timeout: timeout)
+            scrollToHittable(element, target: identifier)
             element.tap()
         }
 
@@ -45,7 +47,14 @@ public extension Page {
             line: UInt = #line,
         ) {
             let exists = element(identifier).waitForExistence(timeout: timeout)
-            XCTAssertTrue(exists, "Element '\(identifier)' should exist", file: file, line: line)
+            if !exists {
+                XCTFail(
+                    "Element '\(identifier)' should exist.\n\(app.debugDescription)",
+                    file: file,
+                    line: line,
+                )
+                return
+            }
         }
 
         open func assertNotExists(
@@ -61,6 +70,29 @@ public extension Page {
             attachment.name = name
             attachment.lifetime = .keepAlways
             XCTContext.runActivity(named: "Screenshot: \(name)") { $0.add(attachment) }
+        }
+
+        private func scrollToHittable(_ element: XCUIElement, target: String, maxSwipes: Int = 8) {
+            let surface = scrollSurface(for: target)
+            var swipes = 0
+            while !element.isHittable, swipes < maxSwipes {
+                if element.frame.midY < surface.frame.minY {
+                    surface.swipeDown()
+                } else {
+                    surface.swipeUp()
+                }
+                swipes += 1
+            }
+        }
+
+        private func scrollSurface(for target: String) -> XCUIElement {
+            if target.hasPrefix("framework_row_") {
+                let sidebar = element(UI.AccessibilityID.FrameworkBrowser.sidebar)
+                if sidebar.exists {
+                    return sidebar
+                }
+            }
+            return app
         }
     }
 }

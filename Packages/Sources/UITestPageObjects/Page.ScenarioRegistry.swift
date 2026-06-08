@@ -1,3 +1,4 @@
+import AppCore
 import FlowSpec
 import XCTest
 
@@ -24,7 +25,7 @@ public extension Page {
             switch step.verb {
             case .open, .tap:
                 let element = try require(step)
-                scrollToHittable(element)
+                scrollToHittable(element, target: step.target)
                 element.tap()
             case .type:
                 let element = try require(step)
@@ -78,12 +79,27 @@ public extension Page {
         }
 
         /// Scroll the element into a hittable position (links can sit below the fold).
-        private func scrollToHittable(_ element: XCUIElement, maxSwipes: Int = 6) {
+        private func scrollToHittable(_ element: XCUIElement, target: String, maxSwipes: Int = 8) {
+            let surface = scrollSurface(for: target)
             var swipes = 0
             while !element.isHittable, swipes < maxSwipes {
-                app.swipeUp()
+                if element.frame.midY < surface.frame.minY {
+                    surface.swipeDown()
+                } else {
+                    surface.swipeUp()
+                }
                 swipes += 1
             }
+        }
+
+        private func scrollSurface(for target: String) -> XCUIElement {
+            if target.hasPrefix("framework_row_") {
+                let sidebar = element(UI.AccessibilityID.FrameworkBrowser.sidebar)
+                if sidebar.exists {
+                    return sidebar
+                }
+            }
+            return app
         }
     }
 }

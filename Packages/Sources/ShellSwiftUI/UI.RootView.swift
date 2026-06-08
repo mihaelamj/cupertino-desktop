@@ -54,24 +54,27 @@ import FrameworkBrowserFeature
                 #endif
             }
 
-            @ViewBuilder private var sidebar: some View {
-                if frameworks.isLoading {
-                    ProgressView("Loading frameworks")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let message = frameworks.errorMessage {
-                    ContentUnavailableView {
-                        Label("Could not load frameworks", systemImage: "exclamationmark.triangle")
-                    } description: {
-                        Text(message)
-                    } actions: {
-                        Button("Retry") { frameworks.onRetried() }
+            private var sidebar: some View {
+                Group {
+                    if frameworks.isLoading {
+                        ProgressView("Loading frameworks")
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if let message = frameworks.errorMessage {
+                        ContentUnavailableView {
+                            Label("Could not load frameworks", systemImage: "exclamationmark.triangle")
+                        } description: {
+                            Text(message)
+                        } actions: {
+                            Button("Retry") { frameworks.onRetried() }
+                        }
+                    } else {
+                        List(frameworks.frameworks, selection: $model.selectedFrameworkID) { framework in
+                            FrameworkRow(framework: framework)
+                        }
                     }
-                } else {
-                    List(frameworks.frameworks, selection: $model.selectedFrameworkID) { framework in
-                        FrameworkRow(framework: framework)
-                    }
-                    .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
                 }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
             }
 
             @ViewBuilder private var detailColumn: some View {

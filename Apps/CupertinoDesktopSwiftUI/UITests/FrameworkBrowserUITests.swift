@@ -12,9 +12,7 @@ final class FrameworkBrowserUITests: XCTestCase {
 
     @MainActor
     func testSelectingFrameworkShowsReader() {
-        let app = XCUIApplication()
-        app.launchArguments = ["-uitest-mock"]
-        app.launch()
+        let app = DesktopSwiftUITestLauncher.launch()
 
         Page.FrameworkBrowser(app: app)
             .verifyIsDisplayed()

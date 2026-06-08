@@ -32,9 +32,7 @@ final class ScenarioUITests: XCTestCase {
     /// Launch the app, load `scenarios/<id>.json`, and run it through the registry.
     @MainActor
     private func runScenario(_ id: String, file: StaticString = #filePath, line: UInt = #line) throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["-uitest-mock"]
-        app.launch()
+        let app = DesktopSwiftUITestLauncher.launch(file: file, line: line)
         let scenario = try ScenarioLoader.load(id: id, searchURL: Self.scenariosURL)
         do {
             try ScenarioRunner(registry: Page.ScenarioRegistry(app: app)).run(scenario)

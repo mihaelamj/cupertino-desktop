@@ -1,6 +1,8 @@
 import AppModels
 import BackendAPI
+import CatalogStoreAPI
 import CupertinoDataEngine
+import Foundation
 import LocalSubprocessBackend
 @testable import MacBackendImpl
 @testable import MobileBackendImpl
@@ -39,6 +41,26 @@ struct BackendScaffoldTests {
         let backend: any Backend.Documentation = await MobileBackend.live(engine: engine)
         #expect(try await backend.listFrameworks().isEmpty)
         await backend.disconnect()
+    }
+
+    @Test("MobileBackend.live(catalogStore:) opens the opaque corpus handle through CupertinoDataEngine")
+    func mobileLiveCatalogStoreUsesCorpusHandle() async throws {
+        let missingDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cupertino-missing-corpus-\(UInt64.random(in: 0 ..< .max))", isDirectory: true)
+        let store = FixedCatalogStore(handle: Catalog.CorpusHandle(bundleURL: missingDirectory))
+
+        await #expect(throws: CupertinoDataEngine.Error.missingCorpusDirectory(path: missingDirectory.path)) {
+            _ = try await MobileBackend.live(catalogStore: store)
+        }
+    }
+
+    @Test("MobileBackend.live(catalogStore:) propagates catalog resolution failures")
+    func mobileLiveCatalogStorePropagatesStoreFailure() async throws {
+        let store = FailingCatalogStore()
+
+        await #expect(throws: CatalogFailure.unavailable) {
+            _ = try await MobileBackend.live(catalogStore: store)
+        }
     }
 
     @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")
@@ -90,4 +112,22 @@ private actor FakeClient: Client.MCP {
     }
 
     enum Failure: Error { case unused }
+}
+
+private struct FixedCatalogStore: Catalog.Store {
+    let handle: Catalog.CorpusHandle
+
+    func currentCorpus() async throws -> Catalog.CorpusHandle {
+        handle
+    }
+}
+
+private struct FailingCatalogStore: Catalog.Store {
+    func currentCorpus() async throws -> Catalog.CorpusHandle {
+        throw CatalogFailure.unavailable
+    }
+}
+
+private enum CatalogFailure: Error, Equatable {
+    case unavailable
 }

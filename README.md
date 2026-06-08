@@ -40,9 +40,10 @@ Backends behind the seam:
   `listFrameworks`, `readDocument`, `searchDocs`, and `searchEverything`
   (see [docs/PROTOCOL.md](docs/PROTOCOL.md) section 4).
 - **iPhone/iPad** (SwiftUI and UIKit) runs `Backend.LocalEmbedded` over a bundled
-  real-data corpus captured from the cupertino index. The adapter now consumes the
+  real-data corpus captured from the cupertino index. The adapter consumes the
   CupertinoDataKit document, sample, symbol, and package-search reader slices when an
-  embedded engine provides them.
+  embedded engine provides them, and `MobileBackendImpl` can now open a
+  CupertinoDataEngine 0.2.4 corpus through `CatalogStoreAPI`.
 - **Linux/Windows Qt** is designed as local embedded-engine desktop targets. It is not implemented yet.
 
 Not yet implemented at the UI layer: the **sample-code browser** and **code intelligence**
@@ -81,12 +82,14 @@ flowchart LR
     nav --> samples["Samples UI<br/>planned"]
     samples --> symbols["Code intelligence UI<br/>planned"]
     symbols --> packageReader["Embedded package search<br/>adapter wired"]
-    packageReader --> embedded["Real embedded engine<br/>requires cupertino packaging"]
+    packageReader --> catalog["CatalogStoreAPI<br/>opaque corpus handle"]
+    catalog --> embedded["Real embedded engine<br/>live corpus smoke"]
     embedded --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
 
     class m0,m1,m2,m3,bridge done
     class slices,packageReader partial
+    class catalog done
     class nav active
     class samples,symbols,embedded,mobile,qt todo
 
@@ -198,6 +201,10 @@ schemes and Linux/Windows Qt.
 - [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient) - the transport-injectable
   MCP client.
 - [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) - the neutral MCP wire types.
+- [`CupertinoDataKit`](https://github.com/mihaelamj/CupertinoDataKit) - cupertino's
+  protocol-only read contract.
+- [`CupertinoDataEngine`](https://github.com/mihaelamj/CupertinoDataEngine) - cupertino's
+  app-embeddable read engine.
 
 ## Contributing
 

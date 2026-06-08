@@ -104,7 +104,7 @@ cupertino-desktop/
 │   │   # --- API / seam packages (protocols + value types only) ---
 │   │   ├── AppModels/           # value types (Framework, DocPage, SearchHit, ...)
 │   │   ├── BackendAPI/              # DocumentationBackend protocol + errors (the ONLY universal seam)
-│   │   ├── CatalogStoreAPI/         # CatalogStore protocol (where corpus resources live) [future]
+│   │   ├── CatalogStoreAPI/         # CatalogStore protocol (where embedded corpus bundles live)
 │   │   ├── AppCore/             # UI namespace + framework-agnostic RootModel
 │   │   ├── PresentationBridge/  # framework-neutral presentation state, trees, stable IDs
 │   │   #   (the MCP client, its Transport.Channel seam, and the subprocess transport
@@ -141,7 +141,7 @@ cupertino-desktop/
     └── DESIGN.md
 ```
 
-> Status: four Apple app variants exist today, the two macOS apps `CupertinoDesktopSwiftUI` / `CupertinoDesktopAppKit` (over `ShellSwiftUI` / `ShellAppKit`) and two adaptive mobile apps `CupertinoMobileSwiftUI` / `CupertinoMobileUIKit` (over `ShellSwiftUI` / `ShellUIKit`, each handling both iPhone and iPad rather than splitting per device). The framework browser, document reader, and search ship in all of them; macOS runs the live `Backend.LocalSubprocess` over `cupertino serve`, and the mobile apps run `Backend.LocalEmbedded` over the no-corpus mock path until Cupertino #1261 finishes the remaining embedded engine parity slices. The embedded adapter can consume CupertinoDataKit document, sample, symbol, and package reader slices, and `MobileBackendImpl` can inject the published `CupertinoDataEngine` facade. The rename to the idiom scheme above, the per-device split, Linux/Windows Qt, and catalog/app packaging remain future work (sections 5.3, 13).
+> Status: four Apple app variants exist today, the two macOS apps `CupertinoDesktopSwiftUI` / `CupertinoDesktopAppKit` (over `ShellSwiftUI` / `ShellAppKit`) and two adaptive mobile apps `CupertinoMobileSwiftUI` / `CupertinoMobileUIKit` (over `ShellSwiftUI` / `ShellUIKit`, each handling both iPhone and iPad rather than splitting per device). The framework browser, document reader, and search ship in all of them; macOS runs the live `Backend.LocalSubprocess` over `cupertino serve`, and the mobile apps run `Backend.LocalEmbedded` over the no-corpus mock path until live packaged-corpus smoke lands. The embedded adapter can consume CupertinoDataKit document, sample, symbol, and package reader slices, `MobileBackendImpl` can inject the published `CupertinoDataEngine` facade, and `CatalogStoreAPI` now resolves opaque corpus handles for embedded composition. The rename to the idiom scheme above, the per-device split, Linux/Windows Qt, and app packaging remain future work (sections 5.3, 13).
 
 Dependency direction is strictly one-way: **Foundation -> Infrastructure -> Features -> UI -> Apps**. Each app depends on exactly one UI variant package plus one backend `*Impl`; UI packages depend on Features/Core; nothing depends on Apps. The eight UI variants share one set of presentation values and view models, so iPhone-vs-iPad, UIKit-vs-SwiftUI, AppKit-vs-SwiftUI, Qt-vs-Apple, and Linux-vs-Windows Qt differences are purely presentational.
 
@@ -291,28 +291,34 @@ never sees them. No MCP, no JSON-RPC, no transport, no database handles, and no 
 
 **Upstream constraint (precise).** The published `CupertinoDataEngine` package now supplies
 the embedded read facade over Cupertino-owned readers. Desktop and mobile targets consume
-that facade only through `MobileBackend.live(engine:)` and `Backend.Documentation`; they
-never receive storage paths, database handles, or concrete reader types. The remaining
-Cupertino-side blocker is #1261's public parity path beyond the v0.2.2 source-corpus
-slice: samples, packages, and complete production construction still need to move behind
-public engine APIs. The remaining app-side work is catalog resolution (downloaded or
-bundled corpus) and per-platform app packaging, wired only after Cupertino can vend the
-needed engine surfaces without SPI.
+that facade only through `MobileBackend.live(engine:)`, `MobileBackend.live(catalogStore:)`,
+and `Backend.Documentation`; they never receive database file names, database handles,
+schemas, or concrete reader types. The remaining Cupertino-side blocker is #1261's live
+packaged-corpus smoke against the current release corpus. The remaining app-side work is
+concrete catalog stores and per-platform app packaging.
 
 ### 5.4 Backend selection is itself by protocol
 
 No package hard-codes which adapter it uses. The choice lives only in the `*Impl` composition packages, which an app target picks:
 
 - **`MacBackendImpl`** = `Backend.LocalSubprocess(MCPClient(Transport.Subprocess(...)))`, wiring the kit's client and subprocess channel into the adapter.
-- **`LocalEmbeddedBackendImpl`** = `MobileBackend.live(engine:)` over `CupertinoDataEngine`, used by iPhone, iPad, Linux Qt, and Windows Qt once Cupertino #1261 exposes the remaining public engine construction surfaces.
+- **`LocalEmbeddedBackendImpl`** = `MobileBackend.live(catalogStore:)` over `CupertinoDataEngine`, used by iPhone, iPad, Linux Qt, and Windows Qt once concrete catalog stores and app packaging are added.
 
 ### 5.5 Where the corpus lives on embedded targets (`CatalogStore`)
 
-On macOS the corpus sits in the user's home directory, populated by `cupertino fetch`/`save`, and only the subprocess touches it. On iPhone, iPad, Linux, and Windows, the app resolves a downloaded or bundled corpus for Cupertino's embedded engine. `LocalEmbeddedBackend` itself does not receive storage paths or open storage; it receives CupertinoDataKit reader protocols from the composition root.
+On macOS the corpus sits in the user's home directory, populated by `cupertino fetch`/`save`, and only the subprocess touches it. On iPhone, iPad, Linux, and Windows, the app resolves a downloaded or bundled corpus for Cupertino's embedded engine. `LocalEmbeddedBackend` itself does not receive database file paths or open storage; it receives CupertinoDataKit reader protocols from the composition root.
 
 ```swift
-public protocol CatalogStore: Sendable {
-    func corpusLocation() async throws -> CatalogLocation
+public enum Catalog {}
+
+public extension Catalog {
+    protocol Store: Sendable {
+        func currentCorpus() async throws -> CorpusHandle
+    }
+
+    struct CorpusHandle: Sendable, Hashable {
+        public let bundleURL: URL
+    }
 }
 ```
 
@@ -395,6 +401,6 @@ target is planned: the fixed framework matrix is the product showcase.
 - **M4 (Samples)**: `Backend.LocalEmbedded` already maps `Sample.Index.Reader`; next UI step is `list_samples` -> `read_sample` tree -> `read_sample_file` code viewer.
 - **M5 (Symbols & polish)**: `Backend.LocalEmbedded` already maps `Search.SymbolReading`; next UI step is `get_inheritance` / conformances related panel, connection-status UX, empty/first-run states, error handling.
 - **M6 (Compare & decide, macOS)**: evaluate `macAppKit` vs `macSwiftUI` over the same `MacBackendImpl`, pick one or keep both, delete any losing target.
-- **M7 (Embedded engine)**: `CupertinoDataEngine` is published and `MobileBackendImpl` can inject it as the composed document/symbol facade for iPhone, iPad, Linux, and Windows. Remaining work is Cupertino #1261's sample/package/full parity construction path, then catalog resolution and app packaging. There is **no** macOS-embedded path: the macOS app stays on the brew-binary subprocess by design.
+- **M7 (Embedded engine)**: `CupertinoDataEngine` is published and `MobileBackendImpl` can inject it as the composed document/symbol facade for iPhone, iPad, Linux, and Windows. `CatalogStoreAPI` now resolves opaque corpus handles for embedded composition. Remaining work is live packaged-corpus smoke, concrete catalog stores, and app packaging. There is **no** macOS-embedded path: the macOS app stays on the brew-binary subprocess by design.
 - **M8 (Split Apple mobile apps)**: ship the four iPhone/iPad variants over `LocalEmbeddedBackendImpl` as distinct targets: `CupertinoiPhoneUIKit`, `CupertinoiPhoneSwiftUI`, `CupertinoiPadUIKit`, `CupertinoiPadSwiftUI`. iPhone and iPad are deliberately different UIs over the shared view models.
 - **M9 (Qt desktop apps)**: ship `CupertinoLinuxQt` over `ShellLinuxQt` and `CupertinoWindowsQt` over `ShellWindowsQt`, both using `LocalEmbeddedBackendImpl`. Qt is the native Linux/Windows UI and both apps are local-only over a downloaded or bundled Cupertino corpus.

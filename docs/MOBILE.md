@@ -85,24 +85,20 @@ the same gate used for the MCP extractions. `CupertinoDataEngine` is the larger 
 decoupling the read engine from cupertino's server, CLI, and indexer with no iOS-hostile
 dependencies.
 
-`CupertinoDataKit` is not new types. cupertino's read contract already lives inside its
-`SearchModels` target as the `Search.Database` protocol and its value types. cupertino
-**moves** that whole contract out into `CupertinoDataKit` as the single source of truth and
-re-exports it from `SearchModels` (the `SwiftMCPCore` carve-out pattern), so there is one
-definition, never a mirror kept in sync by a bridge. The carve-out is cupertino's to
-execute; this app only consumes the published package, and **the package itself is the
-definitive statement of the shapes** (the exact protocol and value types are finalized
-there, not in any prose here).
+`CupertinoDataKit` is not a mirror of this app's types. cupertino's read contract moved
+out into `CupertinoDataKit` as the single source of truth and is consumed by both
+cupertino and `CupertinoDataEngine`, so there is one definition, never a bridge kept in
+sync by prose here. This app only consumes the published package.
 
 **Version shape:** `CupertinoDataKit` v0.1.0 moved cupertino's original read contract
 into the external package; v0.2.0 added document browsing (`Search.DocumentBrowsing`);
 and v0.3.0 added package search (`Search.PackagesSearcher`). `CupertinoDataEngine`
-v0.2.2 is the current embedded facade consumed here: it supports downstream previews
-and composition tests through a public empty-facade initializer, and adds the first
-public source-corpus construction slice. Samples, packages, and the complete production
-parity path remain upstream #1261 work. It is the full surface rather than a trimmed
-subset on purpose: one package to test in isolation and to extend in one place, with no
-drift between a public subset and an internal protocol.
+v0.2.4 is the current embedded facade consumed here: it supports downstream previews,
+complete current-corpus construction through an opaque corpus handle, and sample/package
+reader slices behind Cupertino-owned implementation. Live packaged-corpus smoke remains
+upstream #1261 work. It is the full surface rather than a trimmed subset on purpose:
+one package to test in isolation and to extend in one place, with no drift between a
+public subset and an internal protocol.
 
 ## MobileData
 
@@ -110,8 +106,9 @@ The desktop-side wiring for the embedded path, and the only part of it this app 
 does **not** reimplement the engine; it accepts the external `CupertinoDataEngine` facade
 through `MobileBackend.live(engine:)` and surfaces it through `LocalEmbeddedBackend`, which
 maps the `CupertinoDataKit` results into `AppModels`. The real corpus-backed construction
-path is still Cupertino #1261 work; once Cupertino vends that public path, this app
-supplies only corpus delivery through `CatalogStore` and the adapter mapping.
+path now flows through `MobileBackend.live(catalogStore:)`: this app supplies only corpus
+delivery through `CatalogStoreAPI`, and CupertinoDataEngine owns file naming, schema
+validation, and reader construction.
 
 ## Relationship to the existing design
 
@@ -123,8 +120,8 @@ The two backend localities remain peers over the one `Backend.Documentation` sea
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
 - `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
-  process via `MobileBackend.live(engine:)`; real local catalog wiring starts after
-  Cupertino #1261 exposes public corpus-backed engine construction.
+  process via `MobileBackend.live(engine:)` or opens a catalog-resolved corpus through
+  `MobileBackend.live(catalogStore:)`.
 
 ## UI variants
 
@@ -150,12 +147,12 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   the accepted target is four distinct iPhone/iPad shells and app schemes, per
   [UI-DESIGN.md](UI-DESIGN.md) and
   [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
-- **`CupertinoDataEngine` facade published and consumed.** v0.2.2 is on GitHub
+- **`CupertinoDataEngine` facade published and consumed.** v0.2.4 is on GitHub
   (cupertino-owned, tagged). `MobileBackend.live(engine:)` injects the engine itself as
   the composed document/symbol facade and borrows optional sample/package reader slices
-  from it. Storage paths and concrete storage readers remain Cupertino-owned details;
-  sample/package construction and complete production parity are still tracked by
-  Cupertino #1261.
+  from it. `MobileBackend.live(catalogStore:)` opens the engine from a
+  `Catalog.CorpusHandle`. Concrete storage readers remain Cupertino-owned details; live
+  packaged-corpus smoke is still tracked by Cupertino #1261.
 - **The mock remains the no-corpus development source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

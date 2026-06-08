@@ -1,4 +1,5 @@
 import BackendAPI
+import CatalogStoreAPI
 import CupertinoDataEngine
 import CupertinoDataKit
 import LocalEmbeddedBackend
@@ -10,8 +11,21 @@ import LocalEmbeddedBackend
 /// optionally paired with `Search.SymbolReading`, `Sample.Index.Reader`, and
 /// `Search.PackagesSearcher`). App targets get back an opaque
 /// `any Backend.Documentation` and never see CupertinoDataKit, CupertinoDataEngine,
-/// storage paths, or the `cupertino` package.
+/// database file names, reader handles, or the `cupertino` package.
 public enum MobileBackend {
+    /// Build the mobile backend from a catalog store. The catalog resolves where the
+    /// corpus bundle is; CupertinoDataEngine owns file naming, schema checks, and readers.
+    public static func live(catalogStore: any Catalog.Store) async throws -> any Backend.Documentation {
+        let corpus = try await catalogStore.currentCorpus()
+        return try await live(corpus: corpus)
+    }
+
+    /// Build the mobile backend from an opaque corpus handle.
+    public static func live(corpus: Catalog.CorpusHandle) async throws -> any Backend.Documentation {
+        let engine = try await CupertinoDataEngine(corpus: .current(at: corpus.bundleURL))
+        return await live(engine: engine)
+    }
+
     /// Build the mobile backend over Cupertino's embedded engine facade.
     public static func live(engine: CupertinoDataEngine) async -> any Backend.Documentation {
         let sampleReader = try? await engine.samples()

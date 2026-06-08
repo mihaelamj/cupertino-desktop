@@ -33,6 +33,7 @@ let products: [Product] = [
     // API / seam
     .singleTargetLibrary("AppModels"),
     .singleTargetLibrary("BackendAPI"),
+    .singleTargetLibrary("CatalogStoreAPI"),
     .singleTargetLibrary("AppCore"),
     .singleTargetLibrary("PresentationBridge"),
     // Concrete
@@ -83,13 +84,14 @@ let targets: [Target] = {
     // ---------- API / seam packages (protocols + value types only) ----------
     let models = Target.target(name: "AppModels")
     let backendAPI = Target.target(name: "BackendAPI", dependencies: ["AppModels"])
+    let catalogStoreAPI = Target.target(name: "CatalogStoreAPI")
     // AppCore holds the UI/Feature namespace anchors + the framework-agnostic
     // RootModel. It does not own the backend seam (that is BackendAPI).
     let core = Target.target(name: "AppCore")
     // PresentationBridge holds pure presentation values shared by feature view
     // models and all native shells. It is data and state only, never widgets.
     let presentationBridge = Target.target(name: "PresentationBridge", dependencies: ["AppModels"])
-    let api = [models, backendAPI, core, presentationBridge]
+    let api = [models, backendAPI, catalogStoreAPI, core, presentationBridge]
 
     // ---------- Concrete packages (import only API packages) ----------
     // The subprocess adapter depends on the client seam (SwiftMCPClientAPI), not
@@ -164,7 +166,7 @@ let targets: [Target] = {
     )
     let mobileBackendImpl = Target.target(
         name: "MobileBackendImpl",
-        dependencies: ["BackendAPI", "LocalEmbeddedBackend", dataKitProduct, dataEngineProduct],
+        dependencies: ["BackendAPI", "CatalogStoreAPI", "LocalEmbeddedBackend", dataKitProduct, dataEngineProduct],
         resources: [.process("Resources")],
     )
     let impl = [macBackendImpl, mobileBackendImpl]
@@ -190,7 +192,20 @@ let targets: [Target] = {
     )
     let backendTests = Target.testTarget(
         name: "BackendScaffoldTests",
-        dependencies: ["MacBackendImpl", "MobileBackendImpl", "LocalSubprocessBackend", kitProduct("SwiftMCPClientAPI"), dataEngineProduct, "BackendAPI", "AppModels"],
+        dependencies: [
+            "MacBackendImpl",
+            "MobileBackendImpl",
+            "LocalSubprocessBackend",
+            kitProduct("SwiftMCPClientAPI"),
+            dataEngineProduct,
+            "BackendAPI",
+            "CatalogStoreAPI",
+            "AppModels",
+        ],
+    )
+    let catalogStoreAPITests = Target.testTarget(
+        name: "CatalogStoreAPITests",
+        dependencies: ["CatalogStoreAPI"],
     )
     let localSubprocessTests = Target.testTarget(
         name: "LocalSubprocessBackendTests",
@@ -227,7 +242,18 @@ let targets: [Target] = {
     )
 
     return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
-        + [coreTests, frameworkBrowserTests, backendTests, localSubprocessTests, localEmbeddedTests, searchFeatureTests, markdownTests, appModelsTests, presentationBridgeTests]
+        + [
+            coreTests,
+            frameworkBrowserTests,
+            backendTests,
+            catalogStoreAPITests,
+            localSubprocessTests,
+            localEmbeddedTests,
+            searchFeatureTests,
+            markdownTests,
+            appModelsTests,
+            presentationBridgeTests,
+        ]
 }()
 
 let package = Package(
@@ -252,10 +278,10 @@ let package = Package(
         ),
         // cupertino's embedded read engine facade. Mobile/Linux/Windows composition
         // code injects this into LocalEmbeddedBackend; UI packages never import it.
-        // v0.2.2 adds the first public source-corpus construction slice.
+        // v0.2.4 adds the opaque corpus handle for current Cupertino corpus bundles.
         .package(
             url: "https://github.com/mihaelamj/CupertinoDataEngine.git",
-            from: "0.2.2",
+            from: "0.2.4",
         ),
         // GFM parser for the document renderer (the DocC parser; pure Swift, cmark-based,
         // no SwiftSyntax, no JS). Its module is named `Markdown`, which clashes with our

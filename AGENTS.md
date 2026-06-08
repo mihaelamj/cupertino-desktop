@@ -13,24 +13,28 @@ depend on you having read them.
 
 ## What Cupertino Desktop is
 
-A **native macOS app for browsing Apple developer documentation, Swift Evolution,
-and sample code offline**. It is a thin GUI client over the
-[`cupertino`](https://github.com/mihaelamj/cupertino) MCP server: it spawns
-`cupertino serve` as a subprocess and calls it over stdio through the `MCPClient`
-library. Search, indexing, and storage live in the server, not here.
+A native UI showcase for browsing Apple developer documentation, Swift Evolution,
+and sample code offline across macOS, iPhone, iPad, Linux, and Windows. macOS is a thin GUI
+client over the [`cupertino`](https://github.com/mihaelamj/cupertino) MCP server:
+it spawns `cupertino serve` as a subprocess and calls it over stdio through the
+`MCPClient` library. iPhone, iPad, Linux, and Windows use a local embedded read engine over
+downloaded or bundled databases. There is no remote backend. Search, indexing, and
+storage live in Cupertino-owned engine code, not here.
 
-The repo ships **two app targets in parallel, SwiftUI and AppKit**, over one shared
-backend, to compare the two approaches before committing to one. A native iOS
-variant is a possible future concern. Types are namespaced under short per-module
-semantic anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`), with no
-project-name root prefix. Target: macOS 15+, Swift 6.2+, Xcode 16+. See
-[docs/DESIGN.md](docs/DESIGN.md).
+The repo ships a fixed native framework matrix: macOS SwiftUI/AppKit, iPhone
+SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt. These are showcase variants, not
+options to collapse into one winner. No variant may be satisfied by hosting one
+framework inside another. Types are namespaced under short per-module semantic
+anchors (`Model`, `Backend`, `Feature`, `UI`, `Markdown`), with no project-name
+root prefix. Target: macOS 15+, iOS 17+, Linux/Windows Qt, Swift 6.2+, Xcode 16+. See
+[docs/DESIGN.md](docs/DESIGN.md) and
+[docs/decisions/fixed-native-ui-matrix.md](docs/decisions/fixed-native-ui-matrix.md).
 
 ## Language policy
 
-Swift for everything. Documentation content comes back from the server as
-markdown/text and is rendered natively (AttributedString, or WebKit for richer
-HTML). There is no web output, no client-side scripting, and no JavaScript in build
+Swift for shared Apple/core code. Qt is the fixed Linux and Windows UI framework. Documentation
+content comes back from the server or embedded engine as markdown/text and is rendered
+natively. There is no web output, no client-side scripting, and no JavaScript in build
 logic or tooling.
 
 ## Rules
@@ -48,7 +52,7 @@ writing code and match what is there.
 - [docs/rules/testing.md](docs/rules/testing.md) and
   [docs/rules/verification.md](docs/rules/verification.md)
 
-**Read these for UI work (both app targets exist from day one):**
+**Read these for UI work (native framework matrix, no hosting shortcuts):**
 
 - [docs/rules/views.md](docs/rules/views.md) and
   [docs/rules/view-models.md](docs/rules/view-models.md)
@@ -62,10 +66,9 @@ package set (package-structure, package-architecture, package-import-contract,
 shared-protocols, cross-platform) once the `Packages/` workspace lands. The index is
 [docs/rules/README.md](docs/rules/README.md).
 
-> Note: `linux-server.md` does not apply to this repo. There is no Linux product
-> here; the MCP server is the separate `cupertino` repo. Cross-platform concerns are
-> Apple-only (macOS now, iOS later) and reduce to sharing logic across the SwiftUI
-> and AppKit targets.
+> Note: `linux-server.md` server rules do not apply to this repo. There are Linux and
+> Windows Qt UI targets in the accepted design, but no Linux/Windows server product.
+> Cross-platform concerns are the shared core, the local embedded engine, and the native UI matrix.
 
 ## Working with the maintainer
 

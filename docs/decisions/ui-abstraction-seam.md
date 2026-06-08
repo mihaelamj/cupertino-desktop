@@ -1,17 +1,18 @@
-# Decision: where the UI abstraction seam sits across SwiftUI, UIKit, and AppKit
+# Decision: where the UI abstraction seam sits across SwiftUI, UIKit, AppKit, and Qt
 
 **Status:** Accepted (records existing practice and its research grounding).
 **Date:** 2026-06-08. Revised the same day with primary-source citations and a code
 audit (see "Code audit" below).
-**Anchors:** [DESIGN.md §4 "UI layer (six parallel, fully native variants)"](../DESIGN.md)
+**Anchors:** [DESIGN.md §4 "UI layer (eight parallel, fully native variants)"](../DESIGN.md)
 and its "Building the variants in parallel is a seam-discovery method" subsection;
 [UI-DESIGN.md §1 "Targets and shells"](../UI-DESIGN.md);
+[fixed-native-ui-matrix.md](fixed-native-ui-matrix.md);
 [rules/shared-protocols.md](../rules/shared-protocols.md).
 
 ## Context
 
 The repo ships the same app over multiple native UI frameworks (SwiftUI, UIKit,
-AppKit) and idioms (Mac, iPhone, iPad). The recurring design question is: at what
+AppKit, Qt) and idioms (Mac, iPhone, iPad, Linux, Windows). The recurring design question is: at what
 layer do the frameworks become "the same thing," and how much of the view should
 be shared rather than written once per framework?
 
@@ -31,23 +32,26 @@ each time the proposal returns.
 We abstract **task, dialogue, and domain data** up into the shared layer, and we
 hand-write the **concrete widgets** natively, once per framework. Concretely:
 
-- The shared, framework-agnostic seam is the `@Observable` feature view models
-  (`Feature.*.ViewModel`) plus the value types in `AppModels`. These hold all state
-  and behavior and reference no control type. `Feature.Search.ViewModel` exposes
+- The shared, framework-agnostic seam is `PresentationBridge`, the `@Observable`
+  feature view models (`Feature.*.ViewModel`), and the value types in `AppModels`.
+  These hold all state and behavior and reference no control type. `Feature.Search.ViewModel` exposes
   `text`, `scope`, `sources`, `run()`, `toggle(_:)`; it does not know a search bar
   exists.
 - Data that is genuinely modality-neutral is shared as **data**, not as an abstract
-  widget. `Feature.Search.ResultNode` (`{ id, title, subtitle?, children }`) is a
-  domain tree, not a tree-view control; `MarkdownRendering` emits a themed
+  widget. `Presentation.SearchResultNode` (`{ id, title, subtitle?, children }`) is
+  a domain tree, not a tree-view control; `MarkdownRendering` emits a themed
   `AttributedString`, not a document-view control.
 - Each shell owns its own native widget and binds it to that contract. The search
-  field is `NSSearchField` / `UISearchController` / `.searchable` in the three
-  frameworks; the tree is `NSOutlineView` / a collection-view outline / `OutlineGroup`.
-  None of these is named or described by the shared layer.
+  field is `NSSearchField` / `UISearchController` / `.searchable` / a Qt search
+  widget in the concrete frameworks; the tree is `NSOutlineView` / a UIKit outline
+  list / `OutlineGroup` / `QAbstractItemModel` plus Qt views. None of these is named
+  or described by the shared layer.
 
 We do **not** introduce a shared abstract-widget layer (no shared `SearchBar`, no
-"virtual toolkit" of logical controls reified per framework). Writing each view
-three times is accepted as the price of keeping every shell fully idiomatic.
+"virtual toolkit" of logical controls reified per framework). Writing each view once
+per native shell is accepted as the price of keeping every shell fully idiomatic.
+The fixed showcase matrix also forbids hosting shortcuts: no SwiftUI hosted inside
+UIKit/AppKit, no UIKit/AppKit wrapped to satisfy SwiftUI, and no non-Qt Linux/Windows UI.
 
 ## Research grounding
 
@@ -116,8 +120,8 @@ above.
 | Functional Core | Domain | `AppModels` + the `cupertino` server |
 | Functional Core Adapter | (adapter) | `Backend.Documentation` protocol + its adapters |
 | Dialogue Component (toolkit-independent) | Abstract UI | `Feature.*.ViewModel` (`run`, `toggle`, `select`) |
-| Logical Presentation (as data, not widgets) | Abstract UI | `Feature.Search.ResultNode`, `Search.State`, `Model.DocHit`, the `MarkdownRendering` `AttributedString` |
-| Interaction Toolkit Component | Concrete / Final UI | `ShellSwiftUI` / `ShellUIKit` / `ShellAppKit` native views |
+| Logical Presentation (as data, not widgets) | Abstract UI | `PresentationBridge` (`Presentation.SearchResultNode`, `Presentation.LoadState`), `Model.DocHit`, the `MarkdownRendering` `AttributedString` |
+| Interaction Toolkit Component | Concrete / Final UI | `ShellMacSwiftUI`, `ShellMacAppKit`, `ShelliPhoneSwiftUI`, `ShelliPhoneUIKit`, `ShelliPadSwiftUI`, `ShelliPadUIKit`, `ShellLinuxQt`, `ShellWindowsQt` native views |
 
 ## Code audit (2026-06-08)
 
@@ -137,8 +141,8 @@ The patterns above were checked against the actual sources, not assumed:
   the Fowler synchronization tradeoff instantiated: the SwiftUI shell pays no manual
   sync, the AppKit/UIKit shells are deliberately the dumbest possible view. The
   asymmetry in shell thickness is the pattern working, not a defect to normalize.
-- **`ResultNode` is load-bearing for Docs-scope search (#51).** `Feature.Search.ResultNode` is a
-  recursive `Hashable, Identifiable` tree; `resultTree(docs:)` groups one level (framework to
+- **`SearchResultNode` is load-bearing for Docs-scope search (#51).** `Presentation.SearchResultNode` is a
+  recursive `Hashable, Identifiable` tree; `Presentation.SearchResultTree.make(docs:)` groups one level (framework to
   hits) and all three search shells reify `docsTree` natively. The framework browser tree
   (#49/#50) is still unwired, so the "grow the Logical Presentation as data" consequence
   below remains latent for browse.
@@ -157,7 +161,7 @@ The patterns above were checked against the actual sources, not assumed:
 
 ## Consequences
 
-- Each view is written once per framework. This is slower than sharing a widget
+- Each view is written once per native shell. This is slower than sharing a widget
   layer, and it is the accepted cost of a high ceiling: 30 years of model-based UI
   evaluation says you cannot get good native UI from generation.
 - The shared **Logical Presentation may grow, but only as data.** Adding more
@@ -168,7 +172,7 @@ The patterns above were checked against the actual sources, not assumed:
 - The shared layer must **not** grow an abstract *widget* layer. A proposed shared
   `SearchBar`/`TreeView` control, or any "virtual toolkit" of logical widgets reified
   per framework, is rejected by this decision: it reproduces the abstract-widget
-  failure mode documented above, not three good native experiences. The guard from `shared-protocols.md` still applies: a seam that
+  failure mode documented above, not eight good native experiences. The guard from `shared-protocols.md` still applies: a seam that
   fits one framework but forces another into an unnatural shape belongs in the shells.
 
 ## When to revisit

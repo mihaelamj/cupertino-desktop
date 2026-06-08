@@ -3,8 +3,10 @@
 How the iPhone and iPad variants reach the documentation corpus, and the layering
 that gets them there without depending on the `cupertino` repository.
 
-See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path) and
-[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`).
+See also [DESIGN.md](DESIGN.md) (the backend seam and the macOS subprocess path),
+[PROTOCOL.md](PROTOCOL.md) (the per-verb mapping into `AppModels`), and
+[decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md) (the fixed
+native UI matrix).
 
 ## Why iOS is different
 
@@ -47,7 +49,8 @@ Two layers are extracted from cupertino into cupertino-owned external packages: 
 **`CupertinoDataKit`** contract and the **`CupertinoDataEngine`** implementation. This app
 owns only the thin parts (`CatalogStore`, `MobileData`, `LocalEmbeddedBackend`). Everything
 above the `Backend.Documentation` seam is identical to the macOS path; only the *locality*
-of the backend differs (out-of-process subprocess on macOS, in-process embedded on iOS).
+of the backend differs (out-of-process subprocess on macOS, in-process embedded on
+iPhone/iPad and Qt desktop targets).
 
 ## CupertinoDataKit
 
@@ -67,9 +70,10 @@ It is conformed **two ways, both extracted from cupertino and both cupertino-own
 - **cupertino (server)** conforms to it with the full FTS-SQLite engine over the full
   corpus. The macOS desktop reaches that implementation over MCP through the subprocess.
 - **`CupertinoDataEngine`** is cupertino's read engine **extracted and made
-  iOS-buildable**, a separate external package that conforms to `CupertinoDataKit` and runs
-  in process. The iOS app embeds it. The desktop does not reimplement the engine; it
-  consumes cupertino's.
+  app-embeddable**, a separate external package that conforms to `CupertinoDataKit` and
+  runs in process. The iPhone/iPad apps embed it; the Linux and Windows Qt apps use the
+  same local embedded family. The desktop app does not reimplement the engine; it consumes
+  cupertino's.
 
 Neither depends on the other; both depend only on the `CupertinoDataKit` protocols.
 **cupertino owns both `CupertinoDataKit` and `CupertinoDataEngine`:** they are cupertino's
@@ -114,11 +118,12 @@ and `CupertinoDataEngine` package, both versioned, and adds only its own `Mobile
 The two backend localities remain peers over the one `Backend.Documentation` seam:
 
 - `Backend.LocalSubprocess` (macOS): drives the Homebrew `cupertino` binary over MCP.
-- `Backend.LocalEmbedded` (iOS): embeds `CupertinoDataEngine` in process via `MobileData`.
+- `Backend.LocalEmbedded` (iPhone/iPad/Linux/Windows): embeds `CupertinoDataEngine` in
+  process via local catalog wiring.
 
 ## UI variants
 
-The iOS UI ships as distinct native variants per the six-variant plan in
+The iOS UI ships as distinct native variants per the eight-variant plan in
 [DESIGN.md](DESIGN.md): `ShelliPhoneSwiftUI`, `ShelliPhoneUIKit`, `ShelliPadSwiftUI`,
 `ShelliPadUIKit`. iPhone and iPad are deliberately different presentations, not one
 size-class-adaptive shell. All of them bind the same framework-agnostic view models
@@ -133,12 +138,13 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   tagged); this app depends on it by version and never on the `cupertino` repo. The
   embedded adapter `Backend.LocalEmbedded` conforms an injected
   `CupertinoDataKit.Search.DocumentReading` and maps results into `AppModels`.
-- **Two universal mobile apps ship today** over that seam: `CupertinoMobileSwiftUI`
-  (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over `ShellUIKit`), each a single
-  adaptive target handling iPhone (compact) and iPad (regular) idioms. This supersedes
-  the earlier four-device-specific-shell sketch; per-device behaviour is specified in
-  [UI-DESIGN.md](UI-DESIGN.md).
-- **`CupertinoDataEngine` (the real iOS read engine): designed and accepted, but
+- **Two adaptive mobile apps ship today** over that seam as legacy current state:
+  `CupertinoMobileSwiftUI` (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over
+  `ShellUIKit`), each handling iPhone and iPad idioms. This is not the final design:
+  the accepted target is four distinct iPhone/iPad shells and app schemes, per
+  [UI-DESIGN.md](UI-DESIGN.md) and
+  [decisions/fixed-native-ui-matrix.md](decisions/fixed-native-ui-matrix.md).
+- **`CupertinoDataEngine` (the real embedded read engine): designed and accepted, but
   implementation deferred to a future cupertino release** (maintainer decision, design
   doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
   over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a

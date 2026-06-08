@@ -4,7 +4,7 @@ Status: **canonical.** This is the protocol of record. `docs/DESIGN.md` referenc
 
 ## 0. The law (restated)
 
-Cupertino is a backend reached **only** through this protocol. We design the protocol for *us*: clean, typed, digestible. Every way of reaching cupertino, the local `cupertino serve` subprocess, the in-process embedded read path, or a future remote server, is an **adapter** that implements this protocol and is the **sole** place cupertino types or calls appear. Nothing above an adapter, no feature, view, or view model, ever imports cupertino. Only protocol calls. The package import contract enforces this mechanically: only adapter packages may depend on the `cupertino` package.
+Cupertino is a backend reached **only** through this protocol. We design the protocol for *us*: clean, typed, digestible. Every local way of reaching cupertino, the macOS `cupertino serve` subprocess or the in-process embedded read path, is an **adapter** that implements this protocol and is the **sole** place cupertino types or calls appear. There is no remote backend path. Nothing above an adapter, no feature, view, or view model, ever imports cupertino. Only protocol calls. The package import contract enforces this mechanically: only adapter packages may depend on the `cupertino` package.
 
 The protocol lives in `BackendAPI`; the value types in `AppModels`; both are dependency-free seam packages.
 

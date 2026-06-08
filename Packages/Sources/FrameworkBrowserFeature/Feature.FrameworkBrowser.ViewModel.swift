@@ -3,6 +3,7 @@ import AppModels
 import BackendAPI
 import Foundation
 import Observation
+import PresentationBridge
 
 public extension Feature.FrameworkBrowser {
     /// The framework sidebar's view model: loads `listFrameworks()` and exposes the
@@ -18,12 +19,7 @@ public extension Feature.FrameworkBrowser {
     final class ViewModel {
         /// Single source of truth for the load. An enum keeps invalid combinations
         /// (loading AND failed) unrepresentable (docs/rules/view-models.md).
-        public enum LoadState: Sendable {
-            case idle
-            case loading
-            case loaded([Model.Framework])
-            case failed(String)
-        }
+        public typealias LoadState = Presentation.LoadState<[Model.Framework]>
 
         public private(set) var state: LoadState = .idle
 

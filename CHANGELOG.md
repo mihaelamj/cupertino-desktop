@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `PresentationBridge`, a framework-neutral presentation layer between native
+  shells and feature view models. It currently owns reusable load state and the
+  logical Docs-scope search result tree, with tests and GitHub-rendered Mermaid
+  diagrams in the README.
 - M0 skeleton: the `Packages/` SPM package with the layered target tree, both
   `Apps/` targets (SwiftUI and AppKit) generated from XcodeGen `project.yml`, and
   `Main.xcworkspace`. The UI ships as parallel native packages `ShellSwiftUI` /

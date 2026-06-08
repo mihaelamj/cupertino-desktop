@@ -1,0 +1,11 @@
+flowchart LR
+    m0["M0 skeleton\nshipped"] --> m1["M1 backend seam\nshipped"]
+    m1 --> m2["M2 read path\nshipped"]
+    m2 --> m3["M3 search\nshipped"]
+    m3 --> bridge["PresentationBridge\nin progress"]
+    bridge --> nav["M4 navigation hierarchy\nactive"]
+    nav --> samples["Samples browser\nplanned"]
+    samples --> symbols["Code intelligence\nplanned"]
+    symbols --> embedded["Real embedded engine\nrequires cupertino refactor"]
+    embedded --> mobile["Split iPhone and iPad apps\nplanned"]
+    mobile --> qt["Linux and Windows Qt\nplanned"]

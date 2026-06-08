@@ -23,10 +23,10 @@ flowchart TB
 
     subgraph adapters["Local backend adapters"]
         subprocess["LocalSubprocess\nmacOS MCP subprocess"]
-        embedded["LocalEmbedded\nembedded read engine"]
+        embedded["LocalEmbedded\nembedded Cupertino reader"]
     end
 
-    cupertino["Cupertino corpus\nlocal databases"]
+    cupertino["Cupertino-owned engine\nlocal corpus"]
 
     macSwiftUI --> swiftuiShell
     phoneSwiftUI --> swiftuiShell

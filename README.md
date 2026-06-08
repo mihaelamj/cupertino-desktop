@@ -5,9 +5,9 @@ sample code offline across macOS, iPhone, iPad, Linux, and Windows. On the Mac i
 client over the [`cupertino`](https://github.com/mihaelamj/cupertino) MCP server: it
 spawns `cupertino serve` as a subprocess and talks to it over stdio via
 [`SwiftMCPClient`](https://github.com/mihaelamj/SwiftMCPClient). On iPhone, iPad, Linux,
-and Windows it uses an in-process embedded read engine over local downloaded or bundled
-databases. There is no remote backend path. Either way it does not reimplement search,
-indexing, crawling, or storage; Cupertino-owned engine code owns all of that.
+and Windows it uses an in-process Cupertino-owned embedded read engine over a downloaded
+or bundled corpus. There is no remote backend path. Either way it does not reimplement
+search, indexing, crawling, or storage; Cupertino-owned engine code owns all of that.
 
 The app reaches its backend only through a single `Backend.Documentation` protocol seam, so
 nothing in the UI knows whether it is MCP over a subprocess or an in-process engine.
@@ -40,12 +40,14 @@ Backends behind the seam:
   `listFrameworks`, `readDocument`, `searchDocs`, and `searchEverything`
   (see [docs/PROTOCOL.md](docs/PROTOCOL.md) section 4).
 - **iPhone/iPad** (SwiftUI and UIKit) runs `Backend.LocalEmbedded` over a bundled
-  real-data corpus captured from the cupertino index, pending the in-process
-  `CupertinoDataEngine`.
+  real-data corpus captured from the cupertino index. The adapter now consumes the
+  CupertinoDataKit document, sample, and symbol reader slices when an embedded engine
+  provides them.
 - **Linux/Windows Qt** is designed as local embedded-engine desktop targets. It is not implemented yet.
 
-Not yet implemented (still failing honestly behind the seam): the **sample-code browser**,
-**code intelligence** (symbols, conformances, inheritance), and the real embedded engine.
+Not yet implemented at the UI layer: the **sample-code browser** and **code intelligence**
+screens. Package search on the embedded path still fails honestly until CupertinoDataKit
+publishes a package-reader contract.
 
 Milestones are tracked in [docs/DESIGN.md](docs/DESIGN.md).
 
@@ -73,18 +75,20 @@ flowchart LR
     m0["M0 skeleton<br/>shipped"] --> m1["M1 backend seam<br/>shipped"]
     m1 --> m2["M2 read path<br/>shipped"]
     m2 --> m3["M3 search<br/>shipped"]
-    m3 --> bridge["PresentationBridge<br/>PR review"]
-    bridge --> nav["M4 navigation hierarchy<br/>active"]
-    nav --> samples["Samples browser<br/>planned"]
-    samples --> symbols["Code intelligence<br/>planned"]
-    symbols --> embedded["Real embedded engine<br/>requires cupertino refactor"]
+    m3 --> bridge["PresentationBridge<br/>shipped"]
+    bridge --> slices["Embedded samples + symbols<br/>adapter wired"]
+    slices --> nav["M4 navigation hierarchy<br/>active"]
+    nav --> samples["Samples UI<br/>planned"]
+    samples --> symbols["Code intelligence UI<br/>planned"]
+    symbols --> packageReader["Embedded package search<br/>needs Cupertino contract"]
+    packageReader --> embedded["Real embedded engine<br/>requires cupertino packaging"]
     embedded --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
 
-    class m0,m1,m2,m3 done
-    class bridge review
+    class m0,m1,m2,m3,bridge done
+    class slices partial
     class nav active
-    class samples,symbols,embedded,mobile,qt todo
+    class samples,symbols,packageReader,embedded,mobile,qt todo
 
     classDef done    fill:#34C759,color:#FFFFFF
     classDef review  fill:#30B0C7,color:#FFFFFF
@@ -122,10 +126,10 @@ flowchart TB
 
     subgraph adapters["Local backend adapters"]
         subprocess["LocalSubprocess<br/>macOS MCP subprocess"]
-        embedded["LocalEmbedded<br/>embedded read engine"]
+        embedded["LocalEmbedded<br/>embedded Cupertino reader"]
     end
 
-    cupertino["Cupertino corpus<br/>local databases"]
+    cupertino["Cupertino-owned engine<br/>local corpus"]
 
     macSwiftUI --> swiftuiShell
     phoneSwiftUI --> swiftuiShell

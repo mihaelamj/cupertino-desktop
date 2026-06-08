@@ -18,10 +18,10 @@ The framework matrix is fixed and every shell is native:
 | Platform / idiom | SwiftUI shell | Imperative/native shell | Backend |
 |---|---|---|---|
 | macOS | `ShellMacSwiftUI` | `ShellMacAppKit` | `Backend.LocalSubprocess` over local `cupertino serve` |
-| iPhone | `ShelliPhoneSwiftUI` | `ShelliPhoneUIKit` | `Backend.LocalEmbedded` over local databases |
-| iPad | `ShelliPadSwiftUI` | `ShelliPadUIKit` | `Backend.LocalEmbedded` over local databases |
-| Linux | n/a | `ShellLinuxQt` | `Backend.LocalEmbedded` over local databases |
-| Windows | n/a | `ShellWindowsQt` | `Backend.LocalEmbedded` over local databases |
+| iPhone | `ShelliPhoneSwiftUI` | `ShelliPhoneUIKit` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| iPad | `ShelliPadSwiftUI` | `ShelliPadUIKit` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| Linux | n/a | `ShellLinuxQt` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
+| Windows | n/a | `ShellWindowsQt` | `Backend.LocalEmbedded` over Cupertino's embedded reader |
 
 The current code still has legacy package/app names (`ShellSwiftUI`, `ShellUIKit`,
 `ShellAppKit`, `CupertinoMobileSwiftUI`, `CupertinoMobileUIKit`) and adaptive mobile
@@ -41,7 +41,7 @@ designed around the slowest one and degrades gracefully on the faster ones.
 |---|---|---|---|---|
 | `Backend.LocalSubprocess` (MCP over `cupertino serve`) | macOS | **High**: spawns a subprocess, performs the MCP `initialize` + `notifications/initialized` handshake. Seconds on a cold start. | **Variable**: stdio round-trip plus a server-side FTS query. Tens to hundreds of ms, occasionally more for large results. | subprocess fails to launch, handshake hang, decode error, server crash, timeout. |
 | `Backend.LocalEmbedded` + `MockReader` | iPhone/iPad today | None (in-memory JSON). | Effectively zero. | none in practice (a decode failure yields an empty corpus). |
-| `Backend.LocalEmbedded` + `CupertinoDataEngine` | iPhone/iPad/Linux/Windows planned | Low: open local read-only SQLite databases and assert their versions. | Low: single-digit to tens of ms; first query and very large result sets cost more. | corpus file missing, unreadable, stale, or download/cache failure. |
+| `Backend.LocalEmbedded` + `CupertinoDataEngine` | iPhone/iPad/Linux/Windows planned | Low: initialize Cupertino's local read engine and assert corpus compatibility. | Low: single-digit to tens of ms; first query and very large result sets cost more. | corpus file missing, unreadable, stale, or download/cache failure. |
 
 **Design rule:** treat every backend call as asynchronous and cancellable, show progress
 the moment a call is in flight, never block the whole window on one column's load, and
@@ -167,8 +167,8 @@ is real and variable; the UI must stay responsive and honest.
 | Framework browser | shipped | sidebar list of frameworks with document counts | one `listFrameworks()` at connect; the costly step on macOS is the connect itself (5.1). |
 | Document reader | shipped | detail renders the selected framework's document markdown | one `searchDocs` (scoped to the framework) then one `readDocument`; per-selection spinner and cancellation (5.2). |
 | Search | shipped | search field plus framework-grouped Docs results (Everything scope source-bucketed) feeding the reader; Docs scope (per-source, with framework and platform-minimum filters) and unified Everything scope (docs, samples, packages bucketed) | debounced, cancellable, superseding queries (5.3). |
-| Samples browser | planned | sample-project list plus a file reader | adopts `CupertinoDataKit.Sample.Index.Reader`; list and per-file reads each get a loading surface. |
-| Code intelligence | planned | symbol / conformance / inheritance results | adopts `Search.SymbolReading`; potentially large result sets, so paginate or cap and say so. |
+| Samples browser | backend wired, UI planned | sample-project list plus a file reader | `Backend.LocalEmbedded` adopts `CupertinoDataKit.Sample.Index.Reader`; list and per-file reads each get a loading surface. |
+| Code intelligence | backend wired, UI planned | symbol / conformance / inheritance results | `Backend.LocalEmbedded` adopts `Search.SymbolReading`; potentially large result sets, so paginate or cap and say so. |
 
 Planned features adopt the matching CupertinoDataKit slice at the backend seam and reuse
 the four state surfaces in section 4; none of them change the latency rules in section 5.

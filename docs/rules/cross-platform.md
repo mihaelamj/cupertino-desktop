@@ -11,8 +11,8 @@ Grounded in Swift Evolution and `swiftlang/swift-foundation`.
 > The shared core and embedded backend must stay portable enough for the Qt desktop
 > apps; Apple UI packages stay Apple-only; Qt code stays in its own shell. The core depends on
 > foundation-only protocols and value models, never on `#if` at call sites. MCP and
-> subprocess are macOS-only; iPhone, iPad, Linux, and Windows use the local embedded read
-> engine over local databases.
+> subprocess are macOS-only; iPhone, iPad, Linux, and Windows use the local embedded
+> Cupertino reader over a downloaded or bundled corpus.
 
 ## Linux/Windows portability and the platform seam (mandatory)
 

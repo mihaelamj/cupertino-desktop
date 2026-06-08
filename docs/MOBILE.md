@@ -26,9 +26,9 @@ playbook used for [`SwiftMCPCore`](https://github.com/mihaelamj/SwiftMCPCore) an
 ## The layering
 
 ```
-SQLite corpus                  the documentation databases (pure data)
+Cupertino corpus               downloaded or bundled data, opened only by Cupertino code
   │
-CatalogStore                   where the DBs come from (bundled vs downloadable)
+CatalogStore                   where the corpus comes from (bundled vs downloadable)
   │
 CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owned, external.
   │   conformed two ways, both extracted from cupertino, both cupertino-owned/published:
@@ -36,8 +36,8 @@ CupertinoDataKit               the read/data API, PROTOCOLS ONLY. cupertino-owne
   └── CupertinoDataEngine      cupertino's read engine extracted and made iOS-buildable; a
   │                            separate external package the iOS app embeds in process.
   │
-MobileData                     desktop-side wiring only: feeds CupertinoDataEngine a DB from a
-  │                            CatalogStore and surfaces it through the backend adapter.
+MobileData                     desktop-side wiring only: resolves the local corpus for
+  │                            CupertinoDataEngine and surfaces it through the backend adapter.
   │
 LocalEmbeddedBackend           maps CupertinoDataEngine results into AppModels.
   │
@@ -136,8 +136,10 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
 
 - **`CupertinoDataKit` published and consumed.** v0.1.0 is on GitHub (cupertino-owned,
   tagged); this app depends on it by version and never on the `cupertino` repo. The
-  embedded adapter `Backend.LocalEmbedded` conforms an injected
-  `CupertinoDataKit.Search.DocumentReading` and maps results into `AppModels`.
+  embedded adapter `Backend.LocalEmbedded` maps injected `Search.DocumentReading`,
+  `Search.SymbolReading`, and `Sample.Index.Reader` slices into `AppModels`. Package
+  search remains unsupported on the embedded path until CupertinoDataKit publishes a
+  package-reader protocol.
 - **Two adaptive mobile apps ship today** over that seam as legacy current state:
   `CupertinoMobileSwiftUI` (over `ShellSwiftUI`) and `CupertinoMobileUIKit` (over
   `ShellUIKit`), each handling iPhone and iPad idioms. This is not the final design:
@@ -148,8 +150,8 @@ itself at the second consumer (see the seam-discovery note in [DESIGN.md](DESIGN
   implementation deferred to a future cupertino release** (maintainer decision, design
   doc in cupertino PR #1186; read/write split via a Bridge, cross-source via a Composite
   over the contract types, read-only mode, sheds SwiftSyntax). When it ships it is just a
-  second implementation of the same `Search.Database` contract, added behind
-  `MobileBackend.live(dataSource:)` with no adapter change.
+  second implementation of the same reader contracts, added behind
+  `MobileBackend.live(dataSource:symbolReader:sampleReader:)` with no adapter change.
 - **Until then the mock is the iOS data source.** `MobileBackend.mock()` injects
   `MobileBackend.MockReader`, which is driven by `Resources/MockCorpus.json`: real
   framework names, real document counts, and real Apple documents (full page bodies, not

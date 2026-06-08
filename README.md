@@ -49,18 +49,49 @@ Not yet implemented (still failing honestly behind the seam): the **sample-code 
 
 Milestones are tracked in [docs/DESIGN.md](docs/DESIGN.md).
 
+Status color key:
+
+```mermaid
+flowchart LR
+    done["Done"]:::done
+    review["Review"]:::review
+    active["Active"]:::active
+    next["Next"]:::next
+    partial["Partial"]:::partial
+    todo["Todo"]:::todo
+
+    classDef done    fill:#34C759,color:#FFFFFF
+    classDef review  fill:#30B0C7,color:#FFFFFF
+    classDef active  fill:#007AFF,color:#FFFFFF
+    classDef next    fill:#5856D6,color:#FFFFFF
+    classDef partial fill:#FF9500,color:#FFFFFF
+    classDef todo    fill:#8E8E93,color:#FFFFFF
+```
+
 ```mermaid
 flowchart LR
     m0["M0 skeleton<br/>shipped"] --> m1["M1 backend seam<br/>shipped"]
     m1 --> m2["M2 read path<br/>shipped"]
     m2 --> m3["M3 search<br/>shipped"]
-    m3 --> bridge["PresentationBridge<br/>in progress"]
+    m3 --> bridge["PresentationBridge<br/>PR review"]
     bridge --> nav["M4 navigation hierarchy<br/>active"]
     nav --> samples["Samples browser<br/>planned"]
     samples --> symbols["Code intelligence<br/>planned"]
     symbols --> embedded["Real embedded engine<br/>requires cupertino refactor"]
     embedded --> mobile["Split iPhone and iPad apps<br/>planned"]
     mobile --> qt["Linux and Windows Qt<br/>planned"]
+
+    class m0,m1,m2,m3 done
+    class bridge review
+    class nav active
+    class samples,symbols,embedded,mobile,qt todo
+
+    classDef done    fill:#34C759,color:#FFFFFF
+    classDef review  fill:#30B0C7,color:#FFFFFF
+    classDef active  fill:#007AFF,color:#FFFFFF
+    classDef next    fill:#5856D6,color:#FFFFFF
+    classDef partial fill:#FF9500,color:#FFFFFF
+    classDef todo    fill:#8E8E93,color:#FFFFFF
 ```
 
 ## Architecture

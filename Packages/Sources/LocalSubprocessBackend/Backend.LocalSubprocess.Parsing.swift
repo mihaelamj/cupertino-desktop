@@ -21,7 +21,7 @@ extension Backend.LocalSubprocess {
         var arguments: [String: Client.Argument] = [
             "query": .string(query.text),
             "source": .string(source.scheme),
-            "limit": .int(min(100, max(1, query.limit))),
+            "limit": .int(min(100_000, max(1, query.limit))),
         ]
         if let framework = query.framework, !framework.isEmpty, framework != "samples", framework != "packages" {
             arguments["framework"] = .string(framework)
@@ -34,7 +34,7 @@ extension Backend.LocalSubprocess {
     static func unifiedArguments(_ query: Model.UnifiedQuery) -> [String: Client.Argument] {
         var arguments: [String: Client.Argument] = [
             "query": .string(query.text),
-            "limit": .int(min(100, max(1, query.limitPerSource))),
+            "limit": .int(min(100_000, max(1, query.limitPerSource))),
             "include_archive": .bool(true),
         ]
         if let framework = query.framework, !framework.isEmpty { arguments["framework"] = .string(framework) }

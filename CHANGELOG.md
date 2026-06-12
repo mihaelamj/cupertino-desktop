@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed document count limits when browsing frameworks in both embedded and subprocess backends. Dynamic hierarchy listings of large frameworks now request and retrieve up to 100,000 documents instead of being capped at 100.
 - Fixed orientation and size class adaptivity issues across SwiftUI and UIKit mobile shells. SwiftUI now uses a programmatic `NavigationPath` with value-based navigation links, and UIKit split view controller collapses correctly to the detail/secondary column when a framework is selected. Pop navigation events in compact mode correctly synchronize selection states back to the view model and root model.
 
 ### Added

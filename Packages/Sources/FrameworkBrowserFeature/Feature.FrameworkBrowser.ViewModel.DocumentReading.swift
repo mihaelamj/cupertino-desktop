@@ -84,7 +84,7 @@ public extension Feature.FrameworkBrowser.ViewModel {
 
             if selectedSource == nil {
                 let sources: Set<Model.Source> = [.appleDocs]
-                hits = try await backend.searchDocs(Model.DocsQuery(text: id, sources: sources, framework: id, limit: 100))
+                hits = try await backend.searchDocs(Model.DocsQuery(text: id, sources: sources, framework: id, limit: 100_000))
             } else {
                 let items = try await backend.listSourceHierarchy(source: currentSource, level: 2, parent: id)
                 hits = items.compactMap { item in

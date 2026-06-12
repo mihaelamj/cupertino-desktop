@@ -207,7 +207,7 @@ public extension Backend {
                 }
             } else if level == 2 {
                 guard let parent else { return [] }
-                let query = Model.DocsQuery(text: parent, sources: [source], framework: parent, limit: 100)
+                let query = Model.DocsQuery(text: parent, sources: [source], framework: parent, limit: 100_000)
                 let hits = try await searchDocs(query)
                 return hits.map { hit in
                     Model.HierarchyItem(

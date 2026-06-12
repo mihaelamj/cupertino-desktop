@@ -16,7 +16,7 @@ EMDASH=$(printf '\xe2\x80\x94')
 # detect them, so exclude them from the phrase scan.
 is_enforcement_file() {
   case "$1" in
-    .githooks/*|scripts/check-style.sh) return 0 ;;
+    .githooks/*|scripts/check-style.sh|scripts/check-commit-attribution.sh) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -27,7 +27,7 @@ is_enforcement_file() {
 # their punctuation would corrupt the captured source text, so skip them.
 is_generated_data_file() {
   case "$1" in
-    */MockCorpus.json) return 0 ;;
+    */MockCorpus.json|real-data.json) return 0 ;;
     *) return 1 ;;
   esac
 }

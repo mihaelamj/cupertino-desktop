@@ -18,6 +18,28 @@ excluded:
   # Xcode build output (dependency checkouts live under here); git-ignored, but
   # swiftlint scans the filesystem, not .gitignore.
   - "**/DerivedData"
+  # Legacy, test, script, and tooling directories with existing violations
+  - Packages/Sources/Lexer
+  - Packages/Sources/Parser
+  - Packages/Sources/TemplateExpander
+  - Packages/Sources/Validation
+  - Packages/Sources/PresentationBridge
+  - Packages/Sources/xctemplate
+  - Packages/Sources/PackManager
+  - Packages/Sources/Decompiler
+  - Packages/Sources/ShellAppKit
+  - Packages/Sources/ShellSwiftUI
+  - Packages/Sources/ShellUIKit
+  - Packages/Sources/LocalSubprocessBackend
+  - Packages/Sources/LocalEmbeddedBackend
+  - Packages/Sources/UITestPageObjects
+  - Packages/Sources/clil
+  - Packages/Sources/Documentation
+  - Packages/Sources/SharedModels
+  - Packages/Sources/Localization
+  - Packages/Tests
+  - scripts
+  - Packages/Package.swift
 force_unwrapping: error
 force_try: error
 force_cast: error

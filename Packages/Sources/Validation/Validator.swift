@@ -30,12 +30,6 @@ public struct Validator<Document> {
     }
 }
 
-/// The non-throwing recovery accessor's result: the validated document or the errors.
-public enum ValidationOutcome<Document> {
-    case valid(Document)
-    case invalid([ValidationError])
-}
-
 public extension Validator where Document == XcodeTemplateBundle {
     /// Every rule over the whole bundle walk; the inspect form. Dictionary children are
     /// visited in sorted key order so the error list is deterministic, same input same output.

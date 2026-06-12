@@ -1,8 +1,8 @@
 import AppCore
 import AppModels
 import CodeHighlighting
-import FrameworkBrowserFeature
 import MarkdownRendering
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -17,7 +17,7 @@ import MarkdownRendering
         /// `withObservationTracking`.
         @MainActor
         final class SelectionDetailViewController: NSViewController, NSTextViewDelegate {
-            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let frameworks: any Presentation.FrameworkBrowserViewModelProtocol
             private let scrollView = NSScrollView()
             private let textView = NSTextView()
             // The loading, empty, and error states all render through the native
@@ -25,7 +25,7 @@ import MarkdownRendering
             private let unavailable = UI.ContentUnavailableView()
             private let sizeControls = NSStackView()
 
-            init(frameworks: Feature.FrameworkBrowser.ViewModel) {
+            init(frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
             }
@@ -150,7 +150,12 @@ import MarkdownRendering
                 } else if let error = frameworks.documentError {
                     unavailable.show(systemImage: "exclamationmark.triangle", title: "Could not load document", message: error)
                 } else {
-                    unavailable.show(systemImage: "doc.text", title: "Select a framework")
+                    let emptyTitle = if let source = frameworks.selectedSource {
+                        "Select a \(source.singularItemTerm)"
+                    } else {
+                        "Select a database"
+                    }
+                    unavailable.show(systemImage: "doc.text", title: emptyTitle)
                 }
 
                 // The reader (and its text-size control) shows only with a loaded document;

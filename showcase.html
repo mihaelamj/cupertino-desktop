@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cupertino Layout & Interaction Language (CLIL) Showcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 30, 49, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #9b51e0;
+            --primary-glow: rgba(155, 81, 224, 0.4);
+            --secondary: #00f2fe;
+            --secondary-glow: rgba(0, 242, 254, 0.4);
+            --text-color: #e2e8f0;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.3);
+            --error: #ef4444;
+            --error-glow: rgba(239, 68, 68, 0.3);
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(155, 81, 224, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 242, 254, 0.1) 0%, transparent 40%);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff 30%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.03em;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto 3rem auto;
+        }
+
+        @media (max-width: 1100px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 2rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: border-color 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #ffffff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 0.75rem;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            height: 480px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #060913;
+        }
+
+        .editor-header {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .editor-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn.active {
+            color: var(--secondary);
+            background: rgba(0, 242, 254, 0.1);
+            border: 1px solid rgba(0, 242, 254, 0.15);
+        }
+
+        .editor-body {
+            display: flex;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .line-numbers {
+            width: 3.5rem;
+            padding: 1rem 0;
+            text-align: right;
+            padding-right: 0.75rem;
+            background: #04060d;
+            color: rgba(255, 255, 255, 0.15);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            user-select: none;
+            line-height: 1.5;
+        }
+
+        textarea.code-editor {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            padding: 1rem;
+            resize: none;
+            line-height: 1.5;
+            tab-size: 4;
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, var(--primary) 0%, #7b2cbf 100%);
+            border: none;
+            color: #ffffff;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--primary-glow);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px var(--primary-glow);
+        }
+
+        .btn-run:active {
+            transform: translateY(0);
+        }
+
+        /* Simulator Frame CSS */
+        .simulator-pane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 480px;
+            background: #05070c;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            padding: 2rem;
+            overflow: hidden;
+        }
+
+        .device-wrapper {
+            perspective: 1000px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Device Templates */
+        .device-body {
+            background: #1c1f26;
+            border: 8px solid #333945;
+            border-radius: 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* iPhone Sizing */
+        .device-body.iphone.portrait {
+            width: 250px;
+            height: 440px;
+        }
+        .device-body.iphone.landscape {
+            width: 440px;
+            height: 250px;
+        }
+
+        /* iPad Sizing */
+        .device-body.ipad.portrait {
+            width: 320px;
+            height: 420px;
+            border-radius: 24px;
+        }
+        .device-body.ipad.landscape {
+            width: 420px;
+            height: 320px;
+            border-radius: 24px;
+        }
+
+        /* Mac Sizing */
+        .device-body.mac {
+            width: 460px;
+            height: 290px;
+            border-radius: 12px;
+            border-width: 12px;
+            border-color: #2b303a;
+        }
+
+        .screen {
+            background: #0f121a;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            font-size: 0.75rem;
+        }
+
+        /* Screen Sub-elements */
+        .status-bar {
+            height: 20px;
+            background: #161a24;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .app-window {
+            flex-grow: 1;
+            display: flex;
+            position: relative;
+        }
+
+        /* Split View Layouts */
+        .sidebar {
+            width: 120px;
+            background: #181d28;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            display: none;
+        }
+
+        .sidebar-title {
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 8px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-item {
+            padding: 6px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar-item.active {
+            background: var(--primary-glow);
+            color: #ffffff;
+            border: 1px solid rgba(155, 81, 224, 0.3);
+        }
+
+        .main-pane {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0e1118;
+            position: relative;
+        }
+
+        .nav-header {
+            background: #141822;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .back-btn {
+            color: var(--secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .nav-content {
+            padding: 12px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .content-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .content-card.selected {
+            border-color: var(--secondary);
+            background: rgba(0, 242, 254, 0.05);
+        }
+
+        /* Terminal/Console Card */
+        .terminal-card {
+            grid-column: span 2;
+            background: #04060b;
+            border: 1px solid var(--card-border);
+            padding: 1.5rem;
+            border-radius: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 1100px) {
+            .terminal-card {
+                grid-column: span 1;
+            }
+        }
+
+        .terminal-title {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-lines {
+            height: 180px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            padding-right: 0.5rem;
+        }
+
+        .term-line {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .term-line.info { color: var(--text-muted); }
+        .term-line.success { color: var(--success); }
+        .term-line.error { color: var(--error); }
+        .term-line.warning { color: var(--warning); }
+        .term-line.input { color: var(--secondary); }
+
+        .term-timestamp {
+            color: rgba(255, 255, 255, 0.15);
+            user-select: none;
+        }
+
+        /* Sizing Badge */
+        .device-info-badge {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--secondary);
+            z-index: 10;
+        }
+
+        /* Documentation & Specifications Accordions */
+        .docs-section {
+            max-width: 1400px;
+            margin: 0 auto 3rem auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .accordion {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .accordion-header {
+            padding: 1.25rem 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.01);
+            user-select: none;
+        }
+
+        .accordion-header::after {
+            content: '▼';
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            transition: transform 0.3s ease;
+        }
+
+        .accordion.open .accordion-header::after {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            padding: 0 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s ease;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .accordion.open .accordion-content {
+            padding: 1.5rem;
+            max-height: 1200px;
+            overflow-y: auto;
+        }
+
+        .doc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .doc-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+        }
+
+        .doc-table th, .doc-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .doc-table th {
+            color: #ffffff;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .doc-table td {
+            color: var(--text-muted);
+        }
+
+        .doc-code-block {
+            background: #060913;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.25rem;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .doc-title-h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .doc-title-h3::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 14px;
+            background: var(--secondary);
+            border-radius: 2px;
+        }
+
+        .h-glow-text {
+            color: var(--secondary);
+            text-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+        }
+
+        /* CDSL vs CLL Comparison CSS */
+        .comparison-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto 2.5rem auto;
+        }
+        
+        @media (max-width: 900px) {
+            .comparison-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .comp-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        
+        .comp-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+        }
+        
+        .comp-card.cdsl::before {
+            background: linear-gradient(to bottom, var(--primary), #a29bfe);
+        }
+        
+        .comp-card.cll::before {
+            background: linear-gradient(to bottom, var(--secondary), #81ecec);
+        }
+        
+        .comp-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        
+        .comp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .comp-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .comp-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .comp-badge.cdsl {
+            background: rgba(155, 81, 224, 0.15);
+            color: #e0a7ff;
+            border: 1px solid rgba(155, 81, 224, 0.3);
+        }
+        
+        .comp-badge.cll {
+            background: rgba(0, 242, 254, 0.15);
+            color: #81ecec;
+            border: 1px solid rgba(0, 242, 254, 0.3);
+        }
+        
+        .comp-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+        
+        .comp-meta {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 0.6rem 1rem;
+            font-size: 0.88rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+        
+        .comp-meta-label {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        
+        .comp-meta-val {
+            color: var(--text-muted);
+        }
+        
+        .comp-snippet {
+            font-family: 'Fira Code', monospace;
+            background: #060913;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .comp-snippet-keyword {
+            color: var(--secondary);
+            font-weight: 700;
+        }
+        .comp-snippet-keyword-cdsl {
+            color: #d6a2e8;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="badge-container">
+            <span class="badge">CDSL & CLL Engine</span>
+            <span class="badge">Knuth-First Compiler</span>
+            <span class="badge">Apple HIG Adaptivity</span>
+        </div>
+        <h1>Cupertino Layout & Interaction Language</h1>
+        <p>Interactive playground showcasing Knuth-first parsing, LL(1) predictive grammars, and Apple HIG device state-layout transitions.</p>
+    </header>
+
+    <!-- CDSL vs CLL Difference Comparison Section -->
+    <div class="comparison-section">
+        <!-- CDSL Card -->
+        <div class="comp-card cdsl">
+            <div class="comp-header">
+                <div class="comp-title">🧠 Cupertino Data State Language</div> <!-- # style-check: allow -->
+                <span class="comp-badge cdsl">CDSL (State)</span>
+            </div>
+            <div class="comp-desc">
+                Operates **BEFORE the UI**. Drives the view models programmatically to test data loading, search debouncing, sorting, and state transitions without rendering widgets.
+            </div>
+            <div class="comp-meta">
+                <span class="comp-meta-label">Target Scope:</span>
+                <span class="comp-meta-val">View Model State (<code>vm</code>)</span>
+                
+                <span class="comp-meta-label">Core Keywords:</span>
+                <span class="comp-meta-val"><code>dispatch</code>, <code>await tasks</code>, <code>assert vm</code></span>
+                
+                <span class="comp-meta-label">Actions Tested:</span>
+                <span class="comp-meta-val">Search text entry, database source toggling, framework selection</span>
+                
+                <span class="comp-meta-label">Asynchrony:</span>
+                <span class="comp-meta-val">Asynchronous, coalesced, debounced task resolution</span>
+                
+                <span class="comp-meta-label">Example Syntax:</span>
+                <div class="comp-snippet" style="grid-column: span 2;"><span class="comp-snippet-keyword-cdsl">dispatch</span> search("Swift")
+<span class="comp-snippet-keyword-cdsl">await tasks</span>
+<span class="comp-snippet-keyword-cdsl">assert vm</span> isLoading == false
+<span class="comp-snippet-keyword-cdsl">assert vm</span> results contains "SwiftUI"</div>
+            </div>
+        </div>
+
+        <!-- CLL Card -->
+        <div class="comp-card cll">
+            <div class="comp-header">
+                <div class="comp-title">📱 Cupertino Layout Language</div>
+                <span class="comp-badge cll">CLL (Layout)</span>
+            </div>
+            <div class="comp-desc">
+                Acts as a **UI Mimic**. Represents visual layout changes, screen stack pushes/pops, column visibility, and HIG sizes class transitions driven by device profiles.
+            </div>
+            <div class="comp-meta">
+                <span class="comp-meta-label">Target Scope:</span>
+                <span class="comp-meta-val">Visual Layout Hierarchy (<code>ui</code>)</span>
+                
+                <span class="comp-meta-label">Core Keywords:</span>
+                <span class="comp-meta-val"><code>device</code>, <code>assert ui</code></span>
+                
+                <span class="comp-meta-label">Actions Tested:</span>
+                <span class="comp-meta-val">Device profiling, orientation rotation, size class adaptation</span>
+                
+                <span class="comp-meta-label">Asynchrony:</span>
+                <span class="comp-meta-val">Synchronous, immediate design/layout computations</span>
+                
+                <span class="comp-meta-label">Example Syntax:</span>
+                <div class="comp-snippet" style="grid-column: span 2;"><span class="comp-snippet-keyword">device</span> iPad <span class="comp-snippet-keyword">in</span> landscape <span class="comp-snippet-keyword">with</span> regular
+<span class="comp-snippet-keyword">assert ui</span> showsDetailPane == true
+<span class="comp-snippet-keyword">assert ui</span> activeView == "SplitView"</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <!-- Script Editor Card -->
+        <div class="glass-card">
+            <div class="card-title">
+                <span>📝 Interactive Script Editor</span>
+            </div>
+            
+            <div class="editor-container">
+                <div class="editor-header">
+                    <div class="editor-tabs">
+                        <button class="tab-btn active" onclick="loadScenario('iphone')">iPhone Stack</button>
+                        <button class="tab-btn" onclick="loadScenario('ipad')">iPad Orientation</button>
+                        <button class="tab-btn" onclick="loadScenario('mac')">Mac Search</button>
+                        <button class="tab-btn" onclick="loadScenario('e2e')">E2E Flow</button>
+                        <button class="tab-btn" onclick="loadScenario('phase1')">Phase 1: Boot</button>
+                        <button class="tab-btn" onclick="loadScenario('phase2')">Phase 2: Source</button>
+                        <button class="tab-btn" onclick="loadScenario('phase3')">Phase 3: Fw</button>
+                        <button class="tab-btn" onclick="loadScenario('phase4')">Phase 4: Reader</button>
+                        <button class="tab-btn" onclick="loadScenario('phase5')">Phase 5: Search</button>
+                        <button class="tab-btn" onclick="loadScenario('error')">Recovery</button>
+                    </div>
+                    <button class="btn-run" onclick="runScript()">
+                        <span>⚡ Run Script</span>
+                    </button>
+                </div>
+                <div class="editor-body">
+                    <div class="line-numbers" id="line-numbers"></div>
+                    <textarea class="code-editor" id="code-editor" spellcheck="false" onscroll="syncScroll()" oninput="updateLineNumbers()"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Simulator Card -->
+        <div class="glass-card">
+            <div class="card-title">
+                <span>📱 Device Sizing & Layout Mimic</span>
+            </div>
+            
+            <div class="simulator-pane">
+                <div class="device-wrapper" id="device-wrapper">
+                    <div class="device-body iphone portrait" id="device-body">
+                        <div class="screen">
+                            <div class="status-bar">
+                                <span id="sim-time">09:41</span>
+                                <span id="sim-connection">⚡ 100%</span>
+                            </div>
+                            <div class="app-window">
+                                <!-- Sidebar (Split view only) -->
+                                <div class="sidebar" id="sidebar">
+                                    <div class="sidebar-title">Sources</div>
+                                    <div class="sidebar-item" id="side-src-apple" onclick="simSelectSource('apple-docs')">🍏 Docs</div>
+                                    <div class="sidebar-item" id="side-src-samples" onclick="simSelectSource('samples')">📦 Samples</div>
+                                    <div class="sidebar-item" id="side-src-hig" onclick="simSelectSource('hig')">📐 HIG</div>
+                                    <div class="sidebar-item" id="side-src-archive" onclick="simSelectSource('apple-archive')">🏛️ Archive</div>
+                                    <div class="sidebar-item" id="side-src-evolution" onclick="simSelectSource('swift-evolution')">💡 Evolution</div>
+                                    <div class="sidebar-item" id="side-src-org" onclick="simSelectSource('swift-org')">🌐 Swift.org</div>
+                                    <div class="sidebar-item" id="side-src-book" onclick="simSelectSource('swift-book')">📖 Book</div>
+                                    <div class="sidebar-item" id="side-src-packages" onclick="simSelectSource('packages')">📦 Packages</div>
+                                </div>
+                                <!-- Main App Panel -->
+                                <div class="main-pane">
+                                    <div class="nav-header">
+                                        <span class="back-btn" id="back-btn" onclick="simGoBack()" style="display:none;">◀ Back</span>
+                                        <span id="nav-title">Databases</span>
+                                    </div>
+                                    <div class="nav-content" id="nav-content">
+                                        <!-- Dynamic simulator view elements -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="device-info-badge" id="device-info-badge">
+                    iPhone • Compact × Regular (Portrait)
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal/Console Output -->
+        <div class="terminal-card">
+            <div class="terminal-title">
+                <span>📟 Compiler Output & Interpreter Console</span>
+                <span id="term-status" style="color: var(--success);">READY</span>
+            </div>
+            <div class="terminal-lines" id="terminal-lines">
+                <div class="term-line info">
+                    <span class="term-timestamp">[07:06:27]</span>
+                    <span>Ready for script validation and compilation. Select a scenario and click Run Script.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentation & Specifications Accordions -->
+    <div class="docs-section">
+        <!-- Accordion 1: Grammars & Lookahead Sets -->
+        <div class="accordion" id="acc-grammar">
+            <div class="accordion-header" onclick="toggleAccordion('acc-grammar')">
+                <span>📐 Grammar EBNF & Computed LL(1) Lookaheads</span>
+            </div>
+            <div class="accordion-content">
+                <div class="doc-grid">
+                    <div>
+                        <h3 class="doc-title-h3">CDSL EBNF Grammar</h3>
+                        <pre class="doc-code-block">P  ::= S P | ε
+S  ::= D | A | W
+D  ::= 'dispatch' IDENT '(' V ')'
+A  ::= 'assert' 'vm' IDENT Op V
+W  ::= 'await' 'tasks'
+V  ::= STRING | NUMBER | BOOLEAN | 'nil' | L | IDENT
+L  ::= '[' E ']'
+E  ::= V E' | ε
+E' ::= ',' V E' | ε
+Op ::= '==' | '!=' | 'contains'</pre>
+                        
+                        <h3 class="doc-title-h3" style="margin-top: 1.5rem;">CLL EBNF Grammar</h3>
+                        <pre class="doc-code-block">P  ::= S P | ε
+S  ::= D | A
+D  ::= 'device' IDENT 'in' IDENT 'with' IDENT
+A  ::= 'assert' 'ui' IDENT Op V
+V  ::= STRING | NUMBER | BOOLEAN | 'nil' | IDENT
+Op ::= '==' | '!=' | 'shows' | 'hides'</pre>
+                    </div>
+                    <div>
+                        <h3 class="doc-title-h3">Lookahead FIRST+ Sets</h3>
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Production Rule</th>
+                                    <th>Lookahead Set (FIRST+)</th>
+                                    <th>Parse Decision Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Statement &rarr; DeviceDecl</td>
+                                    <td><code>{ 'device' }</code></td>
+                                    <td>Instantiates device profile, size classes, and layouts</td>
+                                </tr>
+                                <tr>
+                                    <td>Statement &rarr; ActionStmt</td>
+                                    <td><code>{ 'dispatch' }</code></td>
+                                    <td>Dispatches programmatic view-model actions and keystrokes</td>
+                                </tr>
+                                <tr>
+                                    <td>Statement &rarr; AssertStmt</td>
+                                    <td><code>{ 'assert' }</code></td>
+                                    <td>Validates data-layer or visual-hierarchy properties</td>
+                                </tr>
+                                <tr>
+                                    <td>Statement &rarr; WaitStmt</td>
+                                    <td><code>{ 'await' }</code></td>
+                                    <td>Awaits asynchronous tasks (coalescing, debouncing, loading)</td>
+                                </tr>
+                                <tr>
+                                    <td>Operator &rarr; <code>hides</code> / <code>shows</code></td>
+                                    <td><code>{ 'hides', 'shows' }</code></td>
+                                    <td>Performs visibility/existential validation checks in mimic layer</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion 2: Sizing Adaptivity Layout Matrix -->
+        <div class="accordion" id="acc-matrix">
+            <div class="accordion-header" onclick="toggleAccordion('acc-matrix')">
+                <span>📱 Apple HIG Device Orientation & Size Class Matrix</span>
+            </div>
+            <div class="accordion-content">
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Orientation</th>
+                            <th>Native Size Class</th>
+                            <th>Effective Size Class</th>
+                            <th>Visual Layout</th>
+                            <th>Navigation Style</th>
+                            <th>Sidebar Highlights</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>iPhone</td>
+                            <td>Portrait / Landscape</td>
+                            <td>Compact &times; Compact / Regular</td>
+                            <td>Compact &times; Regular (Forced)</td>
+                            <td>Single-column</td>
+                            <td>Navigation Stack (Push/Pop)</td>
+                            <td>Transient (deselects on pop)</td>
+                        </tr>
+                        <tr>
+                            <td>iPad</td>
+                            <td>Portrait / Landscape</td>
+                            <td>Regular &times; Regular</td>
+                            <td>Regular &times; Regular</td>
+                            <td>Two-column Split</td>
+                            <td>Split View (Sidebar + Detail)</td>
+                            <td>Persistent (active highlight)</td>
+                        </tr>
+                        <tr>
+                            <td>Mac</td>
+                            <td>Windowed (Standard)</td>
+                            <td>Regular &times; Regular</td>
+                            <td>Regular &times; Regular (Forced)</td>
+                            <td>Two-column Split</td>
+                            <td>Split View (Sidebar + Detail)</td>
+                            <td>Persistent (active highlight)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Accordion 3: OpenAPIKit Matt Polzin Validation Rules -->
+        <div class="accordion" id="acc-validations">
+            <div class="accordion-header" onclick="toggleAccordion('acc-validations')">
+                <span>🛡️ Matt Polzin / OpenAPIKit Validation Principles</span>
+            </div>
+            <div class="accordion-content">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <p>Both languages process validations using Matt Polzin's <strong>OpenAPIKit</strong> composable idioms. Our validation engine implements these 11 constraints:</p>
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th>Principle</th>
+                                <th>Design Rule Description</th>
+                                <th>Swift Implementation Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1. Parse First, Validate Second</td>
+                                <td>Parser yields a structured, strongly typed AST. Compiler runs validation as a distinct second pass.</td>
+                                <td><code>Validator&lt;Subject&gt;.run(ast)</code></td>
+                            </tr>
+                            <tr>
+                                <td>2. Composable Rules</td>
+                                <td>Rules are declared as static properties conforming to a validation protocol.</td>
+                                <td><code>static let assertedPropertiesExist: Validation&lt;Subject, Doc&gt;</code></td>
+                            </tr>
+                            <tr>
+                                <td>3. Derivation of Errors</td>
+                                <td>Error messages are derived automatically by prefixing "Failed to satisfy: " to the positive description.</td>
+                                <td><code>ValidationError(description: "Failed to satisfy: " + rule.description)</code></td>
+                            </tr>
+                            <tr>
+                                <td>4. Contextual Coding Paths</td>
+                                <td>Errors trace their path down the AST using a list of coding keys.</td>
+                                <td><code>codingPath: [CodingKey]</code> (traces index, fields, nested blocks)</td>
+                            </tr>
+                            <tr>
+                                <td>5. Erased Type Dispatch</td>
+                                <td>Heterogeneous rule lists are held in type-erased wrappers that safely cast target structures.</td>
+                                <td><code>AnyValidation&lt;Doc&gt;</code> wrapper filters out non-matching types</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion 4: Headless State & UI Interaction Matrix -->
+        <div class="accordion" id="acc-interaction-matrix">
+            <div class="accordion-header" onclick="toggleAccordion('acc-interaction-matrix')">
+                <span>🤖 Headless State & UI Interaction Matrix</span> <!-- # style-check: allow -->
+            </div>
+            <div class="accordion-content">
+                <p style="margin-bottom: 1rem;">This matrix maps UI interactions to their headless testing abstractions, detailing thread isolation, execution modes, and verification patterns.</p>
+                <div style="overflow-x: auto;">
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th>UI Event / Action</th>
+                                <th>Action Kind</th>
+                                <th>Execution Mode</th>
+                                <th>Thread Isolation</th>
+                                <th>VM State Changes</th>
+                                <th>UI Mimic Changes</th>
+                                <th>CDSL/CLL Verification</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>1. Application Boot</strong></td>
+                                <td>Initialize</td>
+                                <td>Synchronous</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Starts connection check, clears variables.</td>
+                                <td>Initializes device orientation.</td>
+                                <td><code>assert ui activeView == "Databases"</code><br><code>assert ui navigationStackDepth == 0</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>2. Database Connection</strong></td>
+                                <td>Async Task</td>
+                                <td>Asynchronous</td>
+                                <td>Background Coordinator</td>
+                                <td>Sets <code>connectionState = .connected</code>, updates list.</td>
+                                <td>No direct layout change.</td>
+                                <td><code>assert vm state == "loaded"</code><br><code>assert vm frameworks != nil</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>3. Select Database (Source)</strong></td>
+                                <td>User Tap</td>
+                                <td>Synchronous</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Sets <code>selectedSource</code>.</td>
+                                <td>Compact: Stack depth +1, activeView &rarr; "Frameworks".<br>Regular: Sidebar active, flattens stack.</td>
+                                <td><code>dispatch selectSource("apple-docs")</code><br><code>assert vm activeSource == "appleDocs"</code><br><code>assert ui activeView == "Frameworks"</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>4. Select Framework</strong></td>
+                                <td>User Tap</td>
+                                <td>Synchronous</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Sets <code>selectedFramework</code>, loads documents.</td>
+                                <td>Compact: Stack depth +2, activeView &rarr; "Documents".<br>Regular: Persists SplitView, highlights framework.</td>
+                                <td><code>dispatch selectFramework("swiftui")</code><br><code>assert vm selectedFrameworkID == "swiftui"</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>5. Select Document</strong></td>
+                                <td>User Tap</td>
+                                <td>Asynchronous</td>
+                                <td>Background Worker</td>
+                                <td>Sets <code>documentState = .loading</code>.</td>
+                                <td>Compact: Stack depth +3, activeView &rarr; "Reader".<br>Regular: Renders page in detail pane.</td>
+                                <td><code>dispatch selectDocument("doc-uri")</code><br><code>await tasks</code><br><code>assert vm documentState == "loaded"</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>6. Search Text Input</strong></td>
+                                <td>Keystroke</td>
+                                <td>Synchronous (Debounced)</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Appends character to <code>searchQuery</code>. Does not trigger FTS search.</td>
+                                <td>Shows loading/debouncing indicator in results view.</td>
+                                <td><code>dispatch search("Sw")</code><br><code>assert vm isLoading == false</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>7. Search Debounce Expiry</strong></td>
+                                <td>Timer Event</td>
+                                <td>Asynchronous</td>
+                                <td>Background FTS5 Queue</td>
+                                <td>Triggers SQL search; sets <code>isLoading = false</code>, populates <code>results</code>.</td>
+                                <td>No layout changes; renders results list.</td>
+                                <td><code>await tasks</code><br><code>assert vm results contains "SwiftUI"</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>8. Toggle Source Filter</strong></td>
+                                <td>User Toggle</td>
+                                <td>Synchronous</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Mutates <code>searchVM.sources</code> set.</td>
+                                <td>Triggers FTS candidate update.</td>
+                                <td><code>dispatch toggleSource("samples")</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>9. Resize Reader Text</strong></td>
+                                <td>Control Tap</td>
+                                <td>Synchronous</td>
+                                <td>Main Actor (<code>@MainActor</code>)</td>
+                                <td>Mutates <code>Model.ReaderTextSize</code>.</td>
+                                <td>Alters rendered CSS/Font scale.</td>
+                                <td><code>dispatch resizeText("larger")</code></td>
+                            </tr>
+                            <tr>
+                                <td><strong>10. Retry Connection</strong></td>
+                                <td>User Tap</td>
+                                <td>Asynchronous</td>
+                                <td>Background Loader</td>
+                                <td>Resets connection, attempts reload.</td>
+                                <td>Renders loader indicators.</td>
+                                <td><code>dispatch onRetried()</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accordion 5: Swift vs. CLIL Comparative Snippets & Lifecycles -->
+        <div class="accordion" id="acc-comparisons-lifecycles">
+            <div class="accordion-header" onclick="toggleAccordion('acc-comparisons-lifecycles')">
+                <span>🔄 Headless Testing Lifecycles & Swift vs. CLIL Comparisons</span>
+            </div>
+            <div class="accordion-content">
+                <p style="margin-bottom: 1.5rem;">Detailed breakdown of testing lifecycles showing side-by-side CLIL scripts and their corresponding Swift Unit Test assertions.</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    
+                    <!-- Phase 1 -->
+                    <div>
+                        <h4 class="doc-title-h3" style="color: var(--secondary);">Phase 1: App Boot & Databases List Loading</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"><strong>Behavior:</strong> User launches the app. A list of available database registries is shown. VM connects concurrently; visual layout starts synchronously.</p>
+                        <div class="doc-grid">
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">CLIL Script</div>
+                                <pre class="doc-code-block">device iPhone in portrait with compact
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0</pre>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">Swift API Test</div>
+                                <pre class="doc-code-block">let vm = FrameworkBrowser.ViewModel()
+#expect(vm.selectedSource == nil)
+#expect(vm.connectionState == .connecting)</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase 2 -->
+                    <div>
+                        <h4 class="doc-title-h3" style="color: var(--secondary);">Phase 2: Database Selection & Framework List Loading</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"><strong>Behavior:</strong> User selects a database source. VM triggers a background SQLite query to read available frameworks.</p>
+                        <div class="doc-grid">
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">CLIL Script</div>
+                                <pre class="doc-code-block">dispatch selectSource("apple-docs")
+assert vm activeSource == "appleDocs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1</pre>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">Swift API Test</div>
+                                <pre class="doc-code-block">vm.selectSource(.appleDocs)
+#expect(vm.selectedSource == .appleDocs)
+
+let simulator = CLILSimulator(frameworks: vm)
+#expect(simulator.ui.navigationStackDepth == 1)</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase 3 -->
+                    <div>
+                        <h4 class="doc-title-h3" style="color: var(--secondary);">Phase 3: Framework Selection & Document List Loading</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"><strong>Behavior:</strong> User selects a framework (e.g. SwiftUI). The VM loads the document array from the FTS5 index.</p>
+                        <div class="doc-grid">
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">CLIL Script</div>
+                                <pre class="doc-code-block">dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2</pre>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">Swift API Test</div>
+                                <pre class="doc-code-block">vm.selectFramework("swiftui")
+#expect(vm.selectedFramework?.id == "swiftui")</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase 4 -->
+                    <div>
+                        <h4 class="doc-title-h3" style="color: var(--secondary);">Phase 4: Document Selection & Reader Rendering</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"><strong>Behavior:</strong> User selects a document. The reader pane parses GFM raw markdown on a background thread and updates view state.</p>
+                        <div class="doc-grid">
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">CLIL Script</div>
+                                <pre class="doc-code-block">dispatch selectDocument("apple-docs://swiftui/view")
+assert vm documentState == "loading"
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3</pre>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">Swift API Test</div>
+                                <pre class="doc-code-block">vm.selectDocument(Model.DocURI("apple-docs://swiftui/view")!)
+#expect(vm.documentState == .loading)
+try await Task.sleep(nanoseconds: 50_000_000)
+#expect(vm.documentState == .loaded)</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase 5 -->
+                    <div>
+                        <h4 class="doc-title-h3" style="color: var(--secondary);">Phase 5: Search Query, Debouncing, & FTS5 Candidates</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem;"><strong>Behavior:</strong> User searches text. Keystroke entries update search text synchronously, while debounced FTS5 query executes after 250ms asynchronously on a background queue.</p>
+                        <div class="doc-grid">
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--secondary); margin-bottom: 0.25rem;">CLIL Script</div>
+                                <pre class="doc-code-block">dispatch search("S")
+dispatch search("Sw")
+dispatch search("Swi")
+assert vm isLoading == false
+await tasks
+assert vm state == "loaded"
+assert vm results contains "SwiftUI"</pre>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--primary); margin-bottom: 0.25rem;">Swift API Test</div>
+                                <pre class="doc-code-block">searchVM.text = "S"
+searchVM.runDebounced()
+#expect(searchVM.isLoading == false)
+try await Task.sleep(nanoseconds: 300_000_000)
+#expect(searchVM.results.contains(where: { $0.title == "SwiftUI" }))</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scenarios
+        const SCENARIOS = {
+            iphone: `# Initialize iPhone profile
+device iPhone in portrait with compact
+
+# Assert base state
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0
+assert ui showsDetailPane == false
+
+# Select database source (pushes Frameworks list)
+dispatch selectSource("apple-docs")
+assert vm activeSource == "apple-docs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1
+
+# Select a framework (pushes Documents list)
+dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2
+
+# Select a document (pushes Reader View)
+dispatch selectDocument("apple-docs://swiftui/view")
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3`,
+            ipad: `# Start in Compact iPad portrait (Slide Over multitasking)
+device iPad in portrait with compact
+dispatch selectSource("apple-docs")
+dispatch selectFramework("foundation")
+assert ui showsDetailPane == false
+assert ui navigationStackDepth == 2
+
+# Rotate to Landscape (Sizing class changes to Regular)
+device iPad in landscape with regular
+assert ui showsDetailPane == true
+# Split view columns expand; navigation stack flattens
+assert ui navigationStackDepth == 0
+assert ui activeView == "SplitView"`,
+            mac: `# Set up Mac desktop search context
+device Mac in landscape with regular
+dispatch selectSource("apple-docs")
+
+# Perform rapid keystroke entries
+dispatch search("S")
+dispatch search("Sw")
+dispatch search("Swi")
+dispatch search("Swift")
+
+# Assert that state stays idle/loading before debounce timer expires
+assert vm isLoading == false
+
+# Wait for background debounce to trigger execution
+await tasks
+
+# Assert search results are fetched and processed
+assert vm isLoading == false
+assert vm state == "loaded"
+assert vm results contains "Swift"
+assert ui showsDetailPane == true`,
+            e2e: `# --------------------------------------------------
+# Cupertino Headless End-to-End Verification Script
+# --------------------------------------------------
+
+# 1. Initialize iPhone compact environment
+device iPhone in portrait with compact
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0
+
+# 2. Select Database Source
+dispatch selectSource("apple-docs")
+assert vm activeSource == "appleDocs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1
+
+# 3. Select Framework
+dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2
+
+# 4. Read Document (Asynchronous Loader)
+dispatch selectDocument("apple-docs://swiftui/view")
+assert vm documentState == "loading"
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3
+
+# 5. Adapt device orientation to Landscape (Transitions Sizing matrix)
+device iPhone in landscape with compact
+# Note: Compact landscape iPhone maintains single-column stack
+assert ui showsDetailPane == false
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3
+
+# 6. Adapt device to iPad in Landscape (Triggers regular sizing)
+device iPad in landscape with regular
+# Regular iPad expands into a persistent split screen layout
+assert ui showsDetailPane == true
+assert ui activeView == "SplitView"
+assert ui navigationStackDepth == 0`,
+            phase1: `# Phase 1: App Boot & Databases List Loading
+device iPhone in portrait with compact
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0`,
+            phase2: `# Phase 2: Database Selection & Framework List Loading
+device iPhone in portrait with compact
+dispatch selectSource("apple-docs")
+assert vm activeSource == "appleDocs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1`,
+            phase3: `# Phase 3: Framework Selection & Document List Loading
+device iPhone in portrait with compact
+dispatch selectSource("apple-docs")
+dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2`,
+            phase4: `# Phase 4: Document Selection & Reader Rendering
+device iPhone in portrait with compact
+dispatch selectSource("apple-docs")
+dispatch selectFramework("swiftui")
+dispatch selectDocument("apple-docs://swiftui/view")
+assert vm documentState == "loading"
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3`,
+            phase5: `# Phase 5: Search Query, Debouncing, & FTS5 Candidates
+device Mac in landscape with regular
+dispatch selectSource("apple-docs")
+dispatch search("S")
+dispatch search("Sw")
+dispatch search("Swi")
+assert vm isLoading == false # stays idle before timer triggers
+await tasks                  # wait for 250ms debounce
+assert vm state == "loaded"
+assert vm results contains "Swift"`,
+            error: `# Malformed statement showing Panic-Mode Recovery
+device iPhone in portrait with compact
+
+# Syntax error: missing parens on dispatch
+dispatch selectSource "apple-docs"
+
+# Stranded symbol: parser recovers and synchronizes on assert
+@assert vm activeSource == nil
+
+# Lexical error: bad character skipped, statement parsed
+dispatch selectFramework("swiftui") #
+assert ui activeView == "Documents"`
+        };
+
+        // State Models
+        let vmState = {
+            activeSource: null,
+            selectedFrameworkID: null,
+            documentState: "empty",
+            searchQuery: "",
+            isLoading: false,
+            results: [],
+            state: "idle"
+        };
+
+        let uiState = {
+            device: "iPhone",
+            orientation: "portrait",
+            sizeClass: "compact",
+            activeView: "Databases",
+            navigationStackDepth: 0,
+            showsSidebarList: false,
+            showsDetailPane: false
+        };
+
+        // Framework lists fixture
+        const FRAMEWORKS = {
+            "apple-docs": ["SwiftUI", "Foundation", "Combine", "AppKit", "UIKit"],
+            "samples": ["Cute3D", "LottieDemo", "TileDownloader", "Stitcher"],
+            "hig": ["Visual Elements", "App Architecture", "Inputs", "Platforms"],
+            "apple-archive": ["Foundation", "AppKit", "UIKit"],
+            "swift-evolution": ["swift-evolution"],
+            "swift-org": ["swift-org"],
+            "swift-book": ["swift-book"],
+            "packages": ["apple/swift-algorithms", "apple/swift-argument-parser", "apple/swift-collections"]
+        };
+
+        // Documents lists fixture
+        const DOCUMENTS = {
+            "swiftui": ["View", "State", "Binding", "Environment", "Animation"],
+            "foundation": ["String", "Data", "JSONDecoder", "Thread", "NotificationCenter"],
+            "combine": ["Publisher", "Subscriber", "Subject", "Future", "AnyCancellable"],
+            "appkit": ["NSView", "NSWindow", "NSApplication", "NSController"],
+            "uikit": ["UIView", "UIWindow", "UIApplication", "UIViewController"],
+            "cute3d": ["CoreAnimationCube", "PerspectiveTransform", "ViewportShader"],
+            "lottiedemo": ["LottieComposition", "PlaybackController", "VectorRasterizer"],
+            "tiledownloader": ["TileMapLoader", "NetworkRetryQueue", "CacheManifest"],
+            "stitcher": ["ImageMerger", "OverlapDetector", "ColorBalancer"],
+            "visual elements": ["Typography", "Color System", "San Francisco Font", "Dark Mode Styling"],
+            "app architecture": ["Split View Sizing", "Navigation Stack Push", "Multitasking Windows", "Task Debouncing"],
+            "inputs": ["Mouse Gestures", "Touch Anchors", "Haptic Micro-feedback"],
+            "platforms": ["macOS Desktop", "iOS Sizing Rules", "iPadOS Split Adapters"],
+            "archive": ["Legacy Threading", "Carbon Porting Guide", "QuickDraw Drawing"],
+            "swift-evolution": ["SE-0001: API Design Guidelines", "SE-0302: Sendable and sendable closures", "SE-0354: Regex Literals"],
+            "swift-org": ["Swift 6 Concurrency Migration Guide", "Linux Installation", "Swiftly Reference"],
+            "swift-book": ["Guided Tour", "The Basics", "Basic Operators", "Strings and Characters"],
+            "apple/swift-algorithms": ["README.md", "Sources/Algorithms/Chunked.swift", "Sources/Algorithms/Cycle.swift"],
+            "apple/swift-argument-parser": ["README.md", "Sources/ArgumentParser/ParsableCommand.swift"],
+            "apple/swift-collections": ["README.md", "Sources/Collections/Deque.swift"]
+        };
+
+        // Document Contents
+        const DOCUMENT_CONTENTS = {
+            "apple-docs://swiftui/view": "### SwiftUI View\n\nA type that represents the part of your user interface and provides modifiers that you use to configure views.",
+            "apple-docs://foundation/string": "### Foundation String\n\nA Unicode-compliant, type-safe string representation bridged with Objective-C NSString interface.",
+            "apple-docs://hig/app architecture/split view sizing": "### Split View Sizing\n\nApple HIG recommends utilizing persistent columns on larger display sizes (macOS/iPad landscape) and folding columns into navigation controllers on compact width displays (iPhone).",
+            "swift-evolution://swift-evolution/view": "### SE-0302: Sendable and sendable closures\n\nThis proposal introduces the concept of Sendable types, which are types that can be safely transferred across concurrency domains.",
+            "swift-book://swift-book/view": "### Guided Tour\n\nExplore the Swift programming language by running code snippets in an interactive Swift playground.",
+            "packages://apple/swift-algorithms/view": "### Swift Algorithms\n\nAn open-source package of sequence and collection algorithms, along with their related types."
+        };
+
+        // Load scenario
+        function loadScenario(name) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                const onClick = btn.getAttribute('onclick') || '';
+                if (onClick.includes(`'${name}'`) || onClick.includes(`"${name}"`)) {
+                    btn.classList.add('active');
+                }
+            });
+            document.getElementById('code-editor').value = SCENARIOS[name];
+            updateLineNumbers();
+            clearConsole();
+            resetSimulator();
+        }
+
+        // Line Numbers
+        function updateLineNumbers() {
+            const code = document.getElementById('code-editor').value;
+            const lines = code.split('\n').length;
+            const lineNumContainer = document.getElementById('line-numbers');
+            lineNumContainer.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+        }
+
+        function syncScroll() {
+            const textarea = document.getElementById('code-editor');
+            const lineNums = document.getElementById('line-numbers');
+            lineNums.scrollTop = textarea.scrollTop;
+        }
+
+        // Clear terminal
+        function clearConsole() {
+            document.getElementById('terminal-lines').innerHTML = '';
+        }
+
+        // Log to terminal
+        function consoleLog(msg, type = "info") {
+            const term = document.getElementById('terminal-lines');
+            const timeStr = new Date().toTimeString().split(' ')[0];
+            const line = document.createElement('div');
+            line.className = `term-line ${type}`;
+            line.innerHTML = `<span class="term-timestamp">[${timeStr}]</span> <span>${msg}</span>`;
+            term.appendChild(line);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // Reset Simulator State
+        function resetSimulator() {
+            vmState = {
+                activeSource: null,
+                selectedFrameworkID: null,
+                documentState: "empty",
+                searchQuery: "",
+                isLoading: false,
+                results: [],
+                state: "idle"
+            };
+            uiState = {
+                device: "iPhone",
+                orientation: "portrait",
+                sizeClass: "compact",
+                activeView: "Databases",
+                navigationStackDepth: 0,
+                showsSidebarList: false,
+                showsDetailPane: false
+            };
+            updateVisualSimulator();
+        }
+
+        // Recalculate layout rules based on matrix
+        function recalculateLayout() {
+            // Sizing Matrix checks
+            if (uiState.device === "iPhone") {
+                uiState.sizeClass = "compact";
+                uiState.showsSidebarList = false;
+                uiState.showsDetailPane = false;
+            } else if (uiState.device === "iPad") {
+                if (uiState.orientation === "portrait" && uiState.sizeClass === "compact") {
+                    // multitasking compact
+                    uiState.showsSidebarList = false;
+                    uiState.showsDetailPane = false;
+                } else {
+                    // regular split view
+                    uiState.showsSidebarList = true;
+                    uiState.showsDetailPane = true;
+                }
+            } else if (uiState.device === "Mac") {
+                uiState.sizeClass = "regular";
+                uiState.showsSidebarList = true;
+                uiState.showsDetailPane = true;
+            }
+
+            // Adjust navigation view hierarchy
+            if (uiState.showsDetailPane) {
+                // Flatten stack
+                uiState.navigationStackDepth = 0;
+                uiState.activeView = "SplitView";
+            } else {
+                // Navigation stack behavior
+                if (uiState.activeView === "SplitView") {
+                    uiState.activeView = "Databases";
+                }
+            }
+        }
+
+        // Update Visual Simulator representation
+        function updateVisualSimulator() {
+            const devBody = document.getElementById('device-body');
+            const devBadge = document.getElementById('device-info-badge');
+            
+            // CSS Sizing/Orientation
+            devBody.className = `device-body ${uiState.device.toLowerCase()} ${uiState.orientation}`;
+            devBadge.innerText = `${uiState.device} • ${uiState.sizeClass.toUpperCase()} Sizing (${uiState.orientation.toUpperCase()})`;
+            
+            // Sidebar display
+            const sidebar = document.getElementById('sidebar');
+            if (uiState.showsSidebarList) {
+                sidebar.classList.remove('collapsed');
+                // Highlight source in sidebar
+                document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+                const mapSourceToId = {
+                    "apple-docs": "side-src-apple",
+                    "samples": "side-src-samples",
+                    "hig": "side-src-hig",
+                    "apple-archive": "side-src-archive",
+                    "swift-evolution": "side-src-evolution",
+                    "swift-org": "side-src-org",
+                    "swift-book": "side-src-book",
+                    "packages": "side-src-packages"
+                };
+                const activeId = mapSourceToId[vmState.activeSource];
+                if (activeId) {
+                    const el = document.getElementById(activeId);
+                    if (el) el.classList.add('active');
+                }
+            } else {
+                sidebar.classList.add('collapsed');
+            }
+
+            // Navigation back button
+            const backBtn = document.getElementById('back-btn');
+            if (!uiState.showsDetailPane && uiState.navigationStackDepth > 0) {
+                backBtn.style.display = "inline";
+            } else {
+                backBtn.style.display = "none";
+            }
+
+            // View Pane Content rendering
+            const navTitle = document.getElementById('nav-title');
+            const navContent = document.getElementById('nav-content');
+            navContent.innerHTML = '';
+
+            let viewToRender = uiState.activeView;
+            if (uiState.showsDetailPane) {
+                viewToRender = "SplitView";
+            }
+
+            if (viewToRender === "Databases" || (viewToRender === "SplitView" && !vmState.activeSource)) {
+                navTitle.innerText = "Databases";
+                navContent.innerHTML = `
+                    <div class="content-card ${vmState.activeSource === 'apple-docs' ? 'selected' : ''}" onclick="simSelectSource('apple-docs')">🍏 Apple Docs</div>
+                    <div class="content-card ${vmState.activeSource === 'samples' ? 'selected' : ''}" onclick="simSelectSource('samples')">📦 Sample Projects</div>
+                    <div class="content-card ${vmState.activeSource === 'hig' ? 'selected' : ''}" onclick="simSelectSource('hig')">📐 Human Interface Guidelines</div>
+                    <div class="content-card ${vmState.activeSource === 'apple-archive' ? 'selected' : ''}" onclick="simSelectSource('apple-archive')">🏛️ Apple Archive</div>
+                    <div class="content-card ${vmState.activeSource === 'swift-evolution' ? 'selected' : ''}" onclick="simSelectSource('swift-evolution')">💡 Swift Evolution</div>
+                    <div class="content-card ${vmState.activeSource === 'swift-org' ? 'selected' : ''}" onclick="simSelectSource('swift-org')">🌐 Swift.org Docs</div>
+                    <div class="content-card ${vmState.activeSource === 'swift-book' ? 'selected' : ''}" onclick="simSelectSource('swift-book')">📖 Swift Book</div>
+                    <div class="content-card ${vmState.activeSource === 'packages' ? 'selected' : ''}" onclick="simSelectSource('packages')">📦 Swift Packages</div>
+                `;
+            } else if (viewToRender === "Frameworks" || (viewToRender === "SplitView" && vmState.activeSource && !vmState.selectedFrameworkID)) {
+                const srcNames = {
+                    "apple-docs": "Apple Docs",
+                    "samples": "Sample Projects",
+                    "hig": "Human Interface Guidelines",
+                    "apple-archive": "Apple Archive",
+                    "swift-evolution": "Swift Evolution",
+                    "swift-org": "Swift.org Docs",
+                    "swift-book": "Swift Book",
+                    "packages": "Swift Packages"
+                };
+                const srcName = srcNames[vmState.activeSource] || vmState.activeSource;
+                navTitle.innerText = srcName;
+                const list = FRAMEWORKS[vmState.activeSource] || [];
+                list.forEach(fw => {
+                    const cleanFw = fw.toLowerCase();
+                    navContent.innerHTML += `
+                        <div class="content-card ${vmState.selectedFrameworkID === cleanFw ? 'selected' : ''}" onclick="simSelectFramework('${cleanFw}')">${fw}</div>
+                    `;
+                });
+            } else if (viewToRender === "Documents" || (viewToRender === "SplitView" && vmState.selectedFrameworkID && vmState.documentState === "empty")) {
+                const fwName = vmState.selectedFrameworkID.toUpperCase();
+                navTitle.innerText = fwName;
+                const list = DOCUMENTS[vmState.selectedFrameworkID] || [];
+                list.forEach(doc => {
+                    navContent.innerHTML += `
+                        <div class="content-card" onclick="simSelectDocument('${vmState.activeSource}://${vmState.selectedFrameworkID}/${doc.toLowerCase()}')">${doc}</div>
+                    `;
+                });
+            } else if (viewToRender === "Reader" || (viewToRender === "SplitView" && vmState.documentState === "loaded")) {
+                navTitle.innerText = "Reader";
+                const docURI = `${vmState.activeSource}://${vmState.selectedFrameworkID}/view`; // Mock reading uri
+                const content = DOCUMENT_CONTENTS[docURI] || "### Document Content\n\nDocumentation details are loaded successfully in Cupertino reader pane.";
+                navContent.innerHTML = `
+                    <div style="font-family: inherit; line-height: 1.5; color: var(--text-color);">
+                        ${content.replace('\n\n', '<br><br>')}
+                    </div>
+                `;
+            }
+
+            // If searching
+            if (vmState.searchQuery) {
+                navTitle.innerText = `Search: "${vmState.searchQuery}"`;
+                if (vmState.isLoading) {
+                    navContent.innerHTML = `<div style="color: var(--warning);">⏳ Debouncing search...</div>`;
+                } else if (vmState.results.length > 0) {
+                    navContent.innerHTML = `<div>🔍 Results matching: <strong>${vmState.searchQuery}</strong></div>`;
+                    vmState.results.forEach(res => {
+                        navContent.innerHTML += `<div class="content-card">${res}</div>`;
+                    });
+                } else {
+                    navContent.innerHTML = `<div style="color: var(--text-muted);">No results found.</div>`;
+                }
+            }
+        }
+
+        // Simulator interactions
+        function simSelectSource(src) {
+            vmState.activeSource = src;
+            vmState.selectedFrameworkID = null;
+            vmState.documentState = "empty";
+            vmState.searchQuery = "";
+            if (!uiState.showsDetailPane) {
+                uiState.activeView = "Frameworks";
+                uiState.navigationStackDepth = 1;
+            }
+            updateVisualSimulator();
+        }
+
+        function simSelectFramework(fw) {
+            vmState.selectedFrameworkID = fw;
+            vmState.documentState = "empty";
+            if (!uiState.showsDetailPane) {
+                uiState.activeView = "Documents";
+                uiState.navigationStackDepth = 2;
+            }
+            updateVisualSimulator();
+        }
+
+        function simSelectDocument(uri) {
+            vmState.documentState = "loaded";
+            if (!uiState.showsDetailPane) {
+                uiState.activeView = "Reader";
+                uiState.navigationStackDepth = 3;
+            }
+            updateVisualSimulator();
+        }
+
+        function simGoBack() {
+            if (uiState.navigationStackDepth > 0) {
+                uiState.navigationStackDepth--;
+                if (uiState.navigationStackDepth === 0) {
+                    uiState.activeView = "Databases";
+                } else if (uiState.navigationStackDepth === 1) {
+                    uiState.activeView = "Frameworks";
+                    vmState.selectedFrameworkID = null;
+                    vmState.documentState = "empty";
+                } else if (uiState.navigationStackDepth === 2) {
+                    uiState.activeView = "Documents";
+                    vmState.documentState = "empty";
+                }
+                updateVisualSimulator();
+            }
+        }
+
+        // Token class for Interpreter Lexer
+        class LexerToken {
+            constructor(type, value, line) {
+                this.type = type;
+                this.value = value;
+                this.line = line;
+            }
+        }
+
+        // Lexical analysis in JS
+        function tokenize(script) {
+            const tokens = [];
+            const lines = script.split('\n');
+            
+            for (let i = 0; i < lines.length; i++) {
+                let lineText = lines[i].trim();
+                if (!lineText || lineText.startsWith('#')) continue; // Skip comments and empty
+                
+                // Remove trailing inline comments
+                if (lineText.includes('#')) {
+                    lineText = lineText.split('#')[0].trim();
+                }
+
+                // Simple regex splitter for keywords and literals
+                const regex = /(".*?"|[a-zA-Z_][a-zA-Z0-9_\-\/:]*|==|!=|\(|\)|\[|\]|,|@|[0-9]+)/g;
+                let match;
+                while ((match = regex.exec(lineText)) !== null) {
+                    let lexeme = match[0];
+                    let type = "IDENT";
+                    
+                    if (["device", "in", "with", "dispatch", "assert", "await", "tasks", "vm", "ui"].includes(lexeme)) {
+                        type = lexeme.toUpperCase();
+                    } else if (["==", "!=", "contains", "shows", "hides"].includes(lexeme)) {
+                        type = "OPERATOR";
+                    } else if (lexeme === "(") {
+                        type = "LPAREN";
+                    } else if (lexeme === ")") {
+                        type = "RPAREN";
+                    } else if (lexeme === "[") {
+                        type = "LBRACKET";
+                    } else if (lexeme === "]") {
+                        type = "RBRACKET";
+                    } else if (lexeme === ",") {
+                        type = "COMMA";
+                    } else if (lexeme.startsWith('"') && lexeme.endsWith('"')) {
+                        type = "STRING";
+                        lexeme = lexeme.substring(1, lexeme.length - 1);
+                    } else if (/^[0-9]+$/.test(lexeme)) {
+                        type = "NUMBER";
+                    } else if (["true", "false"].includes(lexeme)) {
+                        type = "BOOLEAN";
+                    } else if (lexeme === "nil") {
+                        type = "NIL";
+                    } else if (lexeme === "@") {
+                        type = "BAD_CHAR";
+                    }
+                    
+                    tokens.push(new LexerToken(type, lexeme, i + 1));
+                }
+                tokens.push(new LexerToken("NEWLINE", "\n", i + 1));
+            }
+            return tokens;
+        }
+
+        // Parse and Execute Script
+        function runScript() {
+            clearConsole();
+            resetSimulator();
+            
+            const script = document.getElementById('code-editor').value;
+            consoleLog("Beginning Knuth-first LL(1) compilation phase...", "info");
+            
+            const tokens = tokenize(script);
+            let index = 0;
+            let errorsCount = 0;
+            let assertionsRun = 0;
+            let assertionsFailed = 0;
+            
+            function peek() {
+                return tokens[index] || new LexerToken("EOF", "", -1);
+            }
+            
+            function consume() {
+                const t = peek();
+                index++;
+                return t;
+            }
+
+            // Sync parser back to statement boundaries
+            function parseSync() {
+                errorsCount++;
+                consoleLog(`Syntax Error resynchronization triggered at line ${peek().line}. Initiating Panic-Mode Recovery.`, "warning");
+                while (index < tokens.length) {
+                    const type = peek().type;
+                    if (type === "DEVICE" || type === "DISPATCH" || type === "ASSERT" || type === "AWAIT") {
+                        consoleLog(`Resynchronized parsing compiler stack on boundary keyword: '${type.toLowerCase()}' at line ${peek().line}.`, "info");
+                        break;
+                    }
+                    consume();
+                }
+            }
+
+            let pendingSearch = null;
+            let pendingDoc = null;
+
+            while (index < tokens.length) {
+                const t = peek();
+                if (t.type === "EOF") break;
+                if (t.type === "NEWLINE") {
+                    consume();
+                    continue;
+                }
+                
+                try {
+                    if (t.type === "DEVICE") {
+                        consume(); // device
+                        const dev = consume();
+                        if (dev.type !== "IDENT") throw new Error("Expected device name identifier");
+                        
+                        const inKw = consume();
+                        if (inKw.type !== "IN") throw new Error("Expected 'in' keyword");
+                        
+                        const orient = consume();
+                        if (orient.type !== "IDENT") throw new Error("Expected orientation identifier");
+                        
+                        const withKw = consume();
+                        if (withKw.type !== "WITH") throw new Error("Expected 'with' keyword");
+                        
+                        const size = consume();
+                        if (size.type !== "IDENT") throw new Error("Expected size class identifier");
+                        
+                        // Execute Device Decl
+                        uiState.device = dev.value;
+                        uiState.orientation = orient.value;
+                        uiState.sizeClass = size.value;
+                        recalculateLayout();
+                        
+                        consoleLog(`Compiled & Run DeviceDecl: Device = ${dev.value}, Orientation = ${orient.value}, SizeClass = ${size.value}`, "success");
+                    } 
+                    else if (t.type === "DISPATCH") {
+                        consume(); // dispatch
+                        const actionName = consume();
+                        if (actionName.type !== "IDENT") throw new Error("Expected action name identifier");
+                        
+                        const lparen = consume();
+                        if (lparen.type !== "LPAREN") throw new Error("Expected '(' after action name");
+                        
+                        let param = null;
+                        if (peek().type !== "RPAREN") {
+                            param = consume();
+                            if (!["STRING", "NUMBER", "BOOLEAN", "NIL", "IDENT"].includes(param.type)) {
+                                throw new Error("Invalid dispatch parameter value");
+                            }
+                        }
+                        
+                        const rparen = consume();
+                        if (rparen.type !== "RPAREN") throw new Error("Expected ')' after parameter");
+                        
+                        // Execute Dispatch Stmt
+                        const val = param ? param.value : null;
+                        consoleLog(`Compiled ActionStmt: dispatch ${actionName.value}(${val || ''})`, "info");
+                        
+                        if (actionName.value === "selectSource") {
+                            vmState.activeSource = val;
+                            vmState.selectedFrameworkID = null;
+                            vmState.documentState = "empty";
+                            vmState.searchQuery = "";
+                            if (!uiState.showsDetailPane) {
+                                uiState.activeView = "Frameworks";
+                                uiState.navigationStackDepth = 1;
+                            }
+                        } else if (actionName.value === "selectFramework") {
+                            vmState.selectedFrameworkID = val;
+                            vmState.documentState = "empty";
+                            if (!uiState.showsDetailPane) {
+                                uiState.activeView = "Documents";
+                                uiState.navigationStackDepth = 2;
+                            }
+                        } else if (actionName.value === "selectDocument" || actionName.value === "openDocument") {
+                            pendingDoc = val;
+                            vmState.documentState = "loading";
+                        } else if (actionName.value === "search") {
+                            vmState.searchQuery = val;
+                            vmState.isLoading = false;
+                            // Set pending debounce search results
+                            pendingSearch = val;
+                        } else {
+                            throw new Error(`Unknown action type: ${actionName.value}`);
+                        }
+                    } 
+                    else if (t.type === "ASSERT") {
+                        consume(); // assert
+                        const layer = consume(); // vm or ui
+                        if (layer.type !== "VM" && layer.type !== "UI") throw new Error("Expected assertion layer scope ('vm' or 'ui')");
+                        
+                        const prop = consume();
+                        if (prop.type !== "IDENT") throw new Error("Expected assertion property name");
+                        
+                        const op = consume();
+                        if (op.type !== "OPERATOR") throw new Error("Expected assertion operator (==, !=, contains, shows, hides)");
+                        
+                        const expected = consume();
+                        if (!["STRING", "NUMBER", "BOOLEAN", "NIL", "IDENT"].includes(expected.type)) {
+                            throw new Error("Expected assertion comparison value");
+                        }
+                        
+                        // Execute Assert Stmt
+                        assertionsRun++;
+                        let actualVal;
+                        if (layer.type === "VM") {
+                            actualVal = vmState[prop.value];
+                        } else {
+                            actualVal = uiState[prop.value];
+                        }
+
+                        // Stringify actual and expected, normalizing swift model raw values
+                        let actStr = String(actualVal).replace('appleDocs', 'apple-docs');
+                        let expStr = String(expected.value).replace('appleDocs', 'apple-docs');
+                        
+                        let match = false;
+                        if (op.value === "==") {
+                            match = (actStr === expStr);
+                        } else if (op.value === "!=") {
+                            match = (actStr !== expStr);
+                        } else if (op.value === "contains") {
+                            match = actStr.includes(expStr);
+                        } else if (op.value === "shows") {
+                            match = (actualVal === true || actualVal === expStr);
+                        } else if (op.value === "hides") {
+                            match = (actualVal === false || actualVal !== expStr);
+                        }
+
+                        if (match) {
+                            consoleLog(`Assertion PASS: assert ${layer.value} ${prop.value} ${op.value} ${expStr} (Actual = ${actStr})`, "success");
+                        } else {
+                            assertionsFailed++;
+                            consoleLog(`Assertion FAIL: assert ${layer.value} ${prop.value} ${op.value} ${expStr} (Actual = ${actStr})`, "error");
+                        }
+                    } 
+                    else if (t.type === "AWAIT") {
+                        consume(); // await
+                        const tasks = consume();
+                        if (tasks.type !== "TASKS") throw new Error("Expected 'tasks' after await");
+                        
+                        // Execute Await tasks (resolve pending operations)
+                        if (pendingSearch) {
+                            vmState.isLoading = false;
+                            vmState.state = "loaded";
+                            // Mocking search results
+                            vmState.results = [`${pendingSearch} Basics`, `Using ${pendingSearch}`, `Advanced ${pendingSearch}`];
+                            pendingSearch = null;
+                        }
+                        if (pendingDoc) {
+                            vmState.documentState = "loaded";
+                            if (!uiState.showsDetailPane) {
+                                uiState.activeView = "Reader";
+                                uiState.navigationStackDepth = 3;
+                            }
+                            pendingDoc = null;
+                        }
+                        consoleLog("Awaiting tasks completion: background debounce and loading tasks resolved.", "success");
+                    }
+                    else if (t.type === "BAD_CHAR") {
+                        consume();
+                        throw new Error(`Lexical error: Unexpected character '${t.value}'`);
+                    }
+                    else {
+                        consume();
+                        throw new Error(`Syntax error: Unexpected statement token '${t.value}'`);
+                    }
+                } catch (e) {
+                    consoleLog(`Compilation Error on line ${t.line}: ${e.message}`, "error");
+                    parseSync();
+                }
+            }
+
+            // Wrap up output
+            consoleLog(`Compiler Execution Finished. Run Status: ${errorsCount > 0 ? "FAIL WITH ERRORS" : "PASS"}. Assertions: ${assertionsRun} (${assertionsFailed} failed)`, errorsCount > 0 ? "error" : "success");
+            const statusLabel = document.getElementById('term-status');
+            if (errorsCount > 0) {
+                statusLabel.innerText = "SYNTAX ERRORS DETECTED";
+                statusLabel.style.color = "var(--error)";
+            } else if (assertionsFailed > 0) {
+                statusLabel.innerText = "ASSERTIONS FAILED";
+                statusLabel.style.color = "var(--warning)";
+            } else {
+                statusLabel.innerText = "COMPILATION SUCCESS";
+                statusLabel.style.color = "var(--success)";
+            }
+
+            updateVisualSimulator();
+        }
+
+        // Accordion functionality
+        function toggleAccordion(id) {
+            const acc = document.getElementById(id);
+            acc.classList.toggle('open');
+        }
+
+        // Initialize Time
+        function updateTime() {
+            const now = new Date();
+            const minStr = String(now.getMinutes()).padStart(2, '0');
+            const hourStr = String(now.getHours()).padStart(2, '0');
+            document.getElementById('sim-time').innerText = `${hourStr}:${minStr}`;
+        }
+        setInterval(updateTime, 60000);
+        updateTime();
+
+        // Load real databases and catalogs if generated by exporter
+        async function loadRealData() {
+            try {
+                const response = await fetch('real-data.json');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.frameworks) {
+                        for (const src in data.frameworks) {
+                            FRAMEWORKS[src] = data.frameworks[src];
+                        }
+                    }
+                    if (data.documents) {
+                        for (const fw in data.documents) {
+                            DOCUMENTS[fw] = data.documents[fw];
+                        }
+                    }
+                    if (data.contents) {
+                        for (const uri in data.contents) {
+                            DOCUMENT_CONTENTS[uri] = data.contents[uri];
+                        }
+                    }
+                    consoleLog("Successfully bridged real SQLite database catalog into showcase!", "success");
+                }
+            } catch (e) {
+                // Fall back silently to mock data
+            }
+        }
+
+        // Initial scenario load
+        loadRealData().then(() => {
+            loadScenario('iphone');
+        });
+    </script>
+</body>
+</html>

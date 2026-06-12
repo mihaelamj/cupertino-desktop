@@ -1,5 +1,5 @@
 import AppCore
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -14,7 +14,7 @@ import FrameworkBrowserFeature
         /// abstraction to extract at the second feature (docs/DESIGN.md).
         @MainActor
         protocol RootExperience {
-            func makeRoot(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) -> NSViewController
+            func makeRoot(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) -> NSViewController
         }
     }
 #endif

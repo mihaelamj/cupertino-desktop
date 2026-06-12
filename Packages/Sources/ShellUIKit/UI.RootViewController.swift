@@ -1,5 +1,5 @@
 import AppCore
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(UIKit)
     import UIKit
@@ -20,9 +20,9 @@ import FrameworkBrowserFeature
         @MainActor
         final class RootViewController: UISplitViewController, UISplitViewControllerDelegate {
             private let model: RootModel
-            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let frameworks: any Presentation.FrameworkBrowserViewModelProtocol
 
-            public init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
+            public init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.model = model
                 self.frameworks = frameworks
                 super.init(style: .doubleColumn)
@@ -42,10 +42,10 @@ import FrameworkBrowserFeature
                 // Column-style `UISplitViewController` embeds each column in its own
                 // navigation controller, so the columns are set as plain controllers:
                 // wrapping them again nests a second navigation bar (a stray back button).
-                let sidebar = FrameworkSidebarViewController(model: model, frameworks: frameworks)
+                let sidebar = UI.makeFrameworkBrowser(model: model, frameworks: frameworks)
                 sidebar.title = "Cupertino (UIKit)"
                 setViewController(sidebar, for: .primary)
-                setViewController(SelectionDetailViewController(frameworks: frameworks), for: .secondary)
+                setViewController(SelectionDetailViewController(model: model, frameworks: frameworks), for: .secondary)
             }
 
             // MARK: UISplitViewControllerDelegate
@@ -56,7 +56,27 @@ import FrameworkBrowserFeature
                 _: UISplitViewController,
                 topColumnForCollapsingToProposedTopColumn _: UISplitViewController.Column,
             ) -> UISplitViewController.Column {
-                .primary
+                if frameworks.selectedFramework != nil {
+                    return .secondary
+                }
+                return .primary
+            }
+
+            override public var traitCollection: UITraitCollection {
+                if UIDevice.current.userInterfaceIdiom == .pad {
+                    if isViewLoaded, view.bounds.width > view.bounds.height {
+                        return UITraitCollection(traitsFrom: [
+                            super.traitCollection,
+                            UITraitCollection(horizontalSizeClass: .regular),
+                        ])
+                    }
+                    return super.traitCollection
+                } else {
+                    return UITraitCollection(traitsFrom: [
+                        super.traitCollection,
+                        UITraitCollection(horizontalSizeClass: .compact),
+                    ])
+                }
             }
         }
     }

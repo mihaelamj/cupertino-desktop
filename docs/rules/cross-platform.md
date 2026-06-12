@@ -1,34 +1,26 @@
 # Cross-platform Swift (Apple + Linux + Windows)
 
-How to structure CupertinoDesktop's Swift so the same sources build and run on Apple platforms, Linux, and Windows without silent breakage.
+How to structure XCTemplateDSL's Swift so the same sources build and run on Apple platforms, Linux, and Windows without silent breakage.
 
 Load on demand. Triggers: `canImport`, `Linux`, `FoundationNetworking`, `Darwin`, `Glibc`, `swift-system`, `swift-foundation`, cross-platform, manifest, `.when(platforms:)`, `os(Linux)`, `os(iOS)`, `os(macOS)`, `os(visionOS)`, `os(tvOS)`, Vapor, AsyncHTTPClient, Hummingbird.
 
-Grounded in Swift Evolution and `swiftlang/swift-foundation`.
+Grounded in Swift Evolution and `swiftlang/swift-foundation`. The XCTemplateDSL engine targets macOS and Linux (a server-style Apple + Linux split), so it falls under Topology 2/3 below. Subprocess and shell-out are available on both macOS and Linux; the engine may use them.
 
-> **Scope for this repo:** Cupertino Desktop has a fixed native UI matrix: macOS
-> SwiftUI/AppKit, iPhone SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt.
-> The shared core and embedded backend must stay portable enough for the Qt desktop
-> apps; Apple UI packages stay Apple-only; Qt code stays in its own shell. The core depends on
-> foundation-only protocols and value models, never on `#if` at call sites. MCP and
-> subprocess are macOS-only; iPhone, iPad, Linux, and Windows use the local embedded
-> Cupertino reader over an installed catalog.
+## Linux portability and the platform seam (mandatory)
 
-## Linux/Windows portability and the platform seam (mandatory)
-
-The shared core and embedded backend target Apple platforms plus Linux/Windows Qt desktop apps. Two obligations follow:
+The engine targets macOS and Linux. Two obligations follow:
 
 1. Guard every platform-divergent line, preferring `#if canImport(<Framework>)` over `#if os(...)` so future platforms inherit the right branch.
-2. Check Linux and Windows availability before adding a dependency. Many Apple frameworks, and the packages that wrap them, do not build on non-Apple platforms.
+2. Check Linux availability before adding a dependency. Many Apple frameworks, and the packages that wrap them, do not build on Linux.
 
-When the same functionality needs a different implementation per platform, abstract it behind a protocol seam; do not branch at call sites. Define a foundation-only protocol (see [shared-protocols.md](shared-protocols.md)), implement it once per platform family (a macOS target using the Apple package, a Qt desktop target using non-Apple-available packages), and let the composition root wire the correct one (see [dependency-injection.md](dependency-injection.md)). The core depends only on the protocol.
+When the same functionality needs a different implementation per platform, abstract it behind a protocol seam; do not branch at call sites. Define a foundation-only protocol (see [shared-protocols.md](shared-protocols.md)), implement it once per platform (a macOS target using the Apple package, a Linux target using a Linux-available package), and let the composition root wire the correct one (see [dependency-injection.md](dependency-injection.md)). The core depends only on the protocol.
 
 ```swift
 public protocol ClockService: Sendable { var now: Date { get } }
 #if canImport(Darwin)
 let clock: any ClockService = DarwinClock()
 #else
-let clock: any ClockService = PortableClock()
+let clock: any ClockService = LinuxClock()
 #endif
 ```
 
@@ -38,8 +30,9 @@ The rest of this rule depends on which topology your target is in. Mixing them s
 
 1. **Apple-only.** iOS, macOS, plus optional visionOS/tvOS/watchOS. UI-heavy, SwiftUI or UIKit/AppKit primary. No Linux build, no server-side targets.
 2. **Apple clients + Linux server (split package).** UI lives on Apple, one or more server products build to Linux. The Linux-buildable surface is narrow (typically a single server product). Apple-only stuff is wrapped in conditional product/target arrays in `Package.swift`.
-3. **Cross-platform library or CLI.** Runs identically on Apple + Linux + Windows. No UI. Probably uses URLSession-via-FoundationNetworking, Darwin/Glibc conditionals, swift-system.
-4. **Native Qt desktop UI.** This repo uses this topology for `ShellLinuxQt` and `ShellWindowsQt`: Qt owns the Linux and Windows UI, and shared state crosses through a narrow local adapter. Do not try to render SwiftUI on Linux/Windows, and do not replace Qt with a web or remote UI.
+3. **Cross-platform library or CLI.** Runs identically on Apple + Linux + Windows. No UI. Probably uses URLSession-via-FoundationNetworking, Darwin/Glibc conditionals, swift-system. The XCTemplateDSL engine lives here (macOS + Linux): both platforms support subprocess and shell-out, so the engine may spawn subprocesses when needed.
+
+A "Linux UI" topology technically exists but is not production-grade. Do not try to render SwiftUI on Linux; if a server needs UI, ship HTTP responses (templates, JSON for an SPA), not native widgets.
 
 ## Three layers of platform conditioning
 
@@ -54,8 +47,8 @@ Apple-only products and targets go in conditional arrays so non-Apple builds see
 ```swift
 #if os(iOS) || os(macOS)
 let appleOnlyProducts: [Product] = [
-    .singleTargetLibrary("CupertinoDesktopUI"),
-    .singleTargetLibrary("CupertinoDesktopComponents"),
+    .singleTargetLibrary("XCTemplateDSLUI"),
+    .singleTargetLibrary("XCTemplateDSLComponents"),
     // ...
 ]
 #else
@@ -63,7 +56,7 @@ let appleOnlyProducts: [Product] = []
 #endif
 ```
 
-Same pattern for `appleOnlyTargets`. Core engine products (e.g. `TileKit`) stay unconditional.
+Same pattern for `appleOnlyTargets`. Core engine products (e.g. `XCTemplateDSL`) stay unconditional.
 
 ### Layer B: Swift source files
 
@@ -97,16 +90,16 @@ Avoid spreading platform conditioning across both Layer A and Layer C for the sa
 
 ## UI cross-platform patterns
 
-These patterns (Patterns 1-7 and Pattern 13: iOS-only SwiftUI modifiers, UIKit/AppKit app shells, the forward-compat SDK shim, and the `@available(iOS ...)` examples) describe the planned native Apple UI app, NOT the TileKit engine. The engine targets macOS + Linux and has no UI. Apply these only in the app tier.
+These patterns (Patterns 1-7 and Pattern 13: iOS-only SwiftUI modifiers, UIKit/AppKit app shells, the forward-compat SDK shim, and the `@available(iOS ...)` examples) describe the planned native Apple UI app, NOT the XCTemplateDSL engine. The engine targets macOS + Linux and has no UI. Apply these only in the app tier.
 
-Linux and Windows UI means Qt in this repo. SwiftUI on Linux/Windows is out of scope.
+Linux UI is out of scope (no SwiftUI on Linux).
 
 ### Pattern 1: Apple-only UI file (outer gate)
 
 A SwiftUI file that has no Linux meaning gets a file-level gate:
 
 ```swift
-// CupertinoDesktopUI/MainTabs.swift
+// XCTemplateDSLUI/MainTabs.swift
 import SwiftUI
 
 #if os(iOS) || os(macOS)
@@ -474,7 +467,7 @@ If your repo ships an Apple-clients-plus-Linux-server split:
 
 1. **Declare Apple platforms in `platforms:`**. There is no stable Linux entry in the SPM platforms enum; Linux support is implicit when the package builds on a Linux toolchain. For the engine (macOS + Linux), declare macOS only: `platforms: [.macOS(.v15)]`. A repo that also ships an Apple UI app tier adds `.iOS(.v18)` for that tier.
 
-2. **Document the Linux-buildable surface.** In the repo's `README.md` / `AGENTS.md`, name the products that build to Linux: e.g. "On Linux, build the server product only: `swift build --product cupertinodesktopserver`." Otherwise a new developer running `swift build` on Linux hits confusing errors from Apple-only targets.
+2. **Document the Linux-buildable surface.** In the repo's `README.md` / `AGENTS.md`, name the products that build to Linux: e.g. "On Linux, build the server product only: `swift build --product tiledownserver`." Otherwise a new developer running `swift build` on Linux hits confusing errors from Apple-only targets.
 
 3. **Wrap Apple-only products and targets in conditional arrays** (Layer A pattern above). This is the load-bearing rule that makes Layer-A discipline work.
 
@@ -488,13 +481,13 @@ Bad (User-Agent header reports "unknown" on Linux even though we ship there):
 
 ```swift
 #if os(iOS)
-return "CupertinoDesktop/iOS/\(version)"
+return "XCTemplateDSL/iOS/\(version)"
 #elseif os(macOS)
-return "CupertinoDesktop/macOS/\(version)"
+return "XCTemplateDSL/macOS/\(version)"
 #elseif os(visionOS)
-return "CupertinoDesktop/visionOS/\(version)"
+return "XCTemplateDSL/visionOS/\(version)"
 #else
-return "CupertinoDesktop/unknown/\(version)"  // Linux falls into "unknown"
+return "XCTemplateDSL/unknown/\(version)"  // Linux falls into "unknown"
 #endif
 ```
 
@@ -502,15 +495,15 @@ Good:
 
 ```swift
 #if os(iOS)
-return "CupertinoDesktop/iOS/\(version)"
+return "XCTemplateDSL/iOS/\(version)"
 #elseif os(macOS)
-return "CupertinoDesktop/macOS/\(version)"
+return "XCTemplateDSL/macOS/\(version)"
 #elseif os(visionOS)
-return "CupertinoDesktop/visionOS/\(version)"
+return "XCTemplateDSL/visionOS/\(version)"
 #elseif os(Linux)
-return "CupertinoDesktop/Linux/\(version)"
+return "XCTemplateDSL/Linux/\(version)"
 #else
-return "CupertinoDesktop/unknown/\(version)"  // truly unknown future platform
+return "XCTemplateDSL/unknown/\(version)"  // truly unknown future platform
 #endif
 ```
 
@@ -542,4 +535,4 @@ The `#else` arm is reserved for platforms you genuinely do not run on; every pla
 | Logging | `os.log` directly | `canImport(os)` + `print` fallback or `swift-log` | `swift-log` or `canImport(os)` + fallback |
 | Tests | Swift Testing | Swift Testing, Linux-buildable suites separate | Swift Testing |
 | CI | macOS only | macOS + Linux Docker job for the Linux product | macOS + Linux + (Windows) |
-| Linux/Windows UI | Qt shell in this repo | server-side: HTTP responses, not native widgets | n/a |
+| Linux UI | n/a | server-side: HTTP responses, not native widgets | n/a |

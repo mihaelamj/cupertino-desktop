@@ -84,9 +84,45 @@ section 6.)
   in the regular-width split.
 
 ### 3.4 iPhone Plus / Pro Max, landscape
-- These devices are **regular width in landscape**, so the same two-column split as iPad
-  applies and the list and detail show together. In portrait they are compact and behave
-  like 3.3. Standard iPhones have no regular-width state and are always single-pane.
+- These devices are natively **regular width in landscape**, but Cupertino forces them to
+  behave as a **compact** horizontal size class, utilizing the single-pane navigation stack
+  layout. This ensures that all iPhones, regardless of physical screen size, behave consistently
+  as one-handed devices and avoid cramped split views.
+
+### 3.5 Mobile Size Class Layout Matrix
+
+| Platform / Device | Orientation / Window State | Native Size Class (H × V) | Effective size Class in Cupertino | Visual Layout | Navigation Style | Sidebar Selection Style |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **iPhone** (Standard / SE / mini) | Portrait | **Compact × Regular** | **Compact × Regular** | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+| **iPhone** (Standard / SE / mini) | Landscape | **Compact × Compact** | **Compact × Compact** | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+| **iPhone** (Max / Plus / Pro Max) | Portrait | **Compact × Regular** | **Compact × Regular** | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+| **iPhone** (Max / Plus / Pro Max) | Landscape | **Regular × Compact** | **Compact × Compact** (Forced) | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+| **iPad** (All models) | Full Screen Portrait | **Regular × Regular** | **Regular × Regular** | Two-column split | Split View (sidebar + detail) | Persistent (highlighted) |
+| **iPad** (All models) | Full Screen Landscape | **Regular × Regular** | **Regular × Regular** | Two-column split | Split View (sidebar + detail) | Persistent (highlighted) |
+| **iPad** (Multitasking) | Slide Over / 1/3 Split (Narrow) | **Compact × Regular** | **Compact × Regular** | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+| **iPad** (Multitasking) | 1/2 Split Landscape (Narrow) | **Compact × Regular** | **Compact × Regular** | Single-column | Navigation Stack (push / pop) | Transient (deselects on return) |
+
+### 3.6 Mobile UI Components Adaptivity
+
+#### Database Source List (Root Sidebar)
+* **Compact Environment**: Full-screen table (`UITableView` in UIKit, `List` in SwiftUI) using standard cell rows with accessory chevrons. Selecting a database pushes the Frameworks List. Selection is transient (animates to deselected on return).
+* **Regular Environment**: The leading sidebar column of the split view. In-place selection changes the framework content, with persistent selection highlight.
+
+#### Frameworks List (Secondary Sidebar / Column)
+* **Compact Environment**: Full-screen view. The database name is the title; search bar and sort button reside in the active navigation bar.
+* **Regular Environment**: Secondary sidebar column in-place update. Search field and sort controls are attached to a persistent header. Selection remains highlighted.
+
+#### Search Bar / Field
+* **Compact Environment**: Integrated search bar in the navigation bar that collapses on scroll. Tapping shows the keyboard and Cancel button.
+* **Regular Environment**: Statically pinned to the top of the sidebar. Always visible, does not scroll out of view.
+
+#### Document Reader (Detail View)
+* **Compact Environment**: Full-screen layout pushed onto the stack. Back button in the top-left returns to the list. Text sizing buttons (A+/A-) are positioned in a bottom toolbar.
+* **Regular Environment**: Main detail pane adjacent to the sidebar. Text controls are in the top-right toolbar. Max line width is centered (750pt) for reading comfort.
+
+#### Sort Button / Menu
+* **Compact Environment**: Navigation bar button item in the top-right that opens a bottom action sheet or context menu overlay.
+* **Regular Environment**: Persistent icon button placed next to the search field in the sidebar header, opening a dropdown menu.
 
 ## 4. State surfaces (every screen, every framework)
 

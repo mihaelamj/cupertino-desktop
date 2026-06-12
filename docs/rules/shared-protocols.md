@@ -1,6 +1,6 @@
 # Shared Protocols Target
 
-The pattern for a single foundation-only target that holds every cross-target protocol seam. CupertinoDesktop is a monorepo from day one with many targets in one package, so the seam target applies as soon as one producer target needs to talk to another without importing its concretes. Add it when the first cross-target seam appears.
+The pattern for a single foundation-only target that holds every cross-target protocol seam. XCTemplateDSL is a monorepo from day one with many targets in one package, so the seam target applies as soon as one producer target needs to talk to another without importing its concretes. Add it when the first cross-target seam appears.
 
 Companion to [dependency-injection.md](dependency-injection.md) and [package-import-contract.md](package-import-contract.md). The target described here is conventionally named `SharedProtocols`.
 

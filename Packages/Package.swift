@@ -59,6 +59,23 @@ let products: [Product] = [
     .singleTargetLibrary("FlowSpec"),
     // Host CLI that renders the Apple-styled HTML report from scenario results.
     .executable(name: "FlowSpecReportTool", targets: ["FlowSpecReportTool"]),
+    // Xcode Template DSL Compiler products
+    .library(
+        name: "XCTemplateDSL",
+        targets: [
+            "SharedModels",
+            "Lexer",
+            "Parser",
+            "Decompiler",
+            "PackManager",
+            "TemplateExpander",
+            "Validation",
+            "Documentation",
+            "Localization",
+        ],
+    ),
+    .executable(name: "xctemplate", targets: ["xctemplate"]),
+    .executable(name: "clil", targets: ["clil"]),
 ]
 
 // The MCP client package (external, via SwiftMCPClient): the Transport.Channel byte
@@ -131,7 +148,7 @@ let targets: [Target] = {
     // UpcomingSwiftUI is the forward-compat Liquid Glass shim (Pattern 13); only the SwiftUI
     // shell consumes it (the AppKit/UIKit shells reach glass through their native APIs).
     let upcomingSwiftUI = Target.target(name: "UpcomingSwiftUI")
-    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "CodeHighlighting", "FrameworkBrowserFeature", "SearchFeature"]
+    let uiDependencies: [Target.Dependency] = ["AppCore", "AppModels", "MarkdownRendering", "CodeHighlighting", "PresentationBridge"]
     let shellSwiftUI = Target.target(name: "ShellSwiftUI", dependencies: uiDependencies + ["UpcomingSwiftUI"])
     let shellAppKit = Target.target(name: "ShellAppKit", dependencies: uiDependencies)
     let shellUIKit = Target.target(name: "ShellUIKit", dependencies: uiDependencies)
@@ -252,20 +269,107 @@ let targets: [Target] = {
         dependencies: ["PresentationBridge", "AppModels"],
     )
 
-    return api + concrete + impl + [flowSpec, uiTestPageObjects, flowSpecReportTool]
-        + [
-            coreTests,
-            frameworkBrowserTests,
-            backendTests,
-            catalogStoreAPITests,
-            developmentCatalogStoreTests,
-            localSubprocessTests,
-            localEmbeddedTests,
-            searchFeatureTests,
-            markdownTests,
-            appModelsTests,
-            presentationBridgeTests,
-        ]
+    // ---------- XCTemplateDSL Targets ----------
+    let xctemplateSharedModels = Target.target(name: "SharedModels")
+    let xctemplateSharedModelsTests = Target.testTarget(name: "SharedModelsTests", dependencies: ["SharedModels"])
+
+    let xctemplateLexer = Target.target(name: "Lexer", dependencies: ["Localization"])
+    let xctemplateLexerTests = Target.testTarget(name: "LexerTests", dependencies: ["Lexer"])
+
+    let xctemplateParser = Target.target(name: "Parser", dependencies: ["Lexer", "SharedModels"])
+    let xctemplateParserTests = Target.testTarget(name: "ParserTests", dependencies: ["Parser", "Decompiler"])
+
+    let xctemplateDecompiler = Target.target(name: "Decompiler", dependencies: ["SharedModels"])
+    let xctemplateDecompilerTests = Target.testTarget(name: "DecompilerTests", dependencies: ["Decompiler"])
+
+    let xctemplateLocalization = Target.target(
+        name: "Localization",
+        resources: [
+            .copy("Resources/Engine.xcstrings"),
+        ],
+    )
+
+    let xctemplateDocumentation = Target.target(name: "Documentation", dependencies: ["Lexer", "Parser", "Localization"])
+    let xctemplateDocumentationTests = Target.testTarget(name: "DocumentationTests", dependencies: ["Documentation"])
+
+    let xctemplatePackManager = Target.target(name: "PackManager", dependencies: ["SharedModels"])
+    let xctemplatePackManagerTests = Target.testTarget(name: "PackManagerTests", dependencies: ["PackManager"])
+
+    let xctemplateTemplateExpander = Target.target(name: "TemplateExpander", dependencies: ["Localization", "SharedModels"])
+    let xctemplateTemplateExpanderTests = Target.testTarget(name: "TemplateExpanderTests", dependencies: ["TemplateExpander"])
+
+    let xctemplateValidation = Target.target(name: "Validation", dependencies: ["Localization", "SharedModels"])
+    let xctemplateValidationTests = Target.testTarget(name: "ValidationTests", dependencies: ["Validation"])
+
+    let xctemplateExecutable = Target.executableTarget(
+        name: "xctemplate",
+        dependencies: [
+            "SharedModels",
+            "Lexer",
+            "Parser",
+            "Decompiler",
+            "PackManager",
+            "TemplateExpander",
+            "Validation",
+            "Documentation",
+        ],
+    )
+    let xctemplateDSLCompilerTests = Target.testTarget(name: "DSLCompilerTests")
+
+    let clilExecutable = Target.executableTarget(
+        name: "clil",
+        dependencies: [
+            "AppModels",
+            "PresentationBridge",
+        ],
+    )
+
+    let xctemplateLibTargets = [
+        xctemplateSharedModels,
+        xctemplateLexer,
+        xctemplateParser,
+        xctemplateDecompiler,
+        xctemplateLocalization,
+        xctemplateDocumentation,
+        xctemplatePackManager,
+        xctemplateTemplateExpander,
+        xctemplateValidation,
+        xctemplateExecutable,
+    ]
+
+    let xctemplateTestTargets = [
+        xctemplateSharedModelsTests,
+        xctemplateLexerTests,
+        xctemplateParserTests,
+        xctemplateDecompilerTests,
+        xctemplateDocumentationTests,
+        xctemplatePackManagerTests,
+        xctemplateTemplateExpanderTests,
+        xctemplateValidationTests,
+        xctemplateDSLCompilerTests,
+    ]
+
+    var allTargets: [Target] = []
+    allTargets.append(contentsOf: api)
+    allTargets.append(contentsOf: concrete)
+    allTargets.append(contentsOf: impl)
+    allTargets.append(contentsOf: [flowSpec, uiTestPageObjects, flowSpecReportTool, clilExecutable])
+    allTargets.append(contentsOf: xctemplateLibTargets)
+    allTargets.append(contentsOf: [
+        coreTests,
+        frameworkBrowserTests,
+        backendTests,
+        catalogStoreAPITests,
+        developmentCatalogStoreTests,
+        localSubprocessTests,
+        localEmbeddedTests,
+        searchFeatureTests,
+        markdownTests,
+        appModelsTests,
+        presentationBridgeTests,
+    ])
+    allTargets.append(contentsOf: xctemplateTestTargets)
+    return allTargets
 }()
 
 let package = Package(

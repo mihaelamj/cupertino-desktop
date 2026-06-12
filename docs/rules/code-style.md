@@ -1,6 +1,6 @@
 # Code style: namespacing and structure
 
-The operational namespacing discipline for TileKit: folder mirroring, file naming, anchor placement, one-type-per-file, reserved names, namespace-vs-module collisions.
+The operational namespacing discipline for XCTemplateDSL: folder mirroring, file naming, anchor placement, one-type-per-file, reserved names, namespace-vs-module collisions.
 
 Swift does not have true namespaces, so we simulate them with root types and extensions.
 
@@ -10,7 +10,7 @@ For the narrower question "should the anchor be `enum`, `struct`, or `class`?", 
 
 **Every public type lives under a struct or enum namespace that mirrors its folder on disk.** No public type stays at file scope. The qualified name carries module + folder + role; reading `Module.Sub.Leaf` should be enough to know where the type lives and what it does.
 
-This applies to every Swift project. The CupertinoDesktop-style root + sub-namespace pattern below is one specific instance of this discipline.
+This applies to every Swift project. The XCTemplateDSL-style root + sub-namespace pattern below is one specific instance of this discipline.
 
 ### Core rules
 
@@ -121,14 +121,14 @@ If renaming is genuinely not worth it (e.g. the two roots have stable independen
 Multiple SwiftPM targets MAY contribute additional concrete types under the same shared root namespace via extensions:
 
 ```text
-CupertinoDesktop.Parser.Model.Token          // from TileKitCore
-CupertinoDesktop.Generator.Command           // from TileKitCLI
-CupertinoDesktop.Parser.Scanning.Scanner     // from TileKitTools
+XCTemplateDSL.Parser.Model.Token          // from XCTemplateDSLCore
+XCTemplateDSL.Generator.Command           // from XCTemplateDSLCLI
+XCTemplateDSL.Parser.Scanning.Scanner     // from XCTemplateDSLTools
 ```
 
 Targets MUST NOT redefine conflicting namespace trees, and the root namespace meaning MUST be identical across all modules.
 
-## Root + sub-namespace pattern (CupertinoDesktop style)
+## Root + sub-namespace pattern (XCTemplateDSL style)
 
 This is one specific instance of the namespacing discipline above. Use it as the canonical example when designing a new project's namespace tree.
 
@@ -145,8 +145,8 @@ The root namespace file MUST define the full tree of namespace enums, and MUST c
 Example:
 
 ```swift
-/// Root namespace for all CupertinoDesktop types across all modules
-public enum CupertinoDesktop {
+/// Root namespace for all XCTemplateDSL types across all modules
+public enum XCTemplateDSL {
     /// Model types for tile metadata and structure
     public enum Model {}
 
@@ -178,7 +178,7 @@ public enum CupertinoDesktop {
 
 Rules:
 
-- Root namespace = one file (e.g. `CupertinoDesktop.swift`)
+- Root namespace = one file (e.g. `XCTemplateDSL.swift`)
 - Only namespace enums inside (no concrete logic)
 - No stored properties, no methods, no initializers, no nested concrete types
 - Doc comments are allowed and encouraged
@@ -196,7 +196,7 @@ Example:
 import Foundation
 import Models
 
-extension CupertinoDesktop.Parser.Model {
+extension XCTemplateDSL.Parser.Model {
     /// Represents a parsed piece of tile content
     public enum Token: Equatable, Sendable {
         case text(String)
@@ -204,7 +204,7 @@ extension CupertinoDesktop.Parser.Model {
     }
 }
 
-extension CupertinoDesktop.Parser.Model.Token: CustomStringConvertible {
+extension XCTemplateDSL.Parser.Model.Token: CustomStringConvertible {
     public var description: String {
         switch self {
         case .text(let str): return "Text(\"\(str)\")"
@@ -218,32 +218,32 @@ Rules:
 
 - Implementation and conformances MUST be extensions
 - Type lives under the correct semantic path, e.g.:
-  - `CupertinoDesktop.Model`
-  - `CupertinoDesktop.Parser.Model`
-  - `CupertinoDesktop.Parser.Metadata`
-  - `CupertinoDesktop.Generator`
+  - `XCTemplateDSL.Model`
+  - `XCTemplateDSL.Parser.Model`
+  - `XCTemplateDSL.Parser.Metadata`
+  - `XCTemplateDSL.Generator`
 - Conformances (`Codable`, `Sendable`, `CustomStringConvertible`, etc.) MAY be separate extensions
 
-### File layout for CupertinoDesktop-style namespacing
+### File layout for XCTemplateDSL-style namespacing
 
 Files SHOULD be placed to reflect the namespace tree. Two equivalent conventions:
 
 **Folder-based approach**: the folder tree mirrors the namespace tree, one file per leaf type:
 
 ```text
-CupertinoDesktop/
-    CupertinoDesktop.swift                       // namespace anchor: public enum CupertinoDesktop {}
-    Parser/Model/Token.swift             // extension CupertinoDesktop.Parser.Model { public enum Token {} }
-    Parser/Scanning/Scanner.swift        // extension CupertinoDesktop.Parser.Scanning { public struct Scanner {} }
-    Generator/Writer.swift               // extension CupertinoDesktop.Generator { public struct Writer {} }
+XCTemplateDSL/
+    XCTemplateDSL.swift                       // namespace anchor: public enum XCTemplateDSL {}
+    Parser/Model/Token.swift             // extension XCTemplateDSL.Parser.Model { public enum Token {} }
+    Parser/Scanning/Scanner.swift        // extension XCTemplateDSL.Parser.Scanning { public struct Scanner {} }
+    Generator/Writer.swift               // extension XCTemplateDSL.Generator { public struct Writer {} }
 ```
 
 **`<Namespace>.<Type>.swift` approach**: flat folder, file name encodes the namespace path with dots:
 
 ```text
-CupertinoDesktop.swift                              // namespace anchor: public enum CupertinoDesktop {}
-CupertinoDesktop.Parser.Model.Token.swift           // extension CupertinoDesktop.Parser.Model { public enum Token {} }
-CupertinoDesktop.Parser.Metadata.Header.swift       // extension CupertinoDesktop.Parser.Metadata { public struct Header {} }
+XCTemplateDSL.swift                              // namespace anchor: public enum XCTemplateDSL {}
+XCTemplateDSL.Parser.Model.Token.swift           // extension XCTemplateDSL.Parser.Model { public enum Token {} }
+XCTemplateDSL.Parser.Metadata.Header.swift       // extension XCTemplateDSL.Parser.Metadata { public struct Header {} }
 ```
 
 Within a single SPM target, pick ONE pattern and stay with it.
@@ -269,7 +269,7 @@ Why uniformity even when not strictly needed:
 
 The only file in a namespace folder that does NOT carry `.<Type>` is the **namespace anchor**:
 
-- `CupertinoDesktop.swift` declaring `public enum CupertinoDesktop { /* sub-namespaces */ }`
+- `XCTemplateDSL.swift` declaring `public enum XCTemplateDSL { /* sub-namespaces */ }`
 - `Tile.swift` declaring `public enum Tile { public enum Parse {} public enum Core {} ... }`
 
 Anchor files contain only namespace enums, never concrete types.
@@ -280,26 +280,26 @@ The anchor file for a namespace MUST live at the **root of the namespace's ownin
 
 When `<Namespace>` is the umbrella for several SPM sub-targets that each live in a child folder, the anchor file `<Namespace>.swift` goes at the parent folder root, alongside (not inside) the sub-target folders. The sub-target whose SPM `path:` spans the parent folder picks up the anchor file as part of its sources.
 
-Concrete example, a `TileKit` namespace umbrella:
+Concrete example, a `XCTemplateDSL` namespace umbrella:
 
 ```text
-Sources/TileKit/
-├── TileKit.swift          // namespace anchor: extension TileKit { ... }      <-- AT ROOT, not Core/TileKit.swift
-├── Client/                // TileKitClient SPM target
-├── Core/                  // TileKitCore SPM target (path includes ../TileKit.swift)
+Sources/XCTemplateDSL/
+├── XCTemplateDSL.swift          // namespace anchor: extension XCTemplateDSL { ... }      <-- AT ROOT, not Core/XCTemplateDSL.swift
+├── Client/                // XCTemplateDSLClient SPM target
+├── Core/                  // XCTemplateDSLCore SPM target (path includes ../XCTemplateDSL.swift)
 │   ├── Protocol/
 │   ├── Server/
 │   └── Transport/
-├── SharedTools/           // TileKitSharedTools SPM target
-└── Support/               // TileKitSupport SPM target
+├── SharedTools/           // XCTemplateDSLSharedTools SPM target
+└── Support/               // XCTemplateDSLSupport SPM target
 ```
 
-The TileKitCore target's `Package.swift` entry uses `path: "Sources/TileKit"` with `exclude: ["Client", "SharedTools", "Support"]` so it picks up the anchor file plus the `Core/` subtree. Every sibling target (Client, SharedTools, Support) depends on TileKitCore in production, so the `TileKit` namespace anchor reaches them through that dep.
+The XCTemplateDSLCore target's `Package.swift` entry uses `path: "Sources/XCTemplateDSL"` with `exclude: ["Client", "SharedTools", "Support"]` so it picks up the anchor file plus the `Core/` subtree. Every sibling target (Client, SharedTools, Support) depends on XCTemplateDSLCore in production, so the `XCTemplateDSL` namespace anchor reaches them through that dep.
 
 Why this matters:
 
-- Reading the file listing immediately tells you "TileKit is the umbrella here": the anchor sits visually at the top.
-- Moving an anchor into `Core/TileKit.swift` (or any other sub-target folder) hides the umbrella relationship behind one extra `cd` and one extra mental indirection.
+- Reading the file listing immediately tells you "XCTemplateDSL is the umbrella here": the anchor sits visually at the top.
+- Moving an anchor into `Core/XCTemplateDSL.swift` (or any other sub-target folder) hides the umbrella relationship behind one extra `cd` and one extra mental indirection.
 - The same parent-folder pattern applies to `Shared` (anchor at `Sources/Shared/Shared.swift`, not `Sources/Shared/Constants/Shared.swift`), and to any future grouped target family.
 
 For cross-cutting namespaces (e.g. a `Tile` namespace that touches multiple SPM targets and is not owned by any single folder), the anchor lives in the lowest-leaf foundation target that every consumer reaches, AT THAT TARGET'S FOLDER ROOT, not in a sub-folder: e.g. `Sources/Shared/Tile.swift` (alongside `Shared.swift`), not `Sources/Shared/Constants/Tile.swift`.

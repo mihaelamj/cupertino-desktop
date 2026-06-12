@@ -27,8 +27,8 @@ struct FrameworkBrowserViewModelTests {
         await viewModel.load()
 
         #expect(await backend.didConnect)
-        #expect(viewModel.frameworks.map(\.id) == ["swiftui", "foundation"])
-        #expect(viewModel.frameworks.first?.documentCount == 8679)
+        #expect(viewModel.frameworks.map(\.id) == ["foundation", "swiftui"])
+        #expect(viewModel.frameworks.first?.documentCount == 13649)
         #expect(viewModel.isLoading == false)
         #expect(viewModel.errorMessage == nil)
     }
@@ -59,12 +59,20 @@ struct FrameworkBrowserViewModelTests {
         #expect(viewModel.frameworks.map(\.id) == ["swiftui"])
     }
 
-    @Test("selecting a framework loads and exposes its document")
+    @Test("selecting a framework loads its list of documents, then selecting a document loads its content")
     func documentLoads() async {
         let viewModel = Feature.FrameworkBrowser.ViewModel(backend: FakeBackend(.success([])))
-        await viewModel.loadDocument(framework: "swiftui")
-        #expect(viewModel.selectedMarkdown == "# Doc")
-        #expect(viewModel.selectedDocumentTitle == "Doc")
+        await viewModel.loadDocuments(framework: "swiftui")
+        #expect(viewModel.documents.count == 1)
+        #expect(viewModel.documents.first?.title == "View")
+
+        if let uri = viewModel.documents.first?.uri {
+            await viewModel.readDocument(uri)
+            #expect(viewModel.selectedMarkdown == "# Doc")
+            #expect(viewModel.selectedDocumentTitle == "Doc")
+        } else {
+            Issue.record("Expected a document URI")
+        }
     }
 
     @Test("deselecting clears the document")
@@ -90,7 +98,81 @@ struct FrameworkBrowserViewModelTests {
         await viewModel.awaitDocumentLoad()
 
         #expect(await backend.maxConcurrent == 1) // the barrier prevents overlapping reads
-        #expect(viewModel.selectedDocumentTitle == "gamma") // the latest selection wins
+        #expect(viewModel.documents.first?.title == "gamma") // the latest selection wins
+    }
+
+    @Test("belongs(framework:to:) classifies frameworks correctly across all 8 sources")
+    func belongsToSource() {
+        // Doc-like sources and their expected frameworks
+        let swiftUI = Model.Framework(id: "swiftui", name: "SwiftUI", documentCount: 100)
+        let foundation = Model.Framework(id: "foundation", name: "Foundation", documentCount: 50)
+        let appKit = Model.Framework(id: "appkit", name: "AppKit", documentCount: 20)
+        
+        // appleDocs contains swiftui, foundation, but NOT archive-only/non-apple docs
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .appleDocs) == true)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: foundation, to: .appleDocs) == true)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: appKit, to: .appleDocs) == false) // appkit belongs to appleArchive
+        
+        // appleArchive contains appkit, cocoa, coregraphics etc.
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: appKit, to: .appleArchive) == true)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .appleArchive) == false)
+        
+        // hig contains foundations, components, general, inputs, patterns, technologies
+        let foundations = Model.Framework(id: "foundations", name: "Foundations", documentCount: 5)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: foundations, to: .hig) == true)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .hig) == false)
+        
+        // swiftEvolution contains swift-evolution
+        let swiftEvolution = Model.Framework(id: "swift-evolution", name: "Swift Evolution", documentCount: 200)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftEvolution, to: .swiftEvolution) == true)
+        
+        // swiftOrg contains swift-org
+        let swiftOrg = Model.Framework(id: "swift-org", name: "Swift.org", documentCount: 50)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftOrg, to: .swiftOrg) == true)
+        
+        // swiftBook contains swift-book
+        let swiftBook = Model.Framework(id: "swift-book", name: "Swift Book", documentCount: 30)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftBook, to: .swiftBook) == true)
+        
+        // samples contains samples
+        let samples = Model.Framework(id: "samples", name: "Samples", documentCount: 10)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: samples, to: .samples) == true)
+        
+        // packages contains packages
+        let packages = Model.Framework(id: "packages", name: "Packages", documentCount: 15)
+        #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: packages, to: .packages) == true)
+    }
+
+    @Test("filtering frameworks by selected source correctly filters list")
+    func selectedSourceFiltersFrameworks() async {
+        let allFrameworks = [
+            Model.Framework(id: "swiftui", name: "SwiftUI", documentCount: 10),
+            Model.Framework(id: "appkit", name: "AppKit", documentCount: 5),
+            Model.Framework(id: "samples", name: "Samples", documentCount: 1),
+            Model.Framework(id: "packages", name: "Packages", documentCount: 2),
+        ]
+        let backend = FakeBackend(.success(allFrameworks))
+        let viewModel = Feature.FrameworkBrowser.ViewModel(backend: backend)
+        await viewModel.load()
+        
+        // Default with no selected source shows all
+        #expect(viewModel.frameworks.count == 4)
+        
+        // Selecting appleDocs filters to SwiftUI
+        viewModel.selectSource(.appleDocs)
+        #expect(viewModel.frameworks.map(\.id) == ["swiftui"])
+        
+        // Selecting appleArchive filters to AppKit
+        viewModel.selectSource(.appleArchive)
+        #expect(viewModel.frameworks.map(\.id) == ["appkit"])
+        
+        // Selecting samples filters to samples
+        viewModel.selectSource(.samples)
+        #expect(viewModel.frameworks.map(\.id) == ["samples"])
+        
+        // Selecting packages filters to packages
+        viewModel.selectSource(.packages)
+        #expect(viewModel.frameworks.map(\.id) == ["packages"])
     }
 }
 

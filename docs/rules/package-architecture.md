@@ -1,14 +1,14 @@
 # Package Architecture
 
-How to decompose CupertinoDesktop into focused SPM targets within its single package. CupertinoDesktop is a monorepo from day one: one `Package.swift` under `Packages/`, many single-responsibility targets in it. The `TileKit` library and the `cupertino-desktop` executable are already two such targets, so the decomposition rules below apply now and guide every target that joins the manifest.
+How to decompose XCTemplateDSL into focused SPM targets within its single package. XCTemplateDSL is a monorepo from day one: one `Package.swift` under `Packages/`, many single-responsibility targets in it. The `XCTemplateDSL` library and the `xctemplate` executable are already two such targets, so the decomposition rules below apply now and guide every target that joins the manifest.
 
 The pattern: single-responsibility SPM targets with explicit, unidirectional dependencies, all in one package. Each target has one cohesive job and declares exactly what it depends on. This buys isolated compilation, parallel builds, a clear dependency graph, and targets you can test (and lift out) in isolation.
 
 ## What this covers
 
-CupertinoDesktop already has more than one target (the `TileKit` library and the `cupertino-desktop` CLI). Add a new target to the single package when one of these is true:
+XCTemplateDSL already has more than one target (the `XCTemplateDSL` library and the `xctemplate` CLI). Add a new target to the single package when one of these is true:
 
-- A part of TileKit has become a clearly separable responsibility (a parser, a transport, a renderer) used in more than one place.
+- A part of XCTemplateDSL has become a clearly separable responsibility (a parser, a transport, a renderer) used in more than one place.
 - Compilation is slow and a large stable chunk would benefit from being its own target.
 - A second front-door appears (an app target, a server, a second CLI verb set).
 
@@ -50,7 +50,7 @@ Use a consistent scheme. Patterns that travel across project shapes:
 - **Service packages:** `*Service`, or a `Services` aggregator for cross-layer read/write services consumed by multiple front-doors.
 - **Aggregators:** umbrella packages only when the umbrella adds real value (a preview host, an all-features aggregator for app composition). Do not add one by default.
 
-For CupertinoDesktop specifically, keep the `TileKit` library name as the public anchor and grow new packages around it (for example `TileCore`, `TileParser`) rather than renaming it.
+For XCTemplateDSL specifically, keep the `XCTemplateDSL` library name as the public anchor and grow new packages around it (for example `TileCore`, `TileParser`) rather than renaming it.
 
 ### Rule 5: Layer architecture (unidirectional)
 
@@ -142,7 +142,7 @@ If you add a font or resource package:
 
 ## Example layout (illustrative, not normative)
 
-As CupertinoDesktop grows targets within its single package, the layout might look like this. Your actual target list will differ.
+As XCTemplateDSL grows targets within its single package, the layout might look like this. Your actual target list will differ.
 
 ```
 Packages/Sources/
@@ -155,10 +155,10 @@ Packages/Sources/
 │   └── TileTransport     # depends: SharedProtocols
 │
 ├── Domain Layer
-│   └── TileKit           # the main library; depends: TileCore, TileParser
+│   └── XCTemplateDSL           # the main library; depends: TileCore, TileParser
 │
 └── Front-door (not under Sources/)
-    └── cupertino-desktop         # the CLI executable; wires the concretes
+    └── xctemplate         # the CLI executable; wires the concretes
 ```
 
 ## Related rules

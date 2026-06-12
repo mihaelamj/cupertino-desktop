@@ -1,6 +1,6 @@
 # App Font Registration Rules
 
-Font-registration rules for the planned CupertinoDesktop native editor. Register custom fonts using CoreText in SPM packages. Never use Info.plist approaches. Resources must use `.process()` in Package.swift and always use `Bundle.module` for resource access.
+Font-registration rules for the planned XCTemplateDSL native editor. Register custom fonts using CoreText in SPM packages. Never use Info.plist approaches. Resources must use `.process()` in Package.swift and always use `Bundle.module` for resource access.
 
 ## Core rules
 
@@ -143,7 +143,7 @@ import SwiftUI
 import AppFont
 
 @main
-struct CupertinoDesktopApp: App {
+struct XCTemplateDSLApp: App {
     init() {
         // Register fonts before any UI renders.
         FontRegistration.registerFonts()

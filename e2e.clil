@@ -1,0 +1,42 @@
+# --------------------------------------------------
+# Cupertino Headless End-to-End Verification Script
+# --------------------------------------------------
+
+# 1. Initialize iPhone compact environment
+device iPhone in portrait with compact
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0
+
+# 2. Select Database Source
+dispatch selectSource("apple-docs")
+assert vm activeSource == "appleDocs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1
+
+# 3. Select Framework
+dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2
+
+# 4. Read Document (Asynchronous Loader)
+dispatch selectDocument("apple-docs://swiftui/view")
+assert vm documentState == "loading"
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3
+
+# 5. Adapt device orientation to Landscape (Transitions Sizing matrix)
+device iPhone in landscape with compact
+# Note: Compact landscape iPhone maintains single-column stack
+assert ui showsDetailPane == false
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3
+
+# 6. Adapt device to iPad in Landscape (Triggers regular sizing)
+device iPad in landscape with regular
+# Regular iPad expands into a persistent split screen layout
+assert ui showsDetailPane == true
+assert ui activeView == "SplitView"
+assert ui navigationStackDepth == 0

@@ -1,6 +1,6 @@
 # App Colors Architecture Rules
 
-Color-system rules for the planned CupertinoDesktop native editor. Build the colors package with HSV-based color management, dynamic light/dark support, and semantic naming. The colors package is independent from the theme package, which combines colors + fonts.
+Color-system rules for the planned XCTemplateDSL native editor. Build the colors package with HSV-based color management, dynamic light/dark support, and semantic naming. The colors package is independent from the theme package, which combines colors + fonts.
 
 ## Core rules
 
@@ -33,6 +33,17 @@ Use these exact semantic names:
 - `onPrimary`: text on primary-colored backgrounds
 - `background`: primary background (like systemBackground)
 - `secondaryBackground`: secondary/elevated background
+
+Concrete Apple system-color hex for the brand/action semantics (iOS light-mode values; derive dark variants by HSV per Rule 2). These are the canonical fills, never web defaults or ad-hoc hexes:
+
+| Semantic | Apple system color | Hex |
+|---|---|---|
+| `primary` | systemBlue | `#007AFF` |
+| `success` | systemGreen | `#34C759` |
+| `secondary` | systemPurple | `#AF52DE` |
+| `destructive` | systemRed | `#FF3B30` |
+
+Full iOS system palette: systemRed `#FF3B30` · systemOrange `#FF9500` · systemYellow `#FFCC00` · systemGreen `#34C759` · systemMint `#00C7BE` · systemTeal `#30B0C7` · systemCyan `#32ADE6` · systemBlue `#007AFF` · systemIndigo `#5856D6` · systemPurple `#AF52DE` · systemPink `#FF2D55` · systemGray `#8E8E93`. The same palette governs GitHub labels and roadmap-diagram status colors (`git-discipline.md` Rule 1.7).
 
 ### Rule 4: Dynamic color support
 
@@ -420,7 +431,7 @@ let customColors = AppColors(
 )
 
 @main
-struct CupertinoDesktopApp: App {
+struct XCTemplateDSLApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

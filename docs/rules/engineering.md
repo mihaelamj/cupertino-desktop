@@ -1,6 +1,6 @@
 # Engineering principles
 
-Judgment rules for every change to CupertinoDesktop code. Rules a machine can check live
+Judgment rules for every change to XCTemplateDSL code. Rules a machine can check live
 in tooling (pointed to below); this file holds the judgment no tool can make.
 
 ## Primary directive

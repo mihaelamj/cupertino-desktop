@@ -1,5 +1,5 @@
 import AppCore
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(SwiftUI)
     import SwiftUI
@@ -10,7 +10,11 @@ import FrameworkBrowserFeature
         struct LiveRootExperience: RootExperience {
             public init() {}
 
-            public func makeRoot(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) -> some View {
+            public func makeRoot(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) -> some View {
+                AnyView(openRootView(model: model, frameworks: frameworks))
+            }
+
+            private func openRootView(model: RootModel, frameworks: some Presentation.FrameworkBrowserViewModelProtocol) -> some View {
                 RootView(model: model, frameworks: frameworks)
             }
         }

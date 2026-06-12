@@ -1,5 +1,7 @@
 import AppCore
-import FrameworkBrowserFeature
+import AppModels
+import Observation
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -18,9 +20,9 @@ import FrameworkBrowserFeature
         @MainActor
         final class RootViewController: NSSplitViewController, NSToolbarDelegate {
             private let model: RootModel
-            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let frameworks: any Presentation.FrameworkBrowserViewModelProtocol
 
-            public init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
+            public init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.model = model
                 self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
@@ -34,7 +36,7 @@ import FrameworkBrowserFeature
             override public func viewDidLoad() {
                 super.viewDidLoad()
 
-                let sidebar = FrameworkSidebarViewController(model: model, frameworks: frameworks)
+                let sidebar = DatabaseListViewController(model: model, frameworks: frameworks)
                 let sidebarItem = NSSplitViewItem(sidebarWithViewController: sidebar)
                 sidebarItem.minimumThickness = 200
                 sidebarItem.maximumThickness = 360
@@ -46,6 +48,28 @@ import FrameworkBrowserFeature
                 detailItem.minimumThickness = 320
                 detailItem.holdingPriority = .init(245)
                 addSplitViewItem(detailItem)
+
+                trackFrameworks()
+                frameworks.onAppeared()
+            }
+
+            public func showFrameworks(for source: Model.Source) {
+                frameworks.selectSource(source)
+                let sidebar = FrameworkSidebarViewController(model: model, frameworks: frameworks)
+                if let sidebarItem = splitViewItems.first {
+                    sidebarItem.viewController.removeFromParent()
+                    insertChild(sidebar, at: 0)
+                    sidebarItem.viewController = sidebar
+                }
+            }
+
+            public func showDatabases() {
+                let databases = DatabaseListViewController(model: model, frameworks: frameworks)
+                if let sidebarItem = splitViewItems.first {
+                    sidebarItem.viewController.removeFromParent()
+                    insertChild(databases, at: 0)
+                    sidebarItem.viewController = databases
+                }
             }
 
             override public func viewDidAppear() {
@@ -96,6 +120,21 @@ import FrameworkBrowserFeature
                 item.target = self
                 item.action = #selector(NSSplitViewController.toggleSidebar(_:))
                 return item
+            }
+
+            private func trackFrameworks() {
+                withObservationTracking {
+                    _ = frameworks.frameworks
+                } onChange: { [weak self] in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        if self.model.selectedFrameworkID == nil, let first = self.frameworks.frameworks.first {
+                            self.model.selectedFrameworkID = first.id
+                            self.frameworks.selectFramework(first.id)
+                        }
+                        self.trackFrameworks()
+                    }
+                }
             }
         }
     }

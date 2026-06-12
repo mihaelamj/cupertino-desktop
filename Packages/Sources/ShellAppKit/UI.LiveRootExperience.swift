@@ -1,5 +1,5 @@
 import AppCore
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -10,7 +10,7 @@ import FrameworkBrowserFeature
         struct LiveRootExperience: RootExperience {
             public init() {}
 
-            public func makeRoot(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) -> NSViewController {
+            public func makeRoot(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) -> NSViewController {
                 RootViewController(model: model, frameworks: frameworks)
             }
         }

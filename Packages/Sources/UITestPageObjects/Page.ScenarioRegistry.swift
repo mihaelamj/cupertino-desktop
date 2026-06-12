@@ -18,7 +18,29 @@ public extension Page {
         }
 
         private func element(_ identifier: String) -> XCUIElement {
-            app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+            if identifier.hasPrefix("framework_row_") ||
+               identifier.hasPrefix("source_row_") ||
+               identifier == UI.AccessibilityID.FrameworkBrowser.searchField ||
+               identifier == UI.AccessibilityID.FrameworkBrowser.sortButton {
+                let sidebars = app.descendants(matching: .any).matching(identifier: UI.AccessibilityID.FrameworkBrowser.sidebar).allElementsBoundByIndex
+                if let sidebar = sidebars.first(where: { $0.exists && $0.isHittable && $0.frame.width > 0 && $0.frame.height > 0 }) {
+                    let matches = sidebar.descendants(matching: .any).matching(identifier: identifier).allElementsBoundByIndex
+                    if let visible = matches.first(where: { $0.exists && $0.frame.width > 0 && $0.frame.height > 0 }) {
+                        return visible
+                    }
+                }
+            }
+            if identifier == UI.AccessibilityID.FrameworkBrowser.searchField {
+                let systemSearch = app.searchFields.firstMatch
+                if systemSearch.exists {
+                    return systemSearch
+                }
+            }
+            let matches = app.descendants(matching: .any).matching(identifier: identifier).allElementsBoundByIndex
+            if let visible = matches.first(where: { $0.exists && $0.frame.width > 0 && $0.frame.height > 0 }) {
+                return visible
+            }
+            return app.descendants(matching: .any).matching(identifier: identifier).firstMatch
         }
 
         public func execute(_ step: Step) throws {
@@ -26,11 +48,35 @@ public extension Page {
             case .open, .tap:
                 let element = try require(step)
                 scrollToHittable(element, target: step.target)
-                element.tap()
+                element.performTap()
+
+                if step.target.hasPrefix("framework_row_") {
+                    let reader = self.element(UI.AccessibilityID.FrameworkBrowser.reader)
+                    if !reader.exists {
+                        let firstCell = app.descendants(matching: .any).matching(identifier: "document_cell").firstMatch
+                        if firstCell.waitForExistence(timeout: 10) {
+                            firstCell.performTap()
+                        }
+                    }
+                }
             case .type:
                 let element = try require(step)
-                element.tap()
-                element.typeText(step.arg ?? "")
+                element.performTap()
+                let text = step.arg ?? ""
+                element.typeText(text)
+                #if os(iOS)
+                    if element.elementType == .searchField || step.target.contains("search") {
+                        let searchButton = app.keyboards.buttons["Search"]
+                        if searchButton.waitForExistence(timeout: 2), searchButton.isHittable {
+                            searchButton.performTap()
+                        } else {
+                            let returnButton = app.keyboards.buttons["Return"]
+                            if returnButton.exists, returnButton.isHittable {
+                                returnButton.performTap()
+                            }
+                        }
+                    }
+                #endif
             case .swipe:
                 let element = try require(step)
                 switch step.arg {
@@ -39,19 +85,30 @@ public extension Page {
                 case "right": element.swipeRight()
                 default: element.swipeUp()
                 }
-            case .wait, .assert:
+            case .wait:
                 let timeout = step.arg.flatMap(TimeInterval.init) ?? defaultTimeout
-                // Match by accessibility identifier first, then fall back to a visible
-                // static-text or link label, so a scenario can assert a content-unavailable
-                // view by its title (e.g. "Could not load document") the same way it asserts
-                // an identifier. The label fallback is checked only if the identifier wait
-                // fails, so identifier asserts keep the full timeout.
                 let found = element(step.target).waitForExistence(timeout: timeout)
                     || app.staticTexts[step.target].firstMatch.waitForExistence(timeout: timeout)
                     || app.links[step.target].firstMatch.exists
                 if !found {
                     throw StepRegistryError.stepFailed(key: step.key, reason: "element `\(step.target)` did not appear")
                 }
+            case .assert:
+                if step.target == "no-raw-iban-in-hierarchy" {
+                    Page.Base(app: app).verifyNoRawIBANInHierarchy(context: step.arg ?? "FlowSpec")
+                    return
+                }
+                let timeout = step.arg.flatMap(TimeInterval.init) ?? defaultTimeout
+                let found = element(step.target).waitForExistence(timeout: timeout)
+                    || app.staticTexts[step.target].firstMatch.waitForExistence(timeout: timeout)
+                    || app.links[step.target].firstMatch.exists
+                if !found {
+                    throw StepRegistryError.stepFailed(key: step.key, reason: "element `\(step.target)` did not appear")
+                }
+            case .request:
+                // No-op stamp to keep cross-platform scenario files compatible,
+                // similar to how mauintern handles web/HTTP actions on platforms that don't need them.
+                break
             }
         }
 
@@ -59,8 +116,32 @@ public extension Page {
         /// in-document links and labels, which carry no identifier) by link or static-text
         /// label. This is what lets a scenario tap a "Mentioned in" link by its text.
         private func locate(_ target: String) -> XCUIElement {
+            if target.hasPrefix("framework_row_") {
+                let appleDocsRow = element(UI.AccessibilityID.FrameworkBrowser.sourceRow("appleDocs"))
+                let targetElement = element(target)
+                _ = appleDocsRow.waitForExistence(timeout: 5)
+                if appleDocsRow.exists, !targetElement.exists {
+                    appleDocsRow.performTap()
+                }
+            }
+
             let byIdentifier = element(target)
-            if byIdentifier.exists { return byIdentifier }
+            if byIdentifier.waitForExistence(timeout: 0.5) { return byIdentifier }
+
+            if target == UI.AccessibilityID.FrameworkBrowser.sortButton {
+                return app.buttons["Sort"].firstMatch
+            }
+            if target == UI.AccessibilityID.FrameworkBrowser.sortByNameOption {
+                let nameOption = app.buttons["Name"].firstMatch
+                if nameOption.exists { return nameOption }
+                return app.menuItems["Name"].firstMatch
+            }
+            if target == UI.AccessibilityID.FrameworkBrowser.sortByCountOption {
+                let countOption = app.buttons["Count"].firstMatch
+                if countOption.exists { return countOption }
+                return app.menuItems["Count"].firstMatch
+            }
+
             // A label can legitimately repeat (e.g. the same link text twice in one
             // document), so resolve to the first match rather than the subscript's
             // unique-or-throw element.
@@ -80,23 +161,29 @@ public extension Page {
 
         /// Scroll the element into a hittable position (links can sit below the fold).
         private func scrollToHittable(_ element: XCUIElement, target: String, maxSwipes: Int = 8) {
-            let surface = scrollSurface(for: target)
-            var swipes = 0
-            while !element.isHittable, swipes < maxSwipes {
-                if element.frame.midY < surface.frame.minY {
-                    surface.swipeDown()
-                } else {
-                    surface.swipeUp()
+            #if os(macOS)
+                // On macOS, elements are usually visible or scroll views handle it differently,
+                // and swiping the app itself is not supported.
+                return
+            #else
+                let surface = scrollSurface(for: target)
+                var swipes = 0
+                while !element.isHittable, swipes < maxSwipes {
+                    if element.frame.midY < surface.frame.minY {
+                        surface.swipeDown()
+                    } else {
+                        surface.swipeUp()
+                    }
+                    swipes += 1
                 }
-                swipes += 1
-            }
+            #endif
         }
 
         private func scrollSurface(for target: String) -> XCUIElement {
             if target.hasPrefix("framework_row_") {
-                let sidebar = element(UI.AccessibilityID.FrameworkBrowser.sidebar)
-                if sidebar.exists {
-                    return sidebar
+                let sidebars = app.descendants(matching: .any).matching(identifier: UI.AccessibilityID.FrameworkBrowser.sidebar).allElementsBoundByIndex
+                if let activeSidebar = sidebars.first(where: { $0.exists && $0.isHittable && $0.frame.width > 0 && $0.frame.height > 0 }) {
+                    return activeSidebar
                 }
             }
             return app

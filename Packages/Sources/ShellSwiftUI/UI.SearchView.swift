@@ -1,6 +1,6 @@
 import AppCore
 import AppModels
-import SearchFeature
+import PresentationBridge
 
 #if canImport(SwiftUI)
     import SwiftUI
@@ -11,12 +11,12 @@ import SearchFeature
         /// `searchDocs` option lives behind a Filters sheet so it never buries the
         /// results. The "everything" scope shows a unified, source-bucketed result (docs,
         /// samples, packages). Binds the framework-agnostic `Feature.Search.ViewModel`.
-        struct SearchView: View {
-            @Bindable private var model: Feature.Search.ViewModel
+        struct SearchView<VM: Presentation.SearchViewModelProtocol>: View {
+            @Bindable private var model: VM
             @State private var showingFilters = false
             @State private var path = NavigationPath()
 
-            public init(model: Feature.Search.ViewModel) {
+            public init(model: VM) {
                 _model = Bindable(model)
             }
 
@@ -24,8 +24,8 @@ import SearchFeature
                 NavigationStack(path: $path) {
                     VStack(spacing: 0) {
                         Picker("Scope", selection: $model.scope) {
-                            Text("Docs").tag(Feature.Search.ViewModel.Scope.docs)
-                            Text("Everything").tag(Feature.Search.ViewModel.Scope.everything)
+                            Text("Docs").tag(Presentation.Search.Scope.docs)
+                            Text("Everything").tag(Presentation.Search.Scope.everything)
                         }
                         .pickerStyle(.segmented)
                         .padding(.horizontal)
@@ -166,7 +166,7 @@ import SearchFeature
         }
 
         private struct NodeRow: View {
-            let node: Feature.Search.ResultNode
+            let node: Presentation.SearchResultNode
             var body: some View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(node.title).font(.headline)
@@ -228,8 +228,8 @@ import SearchFeature
         /// The page opened when a result is tapped: reads the document by URI and renders
         /// its full markdown through the shared `MarkdownReader` (the same pipeline the
         /// framework browser detail uses).
-        private struct DocumentReaderView: View {
-            let model: Feature.Search.ViewModel
+        private struct DocumentReaderView<VM: Presentation.SearchViewModelProtocol>: View {
+            let model: VM
             let uri: Model.DocURI
             let providedTitle: String?
             @State private var page: Model.DocPage?

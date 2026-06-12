@@ -14,7 +14,7 @@ extension Backend.LocalSubprocess {
     /// Doc-like sources (everything except `samples` and `packages`, which carry a
     /// different result nature). `searchDocs` narrows the selection to these.
     static let docLikeSources: Set<Model.Source> = [
-        .appleDocs, .appleArchive, .hig, .swiftEvolution, .swiftOrg, .swiftBook,
+        .appleDocs, .appleArchive, .hig, .swiftEvolution, .swiftOrg, .swiftBook, .samples, .packages,
     ]
 
     static func searchArguments(_ query: Model.DocsQuery, source: Model.Source) -> [String: Client.Argument] {
@@ -23,7 +23,9 @@ extension Backend.LocalSubprocess {
             "source": .string(source.scheme),
             "limit": .int(min(100, max(1, query.limit))),
         ]
-        if let framework = query.framework, !framework.isEmpty { arguments["framework"] = .string(framework) }
+        if let framework = query.framework, !framework.isEmpty, framework != "samples", framework != "packages" {
+            arguments["framework"] = .string(framework)
+        }
         if let language = query.language, !language.isEmpty { arguments["language"] = .string(language) }
         applyFloor(query.floor, to: &arguments)
         return arguments
@@ -136,6 +138,65 @@ extension Backend.LocalSubprocess {
                 framework: framework,
                 snippet: snippet,
                 score: score ?? 0,
+            )
+        }
+    }
+
+    static func parseSampleDocHits(_ markdown: String) -> [Model.DocHit] {
+        var hits: [Model.DocHit] = []
+        var current: PartialSampleHit?
+
+        func finalize() {
+            if let partial = current, let hit = partial.makeHit() { hits.append(hit) }
+            current = nil
+        }
+
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("### ") {
+                finalize()
+                let rest = trimmed.dropFirst(4).trimmingCharacters(in: .whitespaces)
+                if let dotIndex = rest.firstIndex(of: ".") {
+                    let title = rest[rest.index(after: dotIndex)...].trimmingCharacters(in: .whitespaces)
+                    current = PartialSampleHit(title: title)
+                }
+            } else if trimmed == "---" {
+                finalize()
+            } else if current != nil {
+                if let id = backticked(trimmed, after: "- **ID:**") {
+                    current?.id = id
+                } else if let frameworks = plainValue(trimmed, after: "- **Frameworks:**") {
+                    current?.framework = frameworks
+                } else if !trimmed.hasPrefix("- **"), !trimmed.hasPrefix("#") {
+                    let text = stripBold(trimmed).trimmingCharacters(in: .whitespaces)
+                    if !text.isEmpty { current?.appendSnippet(text) }
+                }
+            }
+        }
+        finalize()
+        return hits
+    }
+
+    private struct PartialSampleHit {
+        let title: String
+        var id: String?
+        var framework: String?
+        var snippet = ""
+
+        mutating func appendSnippet(_ text: String) {
+            snippet += snippet.isEmpty ? text : " " + text
+        }
+
+        func makeHit() -> Model.DocHit? {
+            guard let id, let docURI = Model.DocURI("samples://\(id.lowercased())/view") else { return nil }
+            return Model.DocHit(
+                id: "samples://\(id.lowercased())/view",
+                uri: docURI,
+                source: .samples,
+                title: title,
+                framework: framework,
+                snippet: snippet,
+                score: 0,
             )
         }
     }

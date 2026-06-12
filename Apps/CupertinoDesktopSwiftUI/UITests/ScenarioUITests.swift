@@ -23,6 +23,11 @@ final class ScenarioUITests: XCTestCase {
     }
 
     @MainActor
+    func testFrameworkSearchSortScenario() throws {
+        try runScenario("framework-search-sort")
+    }
+
+    @MainActor
     func testDefaultSelectionScenario() throws {
         try runScenario("default-selection")
     }

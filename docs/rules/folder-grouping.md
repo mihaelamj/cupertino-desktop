@@ -1,6 +1,6 @@
 # Folder Grouping Rule
 
-How to lay out source trees in TileKit: one folder per SPM target, with file-grouping rules for the files inside a target.
+How to lay out source trees in XCTemplateDSL: one folder per SPM target, with file-grouping rules for the files inside a target.
 
 Cross-cutting layout rule. Most concrete in Swift / SPM packages where one-target-per-folder is the default; the same intent applies to Python packages, web project trees, docs trees, anywhere a tree of files exists.
 

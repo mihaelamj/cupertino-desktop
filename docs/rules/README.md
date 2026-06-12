@@ -9,7 +9,7 @@ area. This is the source of truth for the public rule set; the drop-in kit at
 sample tile-based static site generator; replace the example names with your
 project's when you adopt these.
 
-## Always relevant
+## Always relevant (engine, today)
 
 - [engineering.md](engineering.md) - the engineering bar: progressive
   architecture, impossible states unrepresentable, testable by design.
@@ -21,9 +21,10 @@ project's when you adopt these.
   collaborator through `init`, protocol seams.
 - [concurrency.md](concurrency.md) - Swift 6 strict concurrency: `Sendable`,
   actors, `@MainActor`.
-- [cross-platform.md](cross-platform.md) - fixed native matrix: macOS
-  SwiftUI/AppKit, iPhone SwiftUI/UIKit, iPad SwiftUI/UIKit, Linux Qt, and Windows Qt. Guard
-  platform-divergent code behind protocol/value seams and keep every shell native.
+- [cross-platform.md](cross-platform.md) - the core builds on macOS and Linux;
+  guard platform-divergent code behind a protocol seam.
+- [linux-server.md](linux-server.md) - server-side operational rules for the
+  `serve` command and any networking.
 - [testing.md](testing.md) - Swift Testing, `@Test` / `#expect`, test isolation.
 - [testing-discipline.md](testing-discipline.md) - run the suite on every code
   change; write tests where none exist.
@@ -42,8 +43,7 @@ project's when you adopt these.
 - [package-architecture.md](package-architecture.md) - single-responsibility
   targets with unidirectional dependencies.
 - [package-import-contract.md](package-import-contract.md) - per-target allowed
-  imports; the app targets, feature packages, and backend adapter are separate
-  targets with a one-way import contract.
+  imports; applies now, the engine and CLI are already two targets.
 - [shared-protocols.md](shared-protocols.md) - the cross-target protocol seam.
 
 Open decisions live in [docs/decisions/](../decisions/).
@@ -54,7 +54,7 @@ Open decisions live in [docs/decisions/](../decisions/).
 - [git-discipline.md](git-discipline.md) - issues, labels, PRs, branches, commits,
   remotes.
 
-## Native UI (SwiftUI + AppKit + UIKit + Qt)
+## The planned native macOS and iOS editor
 
 - [views.md](views.md) - SwiftUI view architecture and identity.
 - [view-models.md](view-models.md) - ViewModel responsibilities and patterns.

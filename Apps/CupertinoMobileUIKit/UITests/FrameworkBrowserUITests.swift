@@ -16,6 +16,7 @@ final class FrameworkBrowserUITests: XCTestCase {
 
         Page.FrameworkBrowser(app: app)
             .verifyIsDisplayed()
+            .selectDatabase("appleDocs")
             .selectFramework("swiftui")
             .verifyReaderShown()
     }

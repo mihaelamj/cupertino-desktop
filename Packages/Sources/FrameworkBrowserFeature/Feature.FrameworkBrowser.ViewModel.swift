@@ -16,17 +16,66 @@ public extension Feature.FrameworkBrowser {
     /// inject a tiny fake with no transport.
     @Observable
     @MainActor
-    final class ViewModel {
+    final class ViewModel: Presentation.FrameworkBrowserViewModelProtocol {
         /// Single source of truth for the load. An enum keeps invalid combinations
         /// (loading AND failed) unrepresentable (docs/rules/view-models.md).
-        public typealias LoadState = Presentation.LoadState<[Model.Framework]>
+        public typealias LoadState = Presentation.FrameworkBrowser.LoadState
+        public typealias ConnectionState = Presentation.FrameworkBrowser.ConnectionState
 
         public private(set) var state: LoadState = .idle
 
-        /// The loaded frameworks, or empty in any other state. Derived, never stored
-        /// alongside `state`.
         public var frameworks: [Model.Framework] {
-            if case let .loaded(frameworks) = state { frameworks } else { [] }
+            guard case let .loaded(all) = state else { return [] }
+            
+            var allWithPlaceholders = all
+            if let selectedSource {
+                let placeholders = [
+                    Model.Framework(id: "swift-evolution", name: "Swift Evolution", documentCount: 0),
+                    Model.Framework(id: "swift-org", name: "Swift.org Docs", documentCount: 0),
+                    Model.Framework(id: "swift-book", name: "Swift Book", documentCount: 0),
+                    Model.Framework(id: "samples", name: "Sample Projects", documentCount: 0),
+                    Model.Framework(id: "packages", name: "Swift Packages", documentCount: 0),
+                    Model.Framework(id: "components", name: "Components", documentCount: 0),
+                    Model.Framework(id: "foundations", name: "Foundations", documentCount: 0),
+                    Model.Framework(id: "general", name: "General", documentCount: 0),
+                    Model.Framework(id: "inputs", name: "Inputs", documentCount: 0),
+                    Model.Framework(id: "patterns", name: "Patterns", documentCount: 0),
+                    Model.Framework(id: "technologies", name: "Technologies", documentCount: 0),
+                ]
+                for placeholder in placeholders {
+                    if ViewModel.belongs(framework: placeholder, to: selectedSource),
+                       !allWithPlaceholders.contains(where: { $0.id == placeholder.id }) {
+                        allWithPlaceholders.append(placeholder)
+                    }
+                }
+            }
+            
+            let filteredBySource = selectedSource.map { source in
+                allWithPlaceholders.filter { ViewModel.belongs(framework: $0, to: source) }
+            } ?? all
+
+            let filteredBySearch: [Model.Framework]
+            if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                filteredBySearch = filteredBySource
+            } else {
+                let query = searchQuery.lowercased()
+                filteredBySearch = filteredBySource.filter {
+                    $0.displayName.lowercased().contains(query) || $0.id.lowercased().contains(query)
+                }
+            }
+
+            switch sortOrder {
+            case .count:
+                return filteredBySearch.sorted {
+                    $0.documentCount != $1.documentCount
+                        ? $0.documentCount > $1.documentCount
+                        : $0.name < $1.name
+                }
+            case .name:
+                return filteredBySearch.sorted {
+                    $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                }
+            }
         }
 
         public var isLoading: Bool {
@@ -35,15 +84,6 @@ public extension Feature.FrameworkBrowser {
 
         public var errorMessage: String? {
             if case let .failed(message) = state { message } else { nil }
-        }
-
-        /// The backend connection status, derived from the load lifecycle, for the
-        /// connection-status indicator: connecting until the framework list arrives,
-        /// connected once it does, failed on error.
-        public enum ConnectionState: Sendable, Equatable {
-            case connecting
-            case connected
-            case failed
         }
 
         public var connectionState: ConnectionState {
@@ -105,12 +145,7 @@ public extension Feature.FrameworkBrowser {
 
         // MARK: Selected-document reading (the detail column)
 
-        public enum DocumentState: Sendable {
-            case empty
-            case loading
-            case loaded(Model.DocPage)
-            case failed(String)
-        }
+        public typealias DocumentState = Presentation.FrameworkBrowser.DocumentState
 
         public private(set) var documentState: DocumentState = .empty
 
@@ -130,16 +165,63 @@ public extension Feature.FrameworkBrowser {
             if case let .failed(message) = documentState { message } else { nil }
         }
 
+        public private(set) var selectedSource: Model.Source?
+        public private(set) var selectedFrameworkID: String?
+        public var searchQuery: String = ""
+        public var sortOrder: Presentation.FrameworkBrowser.SortOrder = .count
+
+        public func selectSource(_ source: Model.Source?) {
+            if source == selectedSource { return }
+            selectedSource = source
+            searchQuery = ""
+            selectFramework(nil)
+        }
+
+        public var selectedFramework: Model.Framework? {
+            guard let selectedFrameworkID else { return nil }
+            return frameworks.first(where: { $0.id == selectedFrameworkID })
+        }
+
+        public private(set) var documents: [Model.DocHit] = []
+
+        public func selectDocument(_ uri: Model.DocURI) {
+            NSLog("VM SELECT DOCUMENT: \(uri.rawValue)")
+            if case let .loaded(page) = documentState, page.uri == uri {
+                NSLog("VM SELECT DOCUMENT: already loaded")
+                return
+            }
+            let previous = docTask
+            previous?.cancel()
+            documentState = .loading
+            docTask = Task { [weak self] in
+                NSLog("VM SELECT DOCUMENT: task started")
+                await previous?.value
+                guard !Task.isCancelled else {
+                    NSLog("VM SELECT DOCUMENT: task cancelled after previous value")
+                    return
+                }
+                NSLog("VM SELECT DOCUMENT: calling readDocument")
+                await self?.readDocument(uri)
+            }
+        }
+
+        public func readPage(_ uri: Model.DocURI) async throws -> Model.DocPage {
+            try await backend.readDocument(uri)
+        }
+
         private var docTask: Task<Void, Never>?
 
         /// Load a document for the selected framework, or clear when nothing is
         /// selected. The shells call this when the sidebar selection changes, so the
         /// detail column shows real document content rather than just the id.
         public func selectFramework(_ id: String?) {
+            if id == selectedFrameworkID { return }
+            selectedFrameworkID = id
             let previous = docTask
             previous?.cancel()
             guard let id else {
                 docTask = nil
+                documents = []
                 documentState = .empty
                 return
             }
@@ -153,7 +235,7 @@ public extension Feature.FrameworkBrowser {
             docTask = Task { [weak self] in
                 await previous?.value
                 guard !Task.isCancelled else { return }
-                await self?.loadDocument(framework: id)
+                await self?.loadDocuments(framework: id)
             }
         }
 
@@ -161,6 +243,9 @@ public extension Feature.FrameworkBrowser {
         /// one. Used when a link inside a rendered document is tapped (e.g. a "Mentioned
         /// in" entry), so the reader can follow it without going through the sidebar.
         public func openDocument(_ uri: Model.DocURI) {
+            if case let .loaded(page) = documentState, page.uri == uri {
+                return
+            }
             let previous = docTask
             previous?.cancel()
             documentState = .loading
@@ -181,36 +266,72 @@ public extension Feature.FrameworkBrowser {
         /// Read a document by URI into the detail. Internal so a test can drive it.
         func readDocument(_ uri: Model.DocURI) async {
             do {
+                NSLog("VM READ DOCUMENT: backend read start: \(uri.rawValue)")
                 let page = try await backend.readDocument(uri)
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    NSLog("VM READ DOCUMENT: task cancelled after backend read")
+                    return
+                }
+                NSLog("VM READ DOCUMENT: loaded successfully: \(page.title)")
                 documentState = .loaded(page)
             } catch {
-                if Task.isCancelled { return }
+                if Task.isCancelled {
+                    NSLog("VM READ DOCUMENT: task cancelled on error")
+                    return
+                }
+                NSLog("VM READ DOCUMENT: failed: \(error.localizedDescription)")
                 documentState = .failed(error.localizedDescription)
             }
         }
 
-        /// Find a document in the framework (a search scoped to it) and read the first
-        /// hit. This works for both the mock reader and the real engine, rather than
-        /// assuming a synthetic URI. Internal so a test can drive it deterministically.
-        func loadDocument(framework id: String) async {
+        /// Search and load all documents in the selected framework. Scoped to it.
+        func loadDocuments(framework id: String) async {
             do {
-                // Query the framework name (scoped to the framework), NOT an empty string:
-                // live cupertino is FTS5 and rejects an empty query ("Query cannot be
-                // empty"), so selecting a framework loaded nothing. The framework name
-                // surfaces its overview page as the top hit.
-                let hits = try await backend.searchDocs(Model.DocsQuery(text: id, framework: id, limit: 1))
-                guard let uri = hits.first?.uri else {
-                    if Task.isCancelled { return }
-                    documentState = .empty
-                    return
-                }
-                let page = try await backend.readDocument(uri)
+                let sources = selectedSource.map { Set([$0]) } ?? Set([.appleDocs])
+                let hits = try await backend.searchDocs(Model.DocsQuery(text: id, sources: sources, framework: id, limit: 100))
                 if Task.isCancelled { return }
-                documentState = .loaded(page)
+                documents = hits
+                if let first = hits.first {
+                    await readDocument(first.uri)
+                } else {
+                    documentState = .empty
+                }
             } catch {
                 if Task.isCancelled { return }
+                documents = []
                 documentState = .failed(error.localizedDescription)
+            }
+        }
+
+        public static func belongs(framework: Model.Framework, to source: Model.Source) -> Bool {
+            let id = framework.id.lowercased()
+            switch source {
+            case .appleDocs:
+                let nonAppleDocs: Set = [
+                    "swift-evolution", "swift-org", "swift-book",
+                    "components", "foundations", "general", "inputs", "patterns", "technologies",
+                    "cocoa", "objectivec", "appkit", "samples", "packages",
+                ]
+                return !nonAppleDocs.contains(id)
+            case .appleArchive:
+                let archiveFrameworks: Set = [
+                    "appkit", "cocoa", "coreaudio", "coredata", "corefoundation", "coregraphics",
+                    "coreimage", "coretext", "foundation", "objectivec", "performance",
+                    "quartzcore", "security", "uikit",
+                ]
+                return archiveFrameworks.contains(id)
+            case .hig:
+                return ["components", "foundations", "general", "inputs", "patterns", "technologies"].contains(id)
+            case .swiftEvolution:
+                return id == "swift-evolution"
+            case .swiftOrg:
+                return id == "swift-org"
+            case .swiftBook:
+                return id == "swift-book"
+            case .samples:
+                return id == "samples"
+            case .packages:
+                return id == "packages"
             }
         }
     }

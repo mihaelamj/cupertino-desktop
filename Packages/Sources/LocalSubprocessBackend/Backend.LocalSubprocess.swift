@@ -64,6 +64,67 @@ public extension Backend {
         /// page without scraping markdown. We decode the fields we model and carry the
         /// server's `rawMarkdown` through as the body.
         public func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+            if uri.rawValue.hasPrefix("samples://") {
+                let rawPath = uri.rawValue.replacingOccurrences(of: "samples://", with: "")
+                let projectId = rawPath.hasSuffix("/view") ? String(rawPath.dropLast(5)) : rawPath
+
+                let json = try await client.callTool("read_sample", arguments: [
+                    "project_id": .string(projectId),
+                    "format": .string("json"),
+                ])
+                guard let data = json.data(using: .utf8) else {
+                    throw Failure.decoding("read_sample returned non-UTF8 content")
+                }
+
+                struct RawSample: Decodable {
+                    let id: String
+                    let title: String
+                    let description: String
+                    let frameworks: [String]
+                    let readme: String?
+                }
+
+                let raw: RawSample
+                do {
+                    raw = try JSONDecoder().decode(RawSample.self, from: data)
+                } catch {
+                    throw Failure.decoding("read_sample JSON did not match: \(error)")
+                }
+
+                let body = (raw.readme?.isEmpty == false ? raw.readme : nil)
+                    ?? raw.description
+                    ?? raw.title
+                    ?? uri.rawValue
+                return Model.DocPage(
+                    uri: uri,
+                    source: .samples,
+                    title: raw.title,
+                    abstract: raw.description,
+                    declaration: nil,
+                    markdown: body,
+                    sections: []
+                )
+            }
+
+            if uri.rawValue.hasPrefix("packages://") {
+                let rawPath = uri.rawValue.replacingOccurrences(of: "packages://", with: "")
+                let content = try await client.callTool("read_document", arguments: [
+                    "uri": .string(rawPath),
+                    "format": .string("markdown"),
+                ])
+                let filename = rawPath.split(separator: "/").last.map(String.init) ?? uri.rawValue
+                let body = filename.hasSuffix(".swift") ? "```swift\n\(content)\n```" : content
+                return Model.DocPage(
+                    uri: uri,
+                    source: .packages,
+                    title: filename,
+                    abstract: nil,
+                    declaration: nil,
+                    markdown: body,
+                    sections: []
+                )
+            }
+
             let json = try await client.callTool("read_document", arguments: [
                 "uri": .string(uri.rawValue),
                 "format": .string("json"),
@@ -103,7 +164,11 @@ public extension Backend {
             var hits: [Model.DocHit] = []
             for source in sources.sorted(by: { $0.scheme < $1.scheme }) {
                 let markdown = try await client.callTool("search", arguments: Self.searchArguments(query, source: source))
-                hits.append(contentsOf: Self.parseDocHits(markdown))
+                if source == .samples {
+                    hits.append(contentsOf: Self.parseSampleDocHits(markdown))
+                } else {
+                    hits.append(contentsOf: Self.parseDocHits(markdown))
+                }
             }
             return Array(hits.prefix(max(0, query.limit)))
         }

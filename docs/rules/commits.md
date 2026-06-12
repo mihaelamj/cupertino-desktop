@@ -1,6 +1,6 @@
 # Git Commit Framework
 
-The commit-message format for CupertinoDesktop: Conventional Commits, imperative mood, one logical change per commit.
+The commit-message format for XCTemplateDSL: Conventional Commits, imperative mood, one logical change per commit.
 
 Create meaningful, consistent git commits following the Conventional Commits specification. Every commit must clearly communicate the what, why, and impact of changes for collaboration and automated tooling.
 

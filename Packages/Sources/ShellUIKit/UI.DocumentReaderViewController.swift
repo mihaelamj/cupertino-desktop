@@ -2,7 +2,7 @@ import AppCore
 import AppModels
 import CodeHighlighting
 import MarkdownRendering
-import SearchFeature
+import PresentationBridge
 
 #if canImport(UIKit)
     import UIKit
@@ -14,13 +14,13 @@ import SearchFeature
         /// text-size control, and pushes a new reader when a link inside the page is tapped.
         @MainActor
         final class DocumentReaderViewController: UIViewController, UITextViewDelegate {
-            private let model: Feature.Search.ViewModel
+            private let model: any Presentation.DocumentPageReader
             private let uri: Model.DocURI
             private let providedTitle: String?
             private let textView = UITextView()
             private let spinner = UIActivityIndicatorView(style: .large)
 
-            init(model: Feature.Search.ViewModel, uri: Model.DocURI, title: String?) {
+            init(model: any Presentation.DocumentPageReader, uri: Model.DocURI, title: String?) {
                 self.model = model
                 self.uri = uri
                 providedTitle = title
@@ -49,6 +49,7 @@ import SearchFeature
                 textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
                 textView.translatesAutoresizingMaskIntoConstraints = false
                 textView.isHidden = true
+                textView.accessibilityIdentifier = UI.AccessibilityID.FrameworkBrowser.reader
                 view.addSubview(textView)
 
                 spinner.translatesAutoresizingMaskIntoConstraints = false

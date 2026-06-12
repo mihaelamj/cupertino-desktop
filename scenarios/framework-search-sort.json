@@ -1,0 +1,13 @@
+{
+  "id": "framework-search-sort",
+  "title": "Searching and sorting frameworks",
+  "tags": ["framework-browser", "search", "sort"],
+  "steps": [
+    { "verb": "tap", "target": "source_row_appleDocs" },
+    { "verb": "type", "target": "framework_search_field", "arg": "swift" },
+    { "verb": "assert", "target": "framework_row_swiftui" },
+    { "verb": "tap", "target": "framework_sort_button" },
+    { "verb": "tap", "target": "framework_sort_by_name" },
+    { "verb": "assert", "target": "framework_row_swiftui" }
+  ]
+}

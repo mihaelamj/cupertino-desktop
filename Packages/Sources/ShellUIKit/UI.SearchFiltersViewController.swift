@@ -1,6 +1,6 @@
 import AppCore
 import AppModels
-import SearchFeature
+import PresentationBridge
 
 #if canImport(UIKit)
     import UIKit
@@ -12,7 +12,7 @@ import SearchFeature
         /// applying re-runs the same query the other UIs run. View code only.
         @MainActor
         final class SearchFiltersViewController: UITableViewController, UITextFieldDelegate {
-            private let model: Feature.Search.ViewModel
+            private let model: any Presentation.SearchViewModelProtocol
             private let sources = Model.Source.allCases
 
             /// One editable text row: its label, the current value, and where to write it.
@@ -25,7 +25,7 @@ import SearchFeature
 
             private let fields: [Field]
 
-            init(model: Feature.Search.ViewModel) {
+            init(model: any Presentation.SearchViewModelProtocol) {
                 self.model = model
                 fields = [
                     Field(title: "Framework", placeholder: "e.g. SwiftUI", value: { model.framework }, apply: { model.framework = $0 }),

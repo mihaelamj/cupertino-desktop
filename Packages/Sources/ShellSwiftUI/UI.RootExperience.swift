@@ -1,5 +1,5 @@
 import AppCore
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(SwiftUI)
     import SwiftUI
@@ -16,7 +16,7 @@ import FrameworkBrowserFeature
         @MainActor
         protocol RootExperience {
             associatedtype Root: View
-            func makeRoot(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) -> Root
+            func makeRoot(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) -> Root
         }
     }
 #endif

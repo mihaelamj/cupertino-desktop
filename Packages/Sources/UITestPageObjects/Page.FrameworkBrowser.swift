@@ -18,7 +18,29 @@ public extension Page {
         /// Tap a framework row (qualified by framework id, e.g. `"swiftui"`).
         @discardableResult
         open func selectFramework(_ frameworkID: String) -> Self {
+            let appleDocsRow = element(IDs.sourceRow("appleDocs"))
+            let frameworkRow = element(IDs.row(frameworkID))
+            _ = appleDocsRow.waitForExistence(timeout: 5)
+            if appleDocsRow.exists, !frameworkRow.exists {
+                appleDocsRow.performTap()
+            }
+
             tap(IDs.row(frameworkID))
+
+            let firstCell = app.descendants(matching: .any).matching(identifier: "document_cell").firstMatch
+            let reader = app.descendants(matching: .any).matching(identifier: IDs.reader).firstMatch
+            if !reader.exists {
+                if firstCell.waitForExistence(timeout: 10) {
+                    firstCell.performTap()
+                }
+            }
+            return self
+        }
+
+        /// Tap a database source row (qualified by source raw value, e.g. `"appleDocs"`).
+        @discardableResult
+        open func selectDatabase(_ sourceID: String) -> Self {
+            tap(IDs.sourceRow(sourceID))
             return self
         }
 

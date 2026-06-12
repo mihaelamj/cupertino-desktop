@@ -1,6 +1,6 @@
 import AppCore
 import AppModels
-import SearchFeature
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -13,7 +13,7 @@ import SearchFeature
         /// other UIs run. View code only.
         @MainActor
         final class SearchFiltersViewController: NSViewController {
-            private let model: Feature.Search.ViewModel
+            private let model: any Presentation.SearchViewModelProtocol
             private let onApply: () -> Void
             private var sourceCheckboxes: [(Model.Source, NSButton)] = []
             private let frameworkField = NSTextField()
@@ -23,7 +23,7 @@ import SearchFeature
             private let limitLabel = NSTextField(labelWithString: "")
             private let limitStepper = NSStepper()
 
-            init(model: Feature.Search.ViewModel, onApply: @escaping () -> Void) {
+            init(model: any Presentation.SearchViewModelProtocol, onApply: @escaping () -> Void) {
                 self.model = model
                 self.onApply = onApply
                 super.init(nibName: nil, bundle: nil)

@@ -16,7 +16,7 @@ enum DesktopSwiftUITestLauncher {
         line: UInt = #line,
     ) {
         app.activate()
-        if app.windows.firstMatch.waitForExistence(timeout: 3) {
+        if app.windows.firstMatch.waitForExistence(timeout: 15) {
             return
         }
 

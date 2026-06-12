@@ -1,6 +1,6 @@
 # Swift namespaces via enums or structs, canonical rule
 
-Single-page rule for picking the namespace-anchor type in TileKit code: when the anchor is `Foo`, should it be `enum Foo`, `struct Foo`, or `class Foo`?
+Single-page rule for picking the namespace-anchor type in XCTemplateDSL code: when the anchor is `Foo`, should it be `enum Foo`, `struct Foo`, or `class Foo`?
 
 Companion to [code-style.md](code-style.md), which covers the broader namespacing discipline (folder mirroring, file-naming convention, anchor file placement, one-type-per-file). This file answers the narrower type-choice question.
 

@@ -14,4 +14,7 @@ public enum Verb: String, Codable, Sendable, CaseIterable {
     /// Assert a condition. `target` is the assertion (e.g. an element identifier that must
     /// exist), `arg` the expected value when applicable.
     case assert
+    /// Raw HTTP request for test-fixture setup or to bypass UI validation. Target names a logical
+    /// action; arg carries serialized parameters when needed.
+    case request
 }

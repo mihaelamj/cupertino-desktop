@@ -33,13 +33,20 @@ final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate 
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 
-        let browser = experience.makeRoot(model: model, frameworks: frameworks)
+        let browser: UIViewController
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let sidebar = UI.makeFrameworkBrowser(model: model, frameworks: frameworks)
+            sidebar.title = "Cupertino (UIKit)"
+            browser = UINavigationController(rootViewController: sidebar)
+        } else {
+            browser = experience.makeRoot(model: model, frameworks: frameworks)
+        }
         browser.tabBarItem = UITabBarItem(title: "Frameworks", image: UIImage(systemName: "books.vertical"), tag: 0)
 
         let searchNavigation = UINavigationController(rootViewController: UI.makeSearch(model: search))
         searchNavigation.tabBarItem = UITabBarItem(tabBarSystemItem: .search, tag: 1)
 
-        let tabs = UITabBarController()
+        let tabs = MainTabBarController()
         tabs.viewControllers = [browser, searchNavigation]
 
         let window = UIWindow(frame: UIScreen.main.bounds)
@@ -50,17 +57,72 @@ final class CupertinoMobileUIKitAppDelegate: UIResponder, UIApplicationDelegate 
     }
 
     private static func makeBackend() -> any Backend.Documentation {
-        guard ProcessInfo.processInfo.environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" else {
+        let environment = ProcessInfo.processInfo.environment
+        let devCatalogURL = Catalog.DevelopmentStore.corpusURL(
+            environment: environment,
+            homeDirectory: catalogHomeDirectory(),
+        )
+
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: devCatalogURL.path, isDirectory: &isDirectory)
+
+        let isTesting = environment["CUPERTINO_UI_TESTING"] == "1"
+
+        if environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" || (!isTesting && exists && isDirectory.boolValue) {
+            return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: devCatalogURL))
+        } else {
             return MobileBackend.mock()
         }
-        return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: Catalog.DevelopmentStore.corpusURL(
-            environment: ProcessInfo.processInfo.environment,
-            homeDirectory: catalogHomeDirectory(),
-        )))
     }
 
     private static func catalogHomeDirectory() -> URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        #if targetEnvironment(simulator)
+            if let hostHome = ProcessInfo.processInfo.environment["SIMULATOR_HOST_HOME"] {
+                return URL(fileURLWithPath: hostHome)
+            }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
+    }
+}
+
+@MainActor
+private final class MainTabBarController: UITabBarController {
+    override var keyCommands: [UIKeyCommand]? {
+        [
+            UIKeyCommand(
+                title: "Find...",
+                image: nil,
+                action: #selector(focusSearch),
+                input: "f",
+                modifierFlags: .command,
+                propertyList: nil,
+                alternates: [],
+                discoverabilityTitle: "Find",
+                state: .off,
+            ),
+        ]
+    }
+
+    @objc private func focusSearch() {
+        selectedIndex = 1
+        if let searchField = viewControllers?[1].view.findSearchTextField() {
+            searchField.becomeFirstResponder()
+        }
+    }
+}
+
+@MainActor
+private extension UIView {
+    func findSearchTextField() -> UISearchTextField? {
+        if let searchField = self as? UISearchTextField {
+            return searchField
+        }
+        for subview in subviews {
+            if let found = subview.findSearchTextField() {
+                return found
+            }
+        }
+        return nil
     }
 }

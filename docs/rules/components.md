@@ -1,6 +1,6 @@
 # Component System Architecture Rules
 
-Component-system rules for the planned CupertinoDesktop native editor. The editor's UI is built from reusable, registry-driven components. This file consolidates the component protocol, the package hierarchy, the registry, and the one-component-per-file discipline.
+Component-system rules for the planned XCTemplateDSL native editor. The editor's UI is built from reusable, registry-driven components. This file consolidates the component protocol, the package hierarchy, the registry, and the one-component-per-file discipline.
 
 ## One component per file
 

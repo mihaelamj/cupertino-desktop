@@ -14,13 +14,12 @@ public extension Feature.Search {
     /// scope). Framework-agnostic, like the other feature view models.
     @Observable
     @MainActor
-    final class ViewModel {
+    final class ViewModel: Presentation.SearchViewModelProtocol {
         // MARK: Query options (bound by the UI)
 
-        public enum Scope: String, CaseIterable, Sendable {
-            case docs
-            case everything
-        }
+        public typealias Scope = Presentation.Search.Scope
+        public typealias Outcome = Presentation.Search.Outcome
+        public typealias State = Presentation.Search.State
 
         public var scope: Scope = .docs
         public var text: String = ""
@@ -32,13 +31,6 @@ public extension Feature.Search {
         public var limit: Int = 20
 
         // MARK: Result state
-
-        public enum Outcome: Sendable {
-            case docs([Model.DocHit])
-            case everything(Model.UnifiedResults)
-        }
-
-        public typealias State = Presentation.LoadState<Outcome>
 
         public private(set) var state: State = .idle
 
@@ -134,6 +126,13 @@ public extension Feature.Search {
             do {
                 let hits = try await backend.searchDocs(query)
                 if Task.isCancelled { return }
+
+                let tree = Feature.Search.resultTree(docs: hits)
+                let validator = Presentation.Validator<Presentation.SearchResultNode>.presentationDefault
+                for node in tree {
+                    try validator.validate(node)
+                }
+
                 state = .loaded(.docs(hits))
             } catch {
                 if Task.isCancelled { return }
@@ -146,6 +145,13 @@ public extension Feature.Search {
             do {
                 let result = try await backend.searchEverything(query)
                 if Task.isCancelled { return }
+
+                let tree = Feature.Search.resultTree(docs: result.docs)
+                let validator = Presentation.Validator<Presentation.SearchResultNode>.presentationDefault
+                for node in tree {
+                    try validator.validate(node)
+                }
+
                 state = .loaded(.everything(result))
             } catch {
                 if Task.isCancelled { return }

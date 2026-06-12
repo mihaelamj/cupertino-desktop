@@ -25,5 +25,59 @@ public extension Model {
             case .packages: "packages"
             }
         }
+
+        /// The user-facing display name for the source.
+        public var displayName: String {
+            switch self {
+            case .appleDocs: "Apple Developer Documentation"
+            case .hig: "Human Interface Guidelines"
+            case .swiftEvolution: "Swift Evolution"
+            case .swiftOrg: "Swift.org"
+            case .swiftBook: "The Swift Programming Language Book"
+            case .appleArchive: "Apple Archive"
+            case .samples: "Sample Projects"
+            case .packages: "Swift Packages"
+            }
+        }
+
+        /// Context-sensitive term for the list items of this source (e.g., "Proposals" for Swift Evolution).
+        public var itemTerm: String {
+            switch self {
+            case .appleDocs, .appleArchive:
+                "Frameworks"
+            case .hig:
+                "Guidelines"
+            case .swiftEvolution:
+                "Proposals"
+            case .swiftOrg:
+                "Articles"
+            case .swiftBook:
+                "Chapters"
+            case .samples:
+                "Samples"
+            case .packages:
+                "Packages"
+            }
+        }
+
+        /// Context-sensitive singular term for the list items of this source (e.g., "proposal" for Swift Evolution).
+        public var singularItemTerm: String {
+            switch self {
+            case .appleDocs, .appleArchive:
+                "framework"
+            case .hig:
+                "guideline"
+            case .swiftEvolution:
+                "proposal"
+            case .swiftOrg:
+                "article"
+            case .swiftBook:
+                "chapter"
+            case .samples:
+                "sample"
+            case .packages:
+                "package"
+            }
+        }
     }
 }

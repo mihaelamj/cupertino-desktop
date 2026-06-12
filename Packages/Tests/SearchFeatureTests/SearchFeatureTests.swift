@@ -24,6 +24,38 @@ struct SearchViewModelTests {
         #expect(viewModel.results.isEmpty)
     }
 
+    @Test("an invalid search result node tree fails validation and surfaces an error")
+    func validationFailureSurfaces() async {
+        struct InvalidSearch: Backend.Searching, Backend.DocumentReading {
+            func searchDocs(_: Model.DocsQuery) async throws -> [Model.DocHit] {
+                guard let uri = Model.DocURI("apple-docs://swiftui/view") else { return [] }
+                return [Model.DocHit(id: "1", uri: uri, source: .appleDocs, title: " ", framework: "SwiftUI", snippet: "", score: 1)]
+            }
+
+            func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
+                Model.DocPage(uri: uri, source: .appleDocs, title: "View", markdown: "# View")
+            }
+
+            func searchSamples(_: Model.SampleQuery) async throws -> Model.SampleResults {
+                fatalError()
+            }
+
+            func searchPackages(_: Model.PackageQuery) async throws -> [Model.PackageHit] {
+                fatalError()
+            }
+
+            func searchEverything(_: Model.UnifiedQuery) async throws -> Model.UnifiedResults {
+                fatalError()
+            }
+        }
+
+        let viewModel = Feature.Search.ViewModel(backend: InvalidSearch())
+        await viewModel.load(Model.DocsQuery(text: "view"))
+        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.errorMessage?.contains("Failed to satisfy") == true)
+        #expect(viewModel.results.isEmpty)
+    }
+
     @Test("toggling a source adds and removes it from the query set")
     func toggleSource() {
         let viewModel = Feature.Search.ViewModel(backend: FakeSearch())

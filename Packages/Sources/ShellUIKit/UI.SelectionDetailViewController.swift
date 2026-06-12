@@ -1,8 +1,8 @@
 import AppCore
 import AppModels
 import CodeHighlighting
-import FrameworkBrowserFeature
 import MarkdownRendering
+import PresentationBridge
 
 #if canImport(UIKit)
     import UIKit
@@ -15,11 +15,15 @@ import MarkdownRendering
         /// in-document link loads that document in place. State changes are picked up with
         /// `withObservationTracking`.
         @MainActor
-        final class SelectionDetailViewController: UIViewController, UITextViewDelegate {
-            private let frameworks: Feature.FrameworkBrowser.ViewModel
+        final class SelectionDetailViewController: UIViewController, UITextViewDelegate, UITableViewDataSource, UITableViewDelegate {
+            private let model: RootModel
+            private let frameworks: any Presentation.FrameworkBrowserViewModelProtocol
             private let textView = UITextView()
+            private let tableView = UITableView(frame: .zero, style: .insetGrouped)
+            private static let documentCellID = "documentCell"
 
-            init(frameworks: Feature.FrameworkBrowser.ViewModel) {
+            init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
+                self.model = model
                 self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
             }
@@ -32,6 +36,12 @@ import MarkdownRendering
             override func viewDidLoad() {
                 super.viewDidLoad()
                 view.backgroundColor = .systemBackground
+
+                tableView.dataSource = self
+                tableView.delegate = self
+                tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.documentCellID)
+                tableView.translatesAutoresizingMaskIntoConstraints = false
+                view.addSubview(tableView)
 
                 textView.isEditable = false
                 textView.delegate = self
@@ -47,6 +57,11 @@ import MarkdownRendering
                 view.addSubview(textView)
 
                 NSLayoutConstraint.activate([
+                    tableView.topAnchor.constraint(equalTo: view.topAnchor),
+                    tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                    tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                    tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
                     textView.topAnchor.constraint(equalTo: view.topAnchor),
                     textView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                     textView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -57,9 +72,20 @@ import MarkdownRendering
                 render()
             }
 
+            override func viewDidDisappear(_ animated: Bool) {
+                super.viewDidDisappear(animated)
+                if isMovingFromParent || isBeingDismissed {
+                    if splitViewController?.isCollapsed == true {
+                        model.selectedFrameworkID = nil
+                        frameworks.selectFramework(nil)
+                    }
+                }
+            }
+
             private func track() {
                 withObservationTracking {
                     _ = frameworks.documentState
+                    _ = frameworks.documents
                 } onChange: { [weak self] in
                     Task { @MainActor in
                         guard let self else { return }
@@ -73,6 +99,7 @@ import MarkdownRendering
                 if let markdown = frameworks.selectedMarkdown {
                     contentUnavailableConfiguration = nil
                     textView.isHidden = false
+                    tableView.isHidden = true
                     let base = Markdown.Theme().basePointSize
                     textView.attributedText = Markdown.attributed(
                         markdown: markdown,
@@ -82,16 +109,29 @@ import MarkdownRendering
                     )
                     title = frameworks.selectedDocumentTitle
                 } else {
-                    // Loading, error, and empty all render as a system content-unavailable view
-                    // (matching the SwiftUI and AppKit detail); the reader text view is hidden.
                     textView.isHidden = true
-                    title = nil
                     if frameworks.isLoadingDocument {
+                        tableView.isHidden = true
+                        title = frameworks.selectedFramework?.displayName ?? "Loading..."
                         contentUnavailableConfiguration = UIContentUnavailableConfiguration.loading()
                     } else if let error = frameworks.documentError {
+                        tableView.isHidden = true
+                        title = "Error"
                         contentUnavailableConfiguration = Self.configuration(systemImage: "exclamationmark.triangle", title: "Could not load document", message: error)
+                    } else if let selectedFramework = frameworks.selectedFramework {
+                        contentUnavailableConfiguration = nil
+                        tableView.isHidden = false
+                        tableView.reloadData()
+                        title = selectedFramework.displayName
                     } else {
-                        contentUnavailableConfiguration = Self.configuration(systemImage: "doc.text", title: "Select a framework", message: nil)
+                        tableView.isHidden = true
+                        title = "Cupertino"
+                        let emptyTitle = if let source = frameworks.selectedSource {
+                            "Select a \(source.singularItemTerm)"
+                        } else {
+                            "Select a database"
+                        }
+                        contentUnavailableConfiguration = Self.configuration(systemImage: "doc.text", title: emptyTitle, message: nil)
                     }
                 }
 
@@ -135,6 +175,35 @@ import MarkdownRendering
                 guard let uri = Model.DocURI(url.absoluteString) else { return true }
                 frameworks.openDocument(uri)
                 return false
+            }
+
+            // MARK: - UITableViewDataSource / Delegate
+
+            func tableView(_: UITableView, numberOfRowsInSection _: Int) -> Int {
+                frameworks.documents.count
+            }
+
+            func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+                let cell = tableView.dequeueReusableCell(withIdentifier: Self.documentCellID, for: indexPath)
+                let document = frameworks.documents[indexPath.row]
+                cell.accessibilityIdentifier = "document_cell"
+                var content = cell.defaultContentConfiguration()
+                content.text = document.title
+                content.secondaryText = document.snippet
+                content.secondaryTextProperties.numberOfLines = 2
+                cell.contentConfiguration = content
+                cell.accessoryType = .disclosureIndicator
+                return cell
+            }
+
+            func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+                tableView.deselectRow(at: indexPath, animated: true)
+                guard indexPath.row < frameworks.documents.count else { return }
+                let hit = frameworks.documents[indexPath.row]
+                navigationController?.pushViewController(
+                    DocumentReaderViewController(model: frameworks, uri: hit.uri, title: hit.title),
+                    animated: true,
+                )
             }
         }
     }

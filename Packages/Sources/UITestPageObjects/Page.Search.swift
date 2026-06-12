@@ -17,7 +17,7 @@ public extension Page {
         @discardableResult
         open func search(_ query: String) -> Self {
             let field = waitForElement(IDs.field)
-            field.tap()
+            field.performTap()
             field.typeText(query)
             return self
         }

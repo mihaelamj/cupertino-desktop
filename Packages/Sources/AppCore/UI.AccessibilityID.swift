@@ -10,10 +10,19 @@ public extension UI {
         public enum FrameworkBrowser {
             public static let sidebar = "framework_browser_sidebar"
             public static let reader = "framework_browser_reader"
+            public static let searchField = "framework_search_field"
+            public static let sortButton = "framework_sort_button"
+            public static let sortByNameOption = "framework_sort_by_name"
+            public static let sortByCountOption = "framework_sort_by_count"
 
             /// Identifier for a framework row, qualified by the framework id.
             public static func row(_ frameworkID: String) -> String {
                 "framework_row_\(frameworkID)"
+            }
+
+            /// Identifier for a database source row, qualified by the source id.
+            public static func sourceRow(_ sourceID: String) -> String {
+                "source_row_\(sourceID)"
             }
         }
 

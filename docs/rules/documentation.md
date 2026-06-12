@@ -1,6 +1,6 @@
 # Documentation Rules (DocC)
 
-How TileKit organizes its documentation: a single DocC catalog that is the source of truth and moves with the code in every PR.
+How XCTemplateDSL organizes its documentation: a single DocC catalog that is the source of truth and moves with the code in every PR.
 
 Every project's documentation lives in a **DocC catalog** inside the repo as its own SPM target. There is no freeform `Docs/` folder. The catalog is the single source of truth. Every PR that touches code must update the matching catalog article in the same PR.
 
@@ -14,7 +14,7 @@ Organize repo-level documentation as a Swift-DocC catalog in a dedicated SPM tar
 - MUST contain a `.docc` catalog directory inside that target: `{ProductName}Documentation.docc/`.
 - MUST have a single minimal Swift source file in the target (DocC requires at least one Swift file). Typical content: `@_exported import Foundation` with a comment explaining the target's purpose.
 - MUST have `swift-docc-plugin` listed as a package dependency in `Package.swift` (from 1.4.3 or newer).
-- MUST use `@DisplayName("ShortName")` on the landing page to give readers a short sidebar label while the target keeps the long, unambiguous name (e.g. target `TileKitDocumentation`, display name `TileKit`).
+- MUST use `@DisplayName("ShortName")` on the landing page to give readers a short sidebar label while the target keeps the long, unambiguous name (e.g. target `XCTemplateDSLDocumentation`, display name `XCTemplateDSL`).
 - MUST NOT add `@TechnologyRoot` to the landing page; DocC warns it is unnecessary for a landing page tied to a module.
 
 ### Rule 2: Never keep a `Docs/` folder alongside the catalog

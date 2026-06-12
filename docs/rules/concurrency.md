@@ -1,6 +1,6 @@
 # Swift 6 Strict Concurrency
 
-Concurrency posture for TileKit and CupertinoDesktop: immutability first, sparse actors, escape hatches always justified, grounded in the Swift Evolution proposals.
+Concurrency posture for XCTemplateDSL and XCTemplateDSL: immutability first, sparse actors, escape hatches always justified, grounded in the Swift Evolution proposals.
 
 Triggers: `async`, `await`, `actor`, `Sendable`, `@MainActor`, `Task`, `nonisolated`, `sending`, `AsyncSequence`, `AsyncStream`, `withTaskGroup`, `@unchecked`, isolation, data race, cross-actor.
 

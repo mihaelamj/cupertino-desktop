@@ -2,7 +2,7 @@ import AppCore
 import AppModels
 import CodeHighlighting
 import MarkdownRendering
-import SearchFeature
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -13,7 +13,7 @@ import SearchFeature
         /// browser is reached through `RootExperience`). It binds the shared, framework-
         /// agnostic `Feature.Search.ViewModel`.
         @MainActor
-        static func makeSearch(model: Feature.Search.ViewModel) -> NSViewController {
+        static func makeSearch(model: any Presentation.SearchViewModelProtocol) -> NSViewController {
             SearchViewController(model: model)
         }
     }
@@ -28,7 +28,7 @@ import SearchFeature
         /// `withObservationTracking`; live search is debounced through the view model.
         @MainActor
         final class SearchViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate, NSTextViewDelegate {
-            private let model: Feature.Search.ViewModel
+            private let model: any Presentation.SearchViewModelProtocol
             private let searchField = NSSearchField()
             private let scope = NSSegmentedControl(labels: ["Docs", "Everything"], trackingMode: .selectOne, target: nil, action: nil)
             private let filtersButton = NSButton()
@@ -43,7 +43,7 @@ import SearchFeature
             /// A flattened snapshot of the result list: section headers plus item rows.
             private enum Row {
                 case header(String)
-                case leaf(Feature.Search.ResultNode)
+                case leaf(Presentation.SearchResultNode)
                 case doc(Model.DocHit)
                 case sample(Model.SampleProject)
                 case package(Model.PackageHit)
@@ -51,7 +51,7 @@ import SearchFeature
 
             private var rows: [Row] = []
 
-            init(model: Feature.Search.ViewModel) {
+            init(model: any Presentation.SearchViewModelProtocol) {
                 self.model = model
                 super.init(nibName: nil, bundle: nil)
             }
@@ -164,6 +164,21 @@ import SearchFeature
                 render()
             }
 
+            override func viewDidAppear() {
+                super.viewDidAppear()
+                view.window?.makeFirstResponder(searchField)
+            }
+
+            override func performKeyEquivalent(with event: NSEvent) -> Bool {
+                if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command {
+                    if event.charactersIgnoringModifiers == "f" {
+                        view.window?.makeFirstResponder(searchField)
+                        return true
+                    }
+                }
+                return super.performKeyEquivalent(with: event)
+            }
+
             // MARK: Observation
 
             private func track() {
@@ -193,7 +208,7 @@ import SearchFeature
                 return "Search documentation"
             }
 
-            private static func makeRows(_ model: Feature.Search.ViewModel) -> [Row] {
+            private static func makeRows(_ model: any Presentation.SearchViewModelProtocol) -> [Row] {
                 switch model.scope {
                 case .docs:
                     return model.docsTree.flatMap { group in

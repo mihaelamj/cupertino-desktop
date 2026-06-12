@@ -1,6 +1,6 @@
 import AppCore
 import AppModels
-import SearchFeature
+import PresentationBridge
 
 #if canImport(UIKit)
     import UIKit
@@ -11,7 +11,7 @@ import SearchFeature
         /// browser is reached through `RootExperience`). It binds the shared, framework-
         /// agnostic `Feature.Search.ViewModel`.
         @MainActor
-        static func makeSearch(model: Feature.Search.ViewModel) -> UIViewController {
+        static func makeSearch(model: any Presentation.SearchViewModelProtocol) -> UIViewController {
             SearchViewController(model: model)
         }
     }
@@ -27,14 +27,14 @@ import SearchFeature
         /// debounced through the view model so a real backend is not hit per keystroke.
         @MainActor
         final class SearchViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UISearchResultsUpdating, UISearchBarDelegate {
-            private let model: Feature.Search.ViewModel
+            private let model: any Presentation.SearchViewModelProtocol
             private let tableView = UITableView(frame: .zero, style: .insetGrouped)
             private let searchController = UISearchController(searchResultsController: nil)
             private let emptyLabel = UILabel()
 
             /// A flattened snapshot of what the table shows, rebuilt on every state change.
             private enum Row {
-                case leaf(Feature.Search.ResultNode)
+                case leaf(Presentation.SearchResultNode)
                 case doc(Model.DocHit)
                 case sample(Model.SampleProject)
                 case package(Model.PackageHit)
@@ -42,7 +42,7 @@ import SearchFeature
 
             private var sections: [(title: String?, rows: [Row])] = []
 
-            init(model: Feature.Search.ViewModel) {
+            init(model: any Presentation.SearchViewModelProtocol) {
                 self.model = model
                 super.init(nibName: nil, bundle: nil)
             }
@@ -123,7 +123,7 @@ import SearchFeature
                 return "Search documentation"
             }
 
-            private static func makeSections(_ model: Feature.Search.ViewModel) -> [(title: String?, rows: [Row])] {
+            private static func makeSections(_ model: any Presentation.SearchViewModelProtocol) -> [(title: String?, rows: [Row])] {
                 switch model.scope {
                 case .docs:
                     return model.docsTree.map { group in
@@ -223,6 +223,21 @@ import SearchFeature
                 case .sample, .package:
                     break
                 }
+            }
+
+            override var keyCommands: [UIKeyCommand]? {
+                [
+                    UIKeyCommand(
+                        title: "Find...",
+                        action: #selector(focusSearch),
+                        input: "f",
+                        modifierFlags: .command,
+                    ),
+                ]
+            }
+
+            @objc private func focusSearch() {
+                searchController.searchBar.becomeFirstResponder()
             }
         }
     }

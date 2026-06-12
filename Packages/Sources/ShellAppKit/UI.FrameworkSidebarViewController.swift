@@ -1,6 +1,6 @@
 import AppCore
 import AppModels
-import FrameworkBrowserFeature
+import PresentationBridge
 
 #if canImport(AppKit)
     import AppKit
@@ -13,9 +13,9 @@ import FrameworkBrowserFeature
         /// `withObservationTracking`, the AppKit equivalent of SwiftUI's automatic
         /// `@Observable` tracking.
         @MainActor
-        final class FrameworkSidebarViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
+        final class FrameworkSidebarViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
             private let model: RootModel
-            private let frameworks: Feature.FrameworkBrowser.ViewModel
+            private let frameworks: any Presentation.FrameworkBrowserViewModelProtocol
 
             private let tableView = NSTableView()
             private let scrollView = NSScrollView()
@@ -23,7 +23,12 @@ import FrameworkBrowserFeature
             /// native replica, used for the loading and error states (matching SwiftUI/UIKit).
             private let unavailable = UI.ContentUnavailableView()
 
-            init(model: RootModel, frameworks: Feature.FrameworkBrowser.ViewModel) {
+            private let titleLabel = NSTextField(labelWithString: "")
+            private let backButton = NSButton()
+            private let searchField = NSSearchField()
+            private let sortButton = NSButton()
+
+            init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.model = model
                 self.frameworks = frameworks
                 super.init(nibName: nil, bundle: nil)
@@ -55,12 +60,66 @@ import FrameworkBrowserFeature
                 unavailable.translatesAutoresizingMaskIntoConstraints = false
                 container.addSubview(unavailable)
 
+                titleLabel.font = .systemFont(ofSize: NSFont.systemFontSize + 3, weight: .bold)
+                titleLabel.lineBreakMode = .byTruncatingTail
+                titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+                backButton.bezelStyle = .texturedRounded
+                backButton.image = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Back")
+                backButton.target = self
+                backButton.action = #selector(goBack)
+                backButton.translatesAutoresizingMaskIntoConstraints = false
+
+                let titleStack = NSStackView(views: [backButton, titleLabel])
+                titleStack.orientation = .horizontal
+                titleStack.alignment = .centerY
+                titleStack.spacing = 8
+                titleStack.translatesAutoresizingMaskIntoConstraints = false
+
+                searchField.placeholderString = "Search Frameworks"
+                searchField.delegate = self
+                searchField.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.searchField)
+                searchField.translatesAutoresizingMaskIntoConstraints = false
+
+                sortButton.bezelStyle = .texturedRounded
+                sortButton.image = NSImage(systemSymbolName: "arrow.up.arrow.down.circle", accessibilityDescription: "Sort")
+                sortButton.target = self
+                sortButton.action = #selector(showSortMenu)
+                sortButton.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sortButton)
+                sortButton.translatesAutoresizingMaskIntoConstraints = false
+
+                let searchStack = NSStackView(views: [searchField, sortButton])
+                searchStack.orientation = .horizontal
+                searchStack.alignment = .centerY
+                searchStack.spacing = 8
+                searchStack.translatesAutoresizingMaskIntoConstraints = false
+
+                let topStack = NSStackView(views: [titleStack, searchStack])
+                topStack.orientation = .vertical
+                topStack.alignment = .leading
+                topStack.spacing = 8
+                topStack.edgeInsets = NSEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+                topStack.translatesAutoresizingMaskIntoConstraints = false
+                container.addSubview(topStack)
+
                 NSLayoutConstraint.activate([
-                    scrollView.topAnchor.constraint(equalTo: container.topAnchor),
+                    titleStack.leadingAnchor.constraint(equalTo: topStack.leadingAnchor),
+                    titleStack.trailingAnchor.constraint(equalTo: topStack.trailingAnchor),
+                    searchStack.leadingAnchor.constraint(equalTo: topStack.leadingAnchor),
+                    searchStack.trailingAnchor.constraint(equalTo: topStack.trailingAnchor),
+                ])
+
+                NSLayoutConstraint.activate([
+                    topStack.topAnchor.constraint(equalTo: container.topAnchor),
+                    topStack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                    topStack.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+
+                    scrollView.topAnchor.constraint(equalTo: topStack.bottomAnchor),
                     scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                    unavailable.topAnchor.constraint(equalTo: container.topAnchor),
+
+                    unavailable.topAnchor.constraint(equalTo: topStack.bottomAnchor),
                     unavailable.bottomAnchor.constraint(equalTo: container.bottomAnchor),
                     unavailable.leadingAnchor.constraint(equalTo: container.leadingAnchor),
                     unavailable.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -79,6 +138,7 @@ import FrameworkBrowserFeature
             /// (a single `withObservationTracking` fires once).
             private func trackState() {
                 withObservationTracking {
+                    _ = frameworks.frameworks
                     _ = frameworks.state
                 } onChange: { [weak self] in
                     Task { @MainActor in
@@ -92,13 +152,20 @@ import FrameworkBrowserFeature
             private func render() {
                 let isLoading = frameworks.isLoading
                 let error = frameworks.errorMessage
+                let itemTerm = frameworks.selectedSource?.itemTerm ?? "Frameworks"
+                let lowerTerm = itemTerm.lowercased()
+
+                if let source = frameworks.selectedSource {
+                    titleLabel.stringValue = source.displayName
+                    searchField.placeholderString = "Search \(source.itemTerm)"
+                }
 
                 if isLoading {
-                    unavailable.showLoading(title: "Loading frameworks")
+                    unavailable.showLoading(title: "Loading \(lowerTerm)")
                 } else if let error {
                     unavailable.show(
                         systemImage: "exclamationmark.triangle",
-                        title: "Could not load frameworks",
+                        title: "Could not load \(lowerTerm)",
                         message: error,
                         actionTitle: "Retry",
                     ) { [weak self] in self?.frameworks.onRetried() }
@@ -114,6 +181,42 @@ import FrameworkBrowserFeature
                     model.selectedFrameworkID = first.id
                 }
                 syncSelectionFromModel()
+            }
+
+            @objc private func goBack() {
+                (parent as? RootViewController)?.showDatabases()
+            }
+
+            @objc private func showSortMenu() {
+                let menu = NSMenu(title: "Sort By")
+                let currentOrder = frameworks.sortOrder
+                let nameItem = NSMenuItem(title: "Name", action: #selector(sortByName), keyEquivalent: "")
+                nameItem.target = self
+                nameItem.state = currentOrder == .name ? .on : .off
+                nameItem.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sortByNameOption)
+                let countItem = NSMenuItem(title: "Count", action: #selector(sortByCount), keyEquivalent: "")
+                countItem.target = self
+                countItem.state = currentOrder == .count ? .on : .off
+                countItem.setAccessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sortByCountOption)
+                menu.addItem(nameItem)
+                menu.addItem(countItem)
+
+                NSMenu.popUpContextMenu(menu, with: NSApp.currentEvent ?? NSEvent(), for: sortButton)
+            }
+
+            @objc private func sortByName() {
+                frameworks.sortOrder = .name
+            }
+
+            @objc private func sortByCount() {
+                frameworks.sortOrder = .count
+            }
+
+            // MARK: - NSSearchFieldDelegate
+
+            func controlTextDidChange(_ obj: Notification) {
+                guard let field = obj.object as? NSSearchField else { return }
+                frameworks.searchQuery = field.stringValue
             }
 
             private func syncSelectionFromModel() {

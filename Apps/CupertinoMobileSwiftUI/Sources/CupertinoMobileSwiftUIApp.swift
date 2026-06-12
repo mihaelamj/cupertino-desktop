@@ -32,17 +32,31 @@ struct CupertinoMobileSwiftUIApp: App {
     }
 
     private static func makeBackend() -> any Backend.Documentation {
-        guard ProcessInfo.processInfo.environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" else {
+        let environment = ProcessInfo.processInfo.environment
+        let devCatalogURL = Catalog.DevelopmentStore.corpusURL(
+            environment: environment,
+            homeDirectory: catalogHomeDirectory(),
+        )
+
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: devCatalogURL.path, isDirectory: &isDirectory)
+
+        let isTesting = environment["CUPERTINO_UI_TESTING"] == "1"
+
+        if environment[Catalog.DevelopmentStore.mobileOptInEnvironmentKey] == "1" || (!isTesting && exists && isDirectory.boolValue) {
+            return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: devCatalogURL))
+        } else {
             return MobileBackend.mock()
         }
-        return MobileBackend.deferred(catalogStore: Catalog.DevelopmentStore(corpusURL: Catalog.DevelopmentStore.corpusURL(
-            environment: ProcessInfo.processInfo.environment,
-            homeDirectory: catalogHomeDirectory(),
-        )))
     }
 
     private static func catalogHomeDirectory() -> URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        #if targetEnvironment(simulator)
+            if let hostHome = ProcessInfo.processInfo.environment["SIMULATOR_HOST_HOME"] {
+                return URL(fileURLWithPath: hostHome)
+            }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
     }
 

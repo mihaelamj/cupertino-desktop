@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let frameworks = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let search = Feature.Search.ViewModel(backend: backend)
 
-        let tabs = NSTabViewController()
+        let tabs = MainTabViewController()
         tabs.tabStyle = .toolbar
         let browser = NSTabViewItem(viewController: experience.makeRoot(model: model, frameworks: frameworks))
         browser.label = "Frameworks"
@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tabs.addTabViewItem(searchTab)
 
         let window = NSWindow(contentViewController: tabs)
-        window.setContentSize(NSSize(width: 1000, height: 640))
+        let size = NSSize(width: 1000, height: 640)
+        window.setContentSize(size)
         window.title = "Cupertino Desktop"
         window.addTitlebarAccessoryViewController(ConnectionStatusAccessory(frameworks: frameworks, mode: mode))
         window.center()
@@ -95,5 +96,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenuItem.submenu = appMenu
 
         NSApp.mainMenu = mainMenu
+    }
+}
+
+@MainActor
+private final class MainTabViewController: NSTabViewController {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command {
+            if event.charactersIgnoringModifiers == "f" {
+                selectedTabViewItemIndex = 1
+                if let window = view.window {
+                    if let searchField = tabViewItems[1].viewController?.view.findSearchField() {
+                        window.makeFirstResponder(searchField)
+                    }
+                }
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+}
+
+@MainActor
+private extension NSView {
+    func findSearchField() -> NSSearchField? {
+        if let searchField = self as? NSSearchField {
+            return searchField
+        }
+        for subview in subviews {
+            if let found = subview.findSearchField() {
+                return found
+            }
+        }
+        return nil
     }
 }

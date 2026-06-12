@@ -31,6 +31,7 @@ METHOD_TO_SCENARIO = {
     "testFrameworkReaderScenario": "framework-reader",
     "testReaderTextSizeScenario": "reader-text-size",
     "testDefaultSelectionScenario": "default-selection",
+    "testFrameworkSearchSortScenario": "framework-search-sort",
 }
 
 

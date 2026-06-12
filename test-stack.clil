@@ -1,0 +1,26 @@
+# iPhone profile transition
+device iPhone in portrait with compact
+
+# Assert base state
+assert ui activeView == "Databases"
+assert ui navigationStackDepth == 0
+assert ui showsDetailPane == false
+
+# Select database source (pushes Frameworks list)
+dispatch selectSource("apple-docs")
+assert vm activeSource == "appleDocs"
+assert ui activeView == "Frameworks"
+assert ui navigationStackDepth == 1
+
+# Select a framework (pushes Documents list)
+dispatch selectFramework("swiftui")
+assert vm selectedFrameworkID == "swiftui"
+assert ui activeView == "Documents"
+assert ui navigationStackDepth == 2
+
+# Select a document (pushes Reader View)
+dispatch selectDocument("apple-docs://swiftui/view")
+await tasks
+assert vm documentState == "loaded"
+assert ui activeView == "Reader"
+assert ui navigationStackDepth == 3

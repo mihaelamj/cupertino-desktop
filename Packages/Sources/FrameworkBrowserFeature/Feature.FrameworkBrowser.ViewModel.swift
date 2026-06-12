@@ -25,7 +25,7 @@ public extension Feature.FrameworkBrowser {
         public private(set) var state: LoadState = .idle
         public private(set) var sources: [Model.Source] = Model.Source.allCases
         private var hierarchyItems: [Model.HierarchyItem] = []
-        private var hierarchyTask: Task<Void, Never>?
+        var hierarchyTask: Task<Void, Never>?
 
         public var frameworks: [Model.Framework] {
             guard case let .loaded(all) = state else { return [] }
@@ -93,8 +93,9 @@ public extension Feature.FrameworkBrowser {
         }
 
         let backend: any Backend.Connecting & Backend.FrameworkBrowsing & Backend.Searching & Backend.DocumentReading
-        private var loadTask: Task<Void, Never>?
+        var loadTask: Task<Void, Never>?
         private var didConnect = false
+        public var skipAwaitingDocTask = false
 
         public init(backend: any Backend.Connecting & Backend.FrameworkBrowsing & Backend.Searching & Backend.DocumentReading) {
             self.backend = backend

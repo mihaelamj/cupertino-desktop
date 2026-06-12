@@ -1,11 +1,11 @@
-import AppModels
-import Foundation
-import PresentationBridge
-@testable import FrameworkBrowserFeature
-import SearchFeature
-import MacBackendImpl
-import BackendAPI
 import AppCore
+import AppModels
+import BackendAPI
+import Foundation
+@testable import FrameworkBrowserFeature
+import MacBackendImpl
+import PresentationBridge
+import SearchFeature
 
 let args = CommandLine.arguments
 guard args.count > 1 else {
@@ -31,14 +31,16 @@ do {
         try await backend.connect()
         print("Connected to cupertino subprocess successfully.")
         liveBackend = backend
-        
+
         let fVM = Feature.FrameworkBrowser.ViewModel(backend: backend)
         let sVM = Feature.Search.ViewModel(backend: backend)
-        
+
         // Start the initial load of sources and frameworks and await it
         fVM.onAppeared()
-        _ = await fVM.loadTask?.value
-        
+        if let loadTask = fVM.loadTask {
+            _ = await loadTask.value
+        }
+
         frameworksVM = fVM
         searchVM = sVM
     } else {
@@ -50,10 +52,17 @@ do {
 
     if isIntegration, let fVM = frameworksVM as? Feature.FrameworkBrowser.ViewModel {
         simulator.onStepExecuted = { @MainActor in
-            // Wait for all background tasks in the real VM to finish
-            _ = await fVM.loadTask?.value
-            _ = await fVM.hierarchyTask?.value
-            _ = await fVM.docTask?.value
+            if let loadTask = fVM.loadTask {
+                _ = await loadTask.value
+            }
+            if let hierarchyTask = fVM.hierarchyTask {
+                _ = await hierarchyTask.value
+            }
+            if fVM.skipAwaitingDocTask {
+                fVM.skipAwaitingDocTask = false
+            } else if let docTask = fVM.docTask {
+                _ = await docTask.value
+            }
             await Task.yield()
         }
     }
@@ -71,14 +80,14 @@ do {
     // If in integration mode, print out what we actually loaded on each level to verify!
     if isIntegration {
         print("\n=== Live Database Hierarchy Verification Report ===")
-        
+
         // 1. Sources
         let sources = try await frameworksVM.listSources()
         print("1. Available Sources (\(sources.count)):")
         for src in sources {
             print("  - \(src.rawValue) (display: \(src.displayName), scheme: \(src.scheme))")
         }
-        
+
         // 2. Level 1: Frameworks loaded in the view model
         print("\n2. Level 1 (Frameworks loaded for \(frameworksVM.selectedSource?.displayName ?? "none")):")
         let loadedFrameworks = frameworksVM.frameworks
@@ -89,7 +98,7 @@ do {
         if loadedFrameworks.count > 5 {
             print("     ... and \(loadedFrameworks.count - 5) more")
         }
-        
+
         // 3. Level 2: Documents loaded under selected framework
         print("\n3. Level 2 (Documents loaded for framework \(frameworksVM.selectedFramework?.name ?? "none")):")
         let loadedDocs = frameworksVM.documents
@@ -100,7 +109,7 @@ do {
         if loadedDocs.count > 5 {
             print("     ... and \(loadedDocs.count - 5) more")
         }
-        
+
         // 4. Level 3: Selected Document content
         print("\n4. Level 3 (Document content loaded):")
         if let title = frameworksVM.selectedDocumentTitle {
@@ -114,7 +123,7 @@ do {
             print("   No active document.")
         }
         print("===================================================\n")
-        
+
         if let liveBackend {
             await liveBackend.disconnect()
         }

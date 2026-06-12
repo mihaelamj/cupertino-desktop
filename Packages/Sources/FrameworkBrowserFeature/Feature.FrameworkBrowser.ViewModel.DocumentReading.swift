@@ -12,6 +12,7 @@ public extension Feature.FrameworkBrowser.ViewModel {
             NSLog("VM SELECT DOCUMENT: already loaded")
             return
         }
+        skipAwaitingDocTask = true
         let previous = docTask
         previous?.cancel()
         documentState = .loading
@@ -38,6 +39,7 @@ public extension Feature.FrameworkBrowser.ViewModel {
         if case let .loaded(page) = documentState, page.uri == uri {
             return
         }
+        skipAwaitingDocTask = true
         let previous = docTask
         previous?.cancel()
         documentState = .loading

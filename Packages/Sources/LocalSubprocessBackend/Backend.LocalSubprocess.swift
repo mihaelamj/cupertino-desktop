@@ -23,14 +23,17 @@ public extension Backend {
             self.client = client
         }
 
-        // MARK: Connecting
+        private var isConnected = false
 
         public func connect() async throws {
+            guard !isConnected else { return }
             try await client.connect()
+            isConnected = true
         }
 
         public func disconnect() async {
             await client.disconnect()
+            isConnected = false
         }
 
         // MARK: FrameworkBrowsing

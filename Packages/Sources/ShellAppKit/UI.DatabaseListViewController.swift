@@ -15,16 +15,9 @@ import PresentationBridge
             private let tableView = NSTableView()
             private let scrollView = NSScrollView()
 
-            private let sources: [Model.Source] = [
-                .appleDocs,
-                .hig,
-                .swiftEvolution,
-                .swiftOrg,
-                .swiftBook,
-                .appleArchive,
-                .samples,
-                .packages,
-            ]
+            private var sources: [Model.Source] {
+                frameworks.sources
+            }
 
             init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.model = model
@@ -35,6 +28,23 @@ import PresentationBridge
             @available(*, unavailable)
             required init?(coder _: NSCoder) {
                 fatalError("init(coder:) is unsupported")
+            }
+
+            override func viewDidLoad() {
+                super.viewDidLoad()
+                trackState()
+            }
+
+            private func trackState() {
+                withObservationTracking {
+                    _ = frameworks.sources
+                } onChange: { [weak self] in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.tableView.reloadData()
+                        self.trackState()
+                    }
+                }
             }
 
             override func loadView() {
@@ -105,29 +115,11 @@ import PresentationBridge
             }
 
             private func displayName(for source: Model.Source) -> String {
-                switch source {
-                case .appleDocs: "Apple Developer Documentation"
-                case .hig: "Human Interface Guidelines"
-                case .swiftEvolution: "Swift Evolution"
-                case .swiftOrg: "Swift.org"
-                case .swiftBook: "The Swift Programming Language Book"
-                case .appleArchive: "Apple Archive"
-                case .samples: "Sample Projects"
-                case .packages: "Swift Packages"
-                }
+                source.displayName
             }
 
             private func iconName(for source: Model.Source) -> String {
-                switch source {
-                case .appleDocs: "books.vertical"
-                case .hig: "sidebar.leading"
-                case .swiftEvolution: "arrow.up.forward.circle"
-                case .swiftOrg: "globe"
-                case .swiftBook: "book"
-                case .appleArchive: "archivebox"
-                case .samples: "shippingbox"
-                case .packages: "shippingbox.fill"
-                }
+                source.iconName
             }
         }
     }

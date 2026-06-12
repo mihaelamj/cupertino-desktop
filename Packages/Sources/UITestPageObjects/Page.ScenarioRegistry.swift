@@ -19,9 +19,10 @@ public extension Page {
 
         private func element(_ identifier: String) -> XCUIElement {
             if identifier.hasPrefix("framework_row_") ||
-               identifier.hasPrefix("source_row_") ||
-               identifier == UI.AccessibilityID.FrameworkBrowser.searchField ||
-               identifier == UI.AccessibilityID.FrameworkBrowser.sortButton {
+                identifier.hasPrefix("source_row_") ||
+                identifier == UI.AccessibilityID.FrameworkBrowser.searchField ||
+                identifier == UI.AccessibilityID.FrameworkBrowser.sortButton
+            {
                 let sidebars = app.descendants(matching: .any).matching(identifier: UI.AccessibilityID.FrameworkBrowser.sidebar).allElementsBoundByIndex
                 if let sidebar = sidebars.first(where: { $0.exists && $0.isHittable && $0.frame.width > 0 && $0.frame.height > 0 }) {
                     let matches = sidebar.descendants(matching: .any).matching(identifier: identifier).allElementsBoundByIndex

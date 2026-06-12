@@ -102,6 +102,19 @@ public extension Presentation {
     /// programmatically to verify both view model state changes and visual shell layout changes.
     @MainActor
     final class CLILSimulator: Sendable {
+        public enum ActiveView: String, Codable, CaseIterable, Sendable {
+            case databases = "Databases"
+            case frameworks = "Frameworks"
+            case documents = "Documents"
+            case reader = "Reader"
+            case splitView = "SplitView"
+        }
+
+        public enum AssertProperty: Equatable, Sendable {
+            case vm(CDSLProgram.VMProperty)
+            case ui(CLLProgram.UIProperty)
+        }
+
         public typealias DeviceName = CLILProgram.DeviceName
         public typealias Orientation = CLILProgram.Orientation
         public typealias SizeClass = CLILProgram.SizeClass
@@ -131,7 +144,7 @@ public extension Presentation {
             }
 
             public var navigationStackDepth: Int = 0
-            public var activeView: String = "Databases"
+            public var activeView: ActiveView = .databases
         }
 
         public private(set) var ui = UIState()
@@ -304,20 +317,20 @@ public extension Presentation {
         private func updateUIState() {
             if ui.device == .Mac || (ui.device == .iPad && ui.sizeClass == .regular) {
                 ui.navigationStackDepth = 0
-                ui.activeView = "SplitView"
+                ui.activeView = .splitView
             } else {
                 // iPhone or iPad compact navigation stack behavior
                 if let docState = frameworksVM?.documentState, case .loaded = docState {
-                    ui.activeView = "Reader"
+                    ui.activeView = .reader
                     ui.navigationStackDepth = 3
                 } else if frameworksVM?.selectedFramework != nil {
-                    ui.activeView = "Documents"
+                    ui.activeView = .documents
                     ui.navigationStackDepth = 2
                 } else if frameworksVM?.selectedSource != nil {
-                    ui.activeView = "Frameworks"
+                    ui.activeView = .frameworks
                     ui.navigationStackDepth = 1
                 } else {
-                    ui.activeView = "Databases"
+                    ui.activeView = .databases
                     ui.navigationStackDepth = 0
                 }
             }
@@ -325,11 +338,10 @@ public extension Presentation {
 
         private func parseSource(_ string: String) throws -> Model.Source? {
             if string.lowercased() == "nil" { return nil }
-            if let src = Model.Source(rawValue: string) { return src }
             for src in Model.Source.allCases {
-                if src.scheme == string { return src }
+                if src.rawValue == string || src.scheme == string { return src }
             }
-            throw CLILError.runtimeError("Could not parse Model.Source from '\(string)'")
+            return Model.Source(rawValue: string)
         }
 
         private func execute(_ stmt: CLILProgram.Statement) async throws {
@@ -401,9 +413,22 @@ public extension Presentation {
                     }
                 }
 
-            case let .assert(target, property, op, expected):
-                let actualValue = try getActualValue(target: target, property: property)
-                try performAssert(actual: actualValue, expected: expected, op: op, property: property)
+            case let .assert(target, propertyStr, op, expected):
+                let property: AssertProperty
+                switch target {
+                case .vm:
+                    guard let vmProp = CDSLProgram.VMProperty(rawValue: propertyStr) else {
+                        throw CLILError.runtimeError("Unknown VM property '\(propertyStr)'")
+                    }
+                    property = .vm(vmProp)
+                case .ui:
+                    guard let uiProp = CLLProgram.UIProperty(rawValue: propertyStr) else {
+                        throw CLILError.runtimeError("Unknown UI property '\(propertyStr)'")
+                    }
+                    property = .ui(uiProp)
+                }
+                let actualValue = try getActualValue(property)
+                try performAssert(actual: actualValue, expected: expected, op: op, property: propertyStr)
 
             case .awaitTasks:
                 for _ in 0 ..< 10 {
@@ -414,88 +439,87 @@ public extension Presentation {
             }
         }
 
-        private func getActualValue(target: CLILProgram.AssertTarget, property: String) throws -> CLILProgram.Value {
-            switch target {
-            case .ui:
-                switch property {
-                case "device":
+        private func getActualValue(_ property: AssertProperty) throws -> CLILProgram.Value {
+            switch property {
+            case let .ui(uiProp):
+                switch uiProp {
+                case .device:
                     return .string(ui.device.rawValue)
-                case "orientation":
+                case .orientation:
                     return .string(ui.orientation.rawValue)
-                case "sizeClass":
+                case .sizeClass:
                     return .string(ui.sizeClass.rawValue)
-                case "showsSidebarList":
+                case .showsSidebarList:
                     return .boolean(ui.showsSidebarList)
-                case "showsDetailPane":
+                case .showsDetailPane:
                     return .boolean(ui.showsDetailPane)
-                case "navigationStackDepth":
+                case .navigationStackDepth:
                     return .number(ui.navigationStackDepth)
-                case "activeView":
-                    return .string(ui.activeView)
-                default:
-                    throw CLILError.runtimeError("Unknown UI property '\(property)'")
+                case .activeView:
+                    return .string(ui.activeView.rawValue)
                 }
 
-            case .vm:
+            case let .vm(vmProp):
                 guard let frameworksVM else {
-                    throw CLILError.runtimeError("Framework VM is nil during assertion on '\(property)'")
+                    throw CLILError.runtimeError("Framework VM is nil during assertion on VM property")
                 }
-                switch property {
-                case "activeSource":
+                switch vmProp {
+                case .activeSource:
                     if let src = frameworksVM.selectedSource {
                         return .string(src.rawValue)
                     } else {
                         return .nilValue
                     }
-                case "selectedFrameworkID":
+                case .selectedFrameworkID:
                     if let framework = frameworksVM.selectedFramework {
                         return .string(framework.id)
                     } else {
                         return .nilValue
                     }
-                case "isLoading":
+                case .isLoading:
                     return .boolean(frameworksVM.isLoading)
-                case "isLoadingDocument":
+                case .isLoadingDocument:
                     return .boolean(frameworksVM.isLoadingDocument)
-                case "errorMessage":
+                case .errorMessage:
                     if let msg = frameworksVM.errorMessage {
                         return .string(msg)
                     } else {
                         return .nilValue
                     }
-                case "documentState":
+                case .documentState:
                     switch frameworksVM.documentState {
                     case .empty: return .string("empty")
                     case .loading: return .string("loading")
                     case .loaded: return .string("loaded")
                     case .failed: return .string("failed")
                     }
-                case "selectedMarkdown":
+                case .selectedMarkdown:
                     if let md = frameworksVM.selectedMarkdown {
                         return .string(md)
                     } else {
                         return .nilValue
                     }
-                case "results":
+                case .results:
                     if let searchVM {
                         return .list(searchVM.results.map { .string($0.title) })
                     } else {
                         return .list([])
                     }
-                case "documents":
+                case .documents:
                     return .list(frameworksVM.documents.map { .string($0.title) })
-                case "state":
+                case .state:
                     switch frameworksVM.state {
                     case .idle: return .string("idle")
                     case .loading: return .string("loading")
                     case .loaded: return .string("loaded")
                     case .failed: return .string("failed")
                     }
-                default:
-                    if let searchVM, property == "text" {
+                case .text:
+                    if let searchVM {
                         return .string(searchVM.text)
+                    } else {
+                        return .nilValue
                     }
-                    throw CLILError.runtimeError("Unknown VM property '\(property)'")
                 }
             }
         }

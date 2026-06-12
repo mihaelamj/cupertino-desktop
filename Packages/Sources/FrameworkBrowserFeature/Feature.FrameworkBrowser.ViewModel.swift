@@ -23,12 +23,22 @@ public extension Feature.FrameworkBrowser {
         public typealias ConnectionState = Presentation.FrameworkBrowser.ConnectionState
 
         public private(set) var state: LoadState = .idle
+        public private(set) var sources: [Model.Source] = Model.Source.allCases
+        private var hierarchyItems: [Model.HierarchyItem] = []
+        private var hierarchyTask: Task<Void, Never>?
 
         public var frameworks: [Model.Framework] {
             guard case let .loaded(all) = state else { return [] }
-            
-            var allWithPlaceholders = all
-            if let selectedSource {
+
+            let list: [Model.Framework]
+            if selectedSource == nil {
+                list = all
+            } else if !hierarchyItems.isEmpty {
+                list = hierarchyItems.map { item in
+                    Model.Framework(id: item.id, name: item.title, documentCount: 0)
+                }
+            } else {
+                var allWithPlaceholders = all
                 let placeholders = [
                     Model.Framework(id: "swift-evolution", name: "Swift Evolution", documentCount: 0),
                     Model.Framework(id: "swift-org", name: "Swift.org Docs", documentCount: 0),
@@ -43,33 +53,35 @@ public extension Feature.FrameworkBrowser {
                     Model.Framework(id: "technologies", name: "Technologies", documentCount: 0),
                 ]
                 for placeholder in placeholders {
-                    if ViewModel.belongs(framework: placeholder, to: selectedSource),
-                       !allWithPlaceholders.contains(where: { $0.id == placeholder.id }) {
+                    if ViewModel.belongs(framework: placeholder, to: selectedSource!),
+                       !allWithPlaceholders.contains(where: { $0.id == placeholder.id })
+                    {
                         allWithPlaceholders.append(placeholder)
                     }
                 }
+                list = allWithPlaceholders.filter { ViewModel.belongs(framework: $0, to: selectedSource!) }
             }
-            
-            let filteredBySource = selectedSource.map { source in
-                allWithPlaceholders.filter { ViewModel.belongs(framework: $0, to: source) }
-            } ?? all
 
             let filteredBySearch: [Model.Framework]
             if searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                filteredBySearch = filteredBySource
+                filteredBySearch = list
             } else {
                 let query = searchQuery.lowercased()
-                filteredBySearch = filteredBySource.filter {
+                filteredBySearch = list.filter {
                     $0.displayName.lowercased().contains(query) || $0.id.lowercased().contains(query)
                 }
             }
 
             switch sortOrder {
             case .count:
-                return filteredBySearch.sorted {
-                    $0.documentCount != $1.documentCount
-                        ? $0.documentCount > $1.documentCount
-                        : $0.name < $1.name
+                if selectedSource == nil {
+                    return filteredBySearch.sorted {
+                        $0.documentCount != $1.documentCount
+                            ? $0.documentCount > $1.documentCount
+                            : $0.name < $1.name
+                    }
+                } else {
+                    return filteredBySearch
                 }
             case .name:
                 return filteredBySearch.sorted {
@@ -134,13 +146,34 @@ public extension Feature.FrameworkBrowser {
                     try await backend.connect()
                     didConnect = true
                 }
-                let frameworks = try await backend.listFrameworks()
+                async let sourcesFetch = backend.listSources()
+                async let frameworksFetch = backend.listFrameworks()
+                let (fetchedSources, fetchedFrameworks) = try await (sourcesFetch, frameworksFetch)
                 if Task.isCancelled { return }
-                state = .loaded(frameworks)
+                sources = fetchedSources
+                state = .loaded(fetchedFrameworks)
+
+                if let selectedSource {
+                    await loadHierarchy(for: selectedSource)
+                }
             } catch {
                 if Task.isCancelled { return }
                 state = .failed(error.localizedDescription)
             }
+        }
+
+        private func loadHierarchy(for source: Model.Source) async {
+            do {
+                let items = try await backend.listSourceHierarchy(source: source, level: 1, parent: nil)
+                if Task.isCancelled { return }
+                hierarchyItems = items
+            } catch {
+                NSLog("Failed to load hierarchy: \(error)")
+            }
+        }
+
+        public func listSources() async throws -> [Model.Source] {
+            try await backend.listSources()
         }
 
         // MARK: Selected-document reading (the detail column)
@@ -175,6 +208,18 @@ public extension Feature.FrameworkBrowser {
             selectedSource = source
             searchQuery = ""
             selectFramework(nil)
+
+            hierarchyTask?.cancel()
+            hierarchyItems = []
+
+            guard let source else { return }
+
+            if didConnect {
+                hierarchyTask = Task { [weak self] in
+                    guard let self else { return }
+                    await loadHierarchy(for: source)
+                }
+            }
         }
 
         public var selectedFramework: Model.Framework? {
@@ -287,8 +332,30 @@ public extension Feature.FrameworkBrowser {
         /// Search and load all documents in the selected framework. Scoped to it.
         func loadDocuments(framework id: String) async {
             do {
-                let sources = selectedSource.map { Set([$0]) } ?? Set([.appleDocs])
-                let hits = try await backend.searchDocs(Model.DocsQuery(text: id, sources: sources, framework: id, limit: 100))
+                let currentSource = selectedSource ?? .appleDocs
+                let hits: [Model.DocHit]
+
+                if selectedSource == nil {
+                    let sources: Set<Model.Source> = [.appleDocs]
+                    hits = try await backend.searchDocs(Model.DocsQuery(text: id, sources: sources, framework: id, limit: 100))
+                } else {
+                    let items = try await backend.listSourceHierarchy(source: currentSource, level: 2, parent: id)
+                    hits = items.compactMap { item in
+                        guard let uri = Model.DocURI(item.id) ?? Model.DocURI("\(currentSource.scheme)://\(item.id)") else {
+                            return nil
+                        }
+                        return Model.DocHit(
+                            id: item.id,
+                            uri: uri,
+                            source: currentSource,
+                            title: item.title,
+                            framework: id,
+                            snippet: item.description ?? "",
+                            score: 0.0,
+                        )
+                    }
+                }
+
                 if Task.isCancelled { return }
                 documents = hits
                 if let first = hits.first {
@@ -332,6 +399,8 @@ public extension Feature.FrameworkBrowser {
                 return id == "samples"
             case .packages:
                 return id == "packages"
+            default:
+                return id == source.rawValue.lowercased()
             }
         }
     }

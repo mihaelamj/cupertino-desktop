@@ -5,6 +5,16 @@ public extension Presentation {
     /// A parsed representation of a CLL (Cupertino Layout Language) script.
     /// Conforms to `PresentationValidatable` to support Matt Polzin's OpenAPIKit validation idiom.
     struct CLLProgram: PresentationValidatable, Sendable {
+        public enum UIProperty: String, Codable, CaseIterable, Sendable {
+            case device
+            case orientation
+            case sizeClass
+            case showsSidebarList
+            case showsDetailPane
+            case navigationStackDepth
+            case activeView
+        }
+
         public enum Statement: Sendable, Equatable {
             case device(DeviceName, Orientation, SizeClass)
             case assertUI(String, Operator, Value)

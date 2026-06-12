@@ -6,6 +6,10 @@ import PresentationBridge
 final class CLIFFrameworkBrowserViewModel: Presentation.FrameworkBrowserViewModelProtocol {
     var state: Presentation.FrameworkBrowser.LoadState = .idle
     var frameworks: [Model.Framework] = []
+    var sources: [Model.Source] {
+        Model.Source.allCases
+    }
+
     var isLoading: Bool = false
     var errorMessage: String?
     var connectionState: Presentation.FrameworkBrowser.ConnectionState = .connecting
@@ -22,6 +26,9 @@ final class CLIFFrameworkBrowserViewModel: Presentation.FrameworkBrowserViewMode
 
     func onAppeared() {}
     func onRetried() {}
+    func listSources() async throws -> [Model.Source] {
+        Model.Source.allCases
+    }
 
     func selectSource(_ source: Model.Source?) {
         selectedSource = source
@@ -89,8 +96,24 @@ final class CLISearchViewModel: Presentation.SearchViewModelProtocol {
             try? await Task.sleep(nanoseconds: 20_000_000)
             isLoading = false
             let docs = [
-                Model.DocHit(id: "swift-basics", uri: Model.DocURI("apple-docs://swift/basics")!, source: .appleDocs, title: "Swift Basics", framework: "Swift", snippet: "Learn Swift basics", score: 1.0),
-                Model.DocHit(id: "swift-advanced", uri: Model.DocURI("apple-docs://swift/advanced")!, source: .appleDocs, title: "Advanced Swift", framework: "Swift", snippet: "Learn advanced Swift", score: 0.9)
+                Model.DocHit(
+                    id: "swift-basics",
+                    uri: Model.DocURI("apple-docs://swift/basics")!,
+                    source: .appleDocs,
+                    title: "Swift Basics",
+                    framework: "Swift",
+                    snippet: "Learn Swift basics",
+                    score: 1.0,
+                ),
+                Model.DocHit(
+                    id: "swift-advanced",
+                    uri: Model.DocURI("apple-docs://swift/advanced")!,
+                    source: .appleDocs,
+                    title: "Advanced Swift",
+                    framework: "Swift",
+                    snippet: "Learn advanced Swift",
+                    score: 0.9,
+                ),
             ]
             results = docs
             state = .loaded(.docs(docs))
@@ -104,8 +127,24 @@ final class CLISearchViewModel: Presentation.SearchViewModelProtocol {
             try? await Task.sleep(nanoseconds: 20_000_000)
             isLoading = false
             let docs = [
-                Model.DocHit(id: "swift-basics", uri: Model.DocURI("apple-docs://swift/basics")!, source: .appleDocs, title: "Swift Basics", framework: "Swift", snippet: "Learn Swift basics", score: 1.0),
-                Model.DocHit(id: "swift-advanced", uri: Model.DocURI("apple-docs://swift/advanced")!, source: .appleDocs, title: "Advanced Swift", framework: "Swift", snippet: "Learn advanced Swift", score: 0.9)
+                Model.DocHit(
+                    id: "swift-basics",
+                    uri: Model.DocURI("apple-docs://swift/basics")!,
+                    source: .appleDocs,
+                    title: "Swift Basics",
+                    framework: "Swift",
+                    snippet: "Learn Swift basics",
+                    score: 1.0,
+                ),
+                Model.DocHit(
+                    id: "swift-advanced",
+                    uri: Model.DocURI("apple-docs://swift/advanced")!,
+                    source: .appleDocs,
+                    title: "Advanced Swift",
+                    framework: "Swift",
+                    snippet: "Learn advanced Swift",
+                    score: 0.9,
+                ),
             ]
             results = docs
             state = .loaded(.docs(docs))

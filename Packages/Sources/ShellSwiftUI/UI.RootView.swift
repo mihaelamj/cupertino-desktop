@@ -38,16 +38,9 @@ import PresentationBridge
                 #endif
             }
 
-            private let sources: [Model.Source] = [
-                .appleDocs,
-                .hig,
-                .swiftEvolution,
-                .swiftOrg,
-                .swiftBook,
-                .appleArchive,
-                .samples,
-                .packages,
-            ]
+            private var sources: [Model.Source] {
+                frameworks.sources
+            }
 
             public init(model: RootModel, frameworks: VM) {
                 _model = Bindable(model)
@@ -222,29 +215,11 @@ import PresentationBridge
             }
 
             private func displayName(for source: Model.Source) -> String {
-                switch source {
-                case .appleDocs: "Apple Developer Documentation"
-                case .hig: "Human Interface Guidelines"
-                case .swiftEvolution: "Swift Evolution"
-                case .swiftOrg: "Swift.org"
-                case .swiftBook: "The Swift Programming Language Book"
-                case .appleArchive: "Apple Archive"
-                case .samples: "Sample Projects"
-                case .packages: "Swift Packages"
-                }
+                source.displayName
             }
 
             private func iconName(for source: Model.Source) -> String {
-                switch source {
-                case .appleDocs: "books.vertical"
-                case .hig: "sidebar.leading"
-                case .swiftEvolution: "arrow.up.forward.circle"
-                case .swiftOrg: "globe"
-                case .swiftBook: "book"
-                case .appleArchive: "archivebox"
-                case .samples: "shippingbox"
-                case .packages: "shippingbox.fill"
-                }
+                source.iconName
             }
 
             private var compactSidebar: some View {
@@ -308,6 +283,7 @@ import PresentationBridge
             case .appleArchive: "Apple Archive"
             case .samples: "Samples"
             case .packages: "Packages"
+            default: source.displayName
             }
         }
     }

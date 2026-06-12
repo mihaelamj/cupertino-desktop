@@ -60,6 +60,7 @@ public extension UI {
                                 .tag(Presentation.FrameworkBrowser.SortOrder.count)
                                 .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sortByCountOption)
                         }
+                        .pickerStyle(.inline)
                     } label: {
                         Image(systemName: "arrow.up.arrow.down.circle")
                         #if os(iOS)
@@ -102,10 +103,18 @@ public extension UI {
                             .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.row(framework.id))
                         }
                         .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sidebar)
+                        .frame(minHeight: 100, maxHeight: .infinity)
                     }
                 }
             }
-            #if os(iOS)
+            .onAppear {
+                if let selected = model.selectedFrameworkID {
+                    frameworks.selectFramework(selected)
+                }
+            }
+            #if os(macOS)
+            .navigationBarBackButtonHidden(true)
+            #elseif os(iOS)
             .navigationTitle(UI.sourceDisplayName(source))
             #endif
         }

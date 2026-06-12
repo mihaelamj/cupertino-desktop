@@ -5,6 +5,20 @@ public extension Presentation {
     /// A parsed representation of a CDSL (Cupertino Data State Language) script.
     /// Conforms to `PresentationValidatable` to support Matt Polzin's OpenAPIKit validation idiom.
     struct CDSLProgram: PresentationValidatable, Sendable {
+        public enum VMProperty: String, Codable, CaseIterable, Sendable {
+            case activeSource
+            case selectedFrameworkID
+            case isLoading
+            case isLoadingDocument
+            case errorMessage
+            case documentState
+            case selectedMarkdown
+            case results
+            case documents
+            case state
+            case text
+        }
+
         public enum Statement: Sendable, Equatable {
             case dispatch(ActionName, Value)
             case assertVM(String, Operator, Value)

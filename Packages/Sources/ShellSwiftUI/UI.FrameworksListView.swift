@@ -34,6 +34,7 @@ public extension UI {
                                 .tag(Presentation.FrameworkBrowser.SortOrder.count)
                                 .accessibilityIdentifier(UI.AccessibilityID.FrameworkBrowser.sortByCountOption)
                         }
+                        .pickerStyle(.inline)
                     } label: {
                         Image(systemName: "arrow.up.arrow.down.circle")
                             .font(.title2)

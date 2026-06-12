@@ -54,6 +54,217 @@ public extension Backend {
             try await Self.frameworks(from: dataSource.listFrameworks())
         }
 
+        public func listSources() async throws -> [Model.Source] {
+            var activeSources: [Model.Source] = []
+            var added = Set<Model.Source>()
+
+            func add(_ source: Model.Source) {
+                if !added.contains(source) {
+                    added.insert(source)
+                    activeSources.append(source)
+                }
+            }
+
+            // 1. Try SourceIDProviding cast
+            if let provider = dataSource as? any SourceIDProviding {
+                for id in provider.sourceIDs {
+                    add(Self.source(forID: id))
+                }
+            }
+
+            // 2. If still empty, scan frameworks (e.g. for mock data sources in tests)
+            if activeSources.isEmpty {
+                if let counts = try? await dataSource.listFrameworks() {
+                    for key in counts.keys {
+                        let id = key.lowercased()
+                        if id == "swift-evolution" {
+                            add(.swiftEvolution)
+                        } else if id == "swift-org" {
+                            add(.swiftOrg)
+                        } else if id == "swift-book" {
+                            add(.swiftBook)
+                        } else if ["components", "foundations", "general", "inputs", "patterns", "technologies"].contains(id) {
+                            add(.hig)
+                        } else if [
+                            "appkit", "cocoa", "coreaudio", "coredata", "corefoundation", "coregraphics",
+                            "coreimage", "coretext", "foundation", "objectivec", "performance",
+                            "quartzcore", "security", "uikit",
+                        ].contains(id) {
+                            add(.appleArchive)
+                        } else {
+                            add(.appleDocs)
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback if still empty
+            if activeSources.isEmpty {
+                add(.appleDocs)
+            }
+
+            // 4. Injected reader states
+            if sampleReader != nil {
+                add(.samples)
+            }
+            if packageSearcher != nil {
+                add(.packages)
+            }
+
+            return activeSources
+        }
+
+        public func listSourceHierarchy(source: Model.Source, level: Int, parent: String?) async throws -> [Model.HierarchyItem] {
+            if level == 1 {
+                switch source {
+                case .hig:
+                    let sections = [
+                        ("components", "Components", "Buttons, menus, toggles, etc."),
+                        ("foundations", "Foundations", "Colors, typography, layout, etc."),
+                        ("general", "General", "General design principles"),
+                        ("inputs", "Inputs", "Keyboard, mouse, touch, gestures, etc."),
+                        ("patterns", "Patterns", "Common interaction patterns"),
+                        ("technologies", "Technologies", "Apple-specific technologies"),
+                    ]
+                    return sections.map { id, title, desc in
+                        Model.HierarchyItem(id: id, title: title, description: desc, hasChildren: true)
+                    }
+                case .swiftEvolution:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-evolution",
+                            title: "Swift Evolution",
+                            description: "Proposals for changes to Swift",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .swiftOrg:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-org",
+                            title: "Swift.org Articles",
+                            description: "Documentation and articles from swift.org",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .swiftBook:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-book",
+                            title: "The Swift Programming Language Book",
+                            description: "Chapters of the official Swift book",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .samples:
+                    return [
+                        Model.HierarchyItem(
+                            id: "samples",
+                            title: "Sample Projects",
+                            description: "Official Apple sample projects",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .packages:
+                    return [
+                        Model.HierarchyItem(
+                            id: "packages",
+                            title: "Swift Packages",
+                            description: "Indexed third-party Swift packages",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .appleDocs:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: .appleDocs) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                case .appleArchive:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: .appleArchive) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                default:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: source) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                }
+            } else if level == 2 {
+                guard let parent else { return [] }
+                let query = Model.DocsQuery(text: parent, sources: [source], framework: parent, limit: 100)
+                let hits = try await searchDocs(query)
+                return hits.map { hit in
+                    Model.HierarchyItem(
+                        id: hit.uri.rawValue,
+                        title: hit.title,
+                        description: hit.snippet,
+                        hasChildren: false,
+                    )
+                }
+            }
+            return []
+        }
+
+        private func belongs(framework: Model.Framework, to source: Model.Source) -> Bool {
+            let id = framework.id.lowercased()
+            switch source {
+            case .appleDocs:
+                let nonAppleDocs: Set = [
+                    "swift-evolution", "swift-org", "swift-book",
+                    "components", "foundations", "general", "inputs", "patterns", "technologies",
+                    "cocoa", "objectivec", "appkit", "samples", "packages",
+                ]
+                return !nonAppleDocs.contains(id)
+            case .appleArchive:
+                let archiveFrameworks: Set = [
+                    "appkit", "cocoa", "coreaudio", "coredata", "corefoundation", "coregraphics",
+                    "coreimage", "coretext", "foundation", "objectivec", "performance",
+                    "quartzcore", "security", "uikit",
+                ]
+                return archiveFrameworks.contains(id)
+            case .hig:
+                return ["components", "foundations", "general", "inputs", "patterns", "technologies"].contains(id)
+            case .swiftEvolution:
+                return id == "swift-evolution"
+            case .swiftOrg:
+                return id == "swift-org"
+            case .swiftBook:
+                return id == "swift-book"
+            case .samples:
+                return id == "samples"
+            case .packages:
+                return id == "packages"
+            default:
+                return id == source.rawValue.lowercased()
+            }
+        }
+
+        private static func source(forID id: String) -> Model.Source {
+            if let matched = Model.Source.allCases.first(where: { $0.scheme == id }) {
+                return matched
+            }
+            if let matched = Model.Source.allCases.first(where: { $0.rawValue == id }) {
+                return matched
+            }
+            return Model.Source(rawValue: id)
+        }
+
         // MARK: DocumentReading
 
         public func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
@@ -292,4 +503,9 @@ public extension Backend {
             return mapped
         }
     }
+}
+
+/// Protocol to dynamically retrieve the configured source IDs from the database engine
+public protocol SourceIDProviding: Sendable {
+    var sourceIDs: [String] { get }
 }

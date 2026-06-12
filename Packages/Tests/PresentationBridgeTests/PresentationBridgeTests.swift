@@ -70,6 +70,10 @@ struct PresentationBridgeTests {
 final class MockFrameworkBrowserViewModel: Presentation.FrameworkBrowserViewModelProtocol {
     var state: Presentation.FrameworkBrowser.LoadState = .idle
     var frameworks: [Model.Framework] = []
+    var sources: [Model.Source] {
+        Model.Source.allCases
+    }
+
     var isLoading: Bool = false
     var errorMessage: String?
     var connectionState: Presentation.FrameworkBrowser.ConnectionState = .connecting
@@ -120,6 +124,10 @@ final class MockFrameworkBrowserViewModel: Presentation.FrameworkBrowserViewMode
     func openDocument(_ uri: Model.DocURI) {
         openDocumentPassed = uri
         documentState = .loaded(Model.DocPage(uri: uri, source: .appleDocs, title: "MockDocOpen", markdown: "# MockDocOpen"))
+    }
+
+    func listSources() async throws -> [Model.Source] {
+        Model.Source.allCases
     }
 
     func readPage(_ uri: Model.DocURI) async throws -> Model.DocPage {

@@ -107,37 +107,37 @@ struct FrameworkBrowserViewModelTests {
         let swiftUI = Model.Framework(id: "swiftui", name: "SwiftUI", documentCount: 100)
         let foundation = Model.Framework(id: "foundation", name: "Foundation", documentCount: 50)
         let appKit = Model.Framework(id: "appkit", name: "AppKit", documentCount: 20)
-        
+
         // appleDocs contains swiftui, foundation, but NOT archive-only/non-apple docs
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .appleDocs) == true)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: foundation, to: .appleDocs) == true)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: appKit, to: .appleDocs) == false) // appkit belongs to appleArchive
-        
+
         // appleArchive contains appkit, cocoa, coregraphics etc.
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: appKit, to: .appleArchive) == true)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .appleArchive) == false)
-        
+
         // hig contains foundations, components, general, inputs, patterns, technologies
         let foundations = Model.Framework(id: "foundations", name: "Foundations", documentCount: 5)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: foundations, to: .hig) == true)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftUI, to: .hig) == false)
-        
+
         // swiftEvolution contains swift-evolution
         let swiftEvolution = Model.Framework(id: "swift-evolution", name: "Swift Evolution", documentCount: 200)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftEvolution, to: .swiftEvolution) == true)
-        
+
         // swiftOrg contains swift-org
         let swiftOrg = Model.Framework(id: "swift-org", name: "Swift.org", documentCount: 50)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftOrg, to: .swiftOrg) == true)
-        
+
         // swiftBook contains swift-book
         let swiftBook = Model.Framework(id: "swift-book", name: "Swift Book", documentCount: 30)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: swiftBook, to: .swiftBook) == true)
-        
+
         // samples contains samples
         let samples = Model.Framework(id: "samples", name: "Samples", documentCount: 10)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: samples, to: .samples) == true)
-        
+
         // packages contains packages
         let packages = Model.Framework(id: "packages", name: "Packages", documentCount: 15)
         #expect(Feature.FrameworkBrowser.ViewModel.belongs(framework: packages, to: .packages) == true)
@@ -154,22 +154,22 @@ struct FrameworkBrowserViewModelTests {
         let backend = FakeBackend(.success(allFrameworks))
         let viewModel = Feature.FrameworkBrowser.ViewModel(backend: backend)
         await viewModel.load()
-        
+
         // Default with no selected source shows all
         #expect(viewModel.frameworks.count == 4)
-        
+
         // Selecting appleDocs filters to SwiftUI
         viewModel.selectSource(.appleDocs)
         #expect(viewModel.frameworks.map(\.id) == ["swiftui"])
-        
+
         // Selecting appleArchive filters to AppKit
         viewModel.selectSource(.appleArchive)
         #expect(viewModel.frameworks.map(\.id) == ["appkit"])
-        
+
         // Selecting samples filters to samples
         viewModel.selectSource(.samples)
         #expect(viewModel.frameworks.map(\.id) == ["samples"])
-        
+
         // Selecting packages filters to packages
         viewModel.selectSource(.packages)
         #expect(viewModel.frameworks.map(\.id) == ["packages"])
@@ -217,6 +217,18 @@ private actor ConcurrencyProbeBackend: Backend.Connecting, Backend.FrameworkBrow
 
     func listFrameworks() async throws -> [Model.Framework] {
         []
+    }
+
+    func listSources() async throws -> [Model.Source] {
+        Model.Source.allCases
+    }
+
+    func listSourceHierarchy(source _: Model.Source, level: Int, parent _: String?) async throws -> [Model.HierarchyItem] {
+        if level == 1 {
+            [Model.HierarchyItem(id: "swiftui", title: "SwiftUI", hasChildren: true)]
+        } else {
+            [Model.HierarchyItem(id: "apple-docs://swiftui/view", title: "View", hasChildren: false)]
+        }
     }
 
     enum Boom: Error { case boom }
@@ -274,6 +286,28 @@ private actor FakeBackend: Backend.Connecting, Backend.FrameworkBrowsing, Backen
         case let .failOnceThenOK(frameworks):
             mode = .success(frameworks)
             throw Failure.boom
+        }
+    }
+
+    func listSources() async throws -> [Model.Source] {
+        switch mode {
+        case .fail:
+            throw Failure.boom
+        default:
+            return Model.Source.allCases
+        }
+    }
+
+    func listSourceHierarchy(source _: Model.Source, level: Int, parent _: String?) async throws -> [Model.HierarchyItem] {
+        switch mode {
+        case .fail:
+            throw Failure.boom
+        default:
+            if level == 1 {
+                return [Model.HierarchyItem(id: "swiftui", title: "SwiftUI", hasChildren: true)]
+            } else {
+                return [Model.HierarchyItem(id: "apple-docs://swiftui/view", title: "View", hasChildren: false)]
+            }
         }
     }
 

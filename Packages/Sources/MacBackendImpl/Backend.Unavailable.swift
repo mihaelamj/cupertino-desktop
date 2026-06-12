@@ -20,6 +20,14 @@ extension Backend {
             throw failure
         }
 
+        func listSources() async throws -> [Model.Source] {
+            throw failure
+        }
+
+        func listSourceHierarchy(source _: Model.Source, level _: Int, parent _: String?) async throws -> [Model.HierarchyItem] {
+            throw failure
+        }
+
         func readDocument(_: Model.DocURI) async throws -> Model.DocPage {
             throw failure
         }

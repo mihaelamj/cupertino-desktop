@@ -40,6 +40,201 @@ public extension Backend {
             return Self.parseFrameworks(markdown)
         }
 
+        public func listSources() async throws -> [Model.Source] {
+            // TODO: (epic: desktop) Ask the cupertino MCP server directly for active sources.
+            // Currently, cupertino's MCP server does not expose a list_sources or list_databases tool.
+            // As a temporary workaround, we scan the standard ~/.cupertino folder on macOS to discover
+            // which SQLite databases exist. Once the cupertino backend implements the list_sources MCP tool,
+            // this local filesystem scanning should be replaced by a callTool("list_sources", arguments: [:]) call.
+            let fileManager = FileManager.default
+            let homeDir = fileManager.homeDirectoryForCurrentUser
+            let cupertinoDir = homeDir.appendingPathComponent(".cupertino")
+
+            let dbMapping: [(filename: String, source: Model.Source)] = [
+                ("apple-documentation.db", .appleDocs),
+                ("hig.db", .hig),
+                ("swift-evolution.db", .swiftEvolution),
+                ("swift-org.db", .swiftOrg),
+                ("swift-book.db", .swiftBook),
+                ("apple-archive.db", .appleArchive),
+                ("apple-sample-code.db", .samples),
+                ("packages.db", .packages),
+            ]
+
+            var activeSources: [Model.Source] = []
+            for mapping in dbMapping {
+                let dbPath = cupertinoDir.appendingPathComponent(mapping.filename).path
+                if fileManager.fileExists(atPath: dbPath) {
+                    activeSources.append(mapping.source)
+                }
+            }
+
+            if activeSources.isEmpty {
+                return Model.Source.allCases
+            }
+            return activeSources
+        }
+
+        public func listSourceHierarchy(source: Model.Source, level: Int, parent: String?) async throws -> [Model.HierarchyItem] {
+            do {
+                var args: [String: Client.Argument] = [
+                    "source": .string(source.scheme),
+                    "level": .int(level),
+                ]
+                if let parent {
+                    args["parent"] = .string(parent)
+                }
+                let json = try await client.callTool("list_source_hierarchy", arguments: args)
+                guard let data = json.data(using: .utf8) else {
+                    throw Failure.decoding("list_source_hierarchy returned non-UTF8 content")
+                }
+                return try JSONDecoder().decode([Model.HierarchyItem].self, from: data)
+            } catch {
+                return try await simulateSourceHierarchy(source: source, level: level, parent: parent)
+            }
+        }
+
+        private func simulateSourceHierarchy(source: Model.Source, level: Int, parent: String?) async throws -> [Model.HierarchyItem] {
+            if level == 1 {
+                switch source {
+                case .hig:
+                    let sections = [
+                        ("components", "Components", "Buttons, menus, toggles, etc."),
+                        ("foundations", "Foundations", "Colors, typography, layout, etc."),
+                        ("general", "General", "General design principles"),
+                        ("inputs", "Inputs", "Keyboard, mouse, touch, gestures, etc."),
+                        ("patterns", "Patterns", "Common interaction patterns"),
+                        ("technologies", "Technologies", "Apple-specific technologies"),
+                    ]
+                    return sections.map { id, title, desc in
+                        Model.HierarchyItem(id: id, title: title, description: desc, hasChildren: true)
+                    }
+                case .swiftEvolution:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-evolution",
+                            title: "Swift Evolution",
+                            description: "Proposals for changes to Swift",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .swiftOrg:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-org",
+                            title: "Swift.org Articles",
+                            description: "Documentation and articles from swift.org",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .swiftBook:
+                    return [
+                        Model.HierarchyItem(
+                            id: "swift-book",
+                            title: "The Swift Programming Language Book",
+                            description: "Chapters of the official Swift book",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .samples:
+                    return [
+                        Model.HierarchyItem(
+                            id: "samples",
+                            title: "Sample Projects",
+                            description: "Official Apple sample projects",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .packages:
+                    return [
+                        Model.HierarchyItem(
+                            id: "packages",
+                            title: "Swift Packages",
+                            description: "Indexed third-party Swift packages",
+                            hasChildren: true,
+                        ),
+                    ]
+                case .appleDocs:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: .appleDocs) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                case .appleArchive:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: .appleArchive) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                default:
+                    let frameworks = try await listFrameworks()
+                    return frameworks.filter { belongs(framework: $0, to: source) }.map { framework in
+                        Model.HierarchyItem(
+                            id: framework.id,
+                            title: framework.displayName,
+                            description: "\(framework.documentCount) documents",
+                            hasChildren: true,
+                        )
+                    }
+                }
+            } else if level == 2 {
+                guard let parent else { return [] }
+                let query = Model.DocsQuery(text: parent, sources: [source], framework: parent, limit: 100)
+                let hits = try await searchDocs(query)
+                return hits.map { hit in
+                    Model.HierarchyItem(
+                        id: hit.uri.rawValue,
+                        title: hit.title,
+                        description: hit.snippet,
+                        hasChildren: false,
+                    )
+                }
+            }
+            return []
+        }
+
+        private func belongs(framework: Model.Framework, to source: Model.Source) -> Bool {
+            let id = framework.id.lowercased()
+            switch source {
+            case .appleDocs:
+                let nonAppleDocs: Set = [
+                    "swift-evolution", "swift-org", "swift-book",
+                    "components", "foundations", "general", "inputs", "patterns", "technologies",
+                    "cocoa", "objectivec", "appkit", "samples", "packages",
+                ]
+                return !nonAppleDocs.contains(id)
+            case .appleArchive:
+                let archiveFrameworks: Set = [
+                    "appkit", "cocoa", "coreaudio", "coredata", "corefoundation", "coregraphics",
+                    "coreimage", "coretext", "foundation", "objectivec", "performance",
+                    "quartzcore", "security", "uikit",
+                ]
+                return archiveFrameworks.contains(id)
+            case .hig:
+                return ["components", "foundations", "general", "inputs", "patterns", "technologies"].contains(id)
+            case .swiftEvolution:
+                return id == "swift-evolution"
+            case .swiftOrg:
+                return id == "swift-org"
+            case .swiftBook:
+                return id == "swift-book"
+            case .samples:
+                return id == "samples"
+            case .packages:
+                return id == "packages"
+            default:
+                return id == source.rawValue.lowercased()
+            }
+        }
+
         /// Parse the `list_frameworks` markdown table (rows like ``| `swiftui` | 8679 |``)
         /// into `Model.Framework`. Parsing lives here, inside the adapter, never above
         /// the protocol. The table gives the lowercased id and a document count; we use
@@ -102,7 +297,7 @@ public extension Backend {
                     abstract: raw.description,
                     declaration: nil,
                     markdown: body,
-                    sections: []
+                    sections: [],
                 )
             }
 
@@ -121,7 +316,7 @@ public extension Backend {
                     abstract: nil,
                     declaration: nil,
                     markdown: body,
-                    sections: []
+                    sections: [],
                 )
             }
 

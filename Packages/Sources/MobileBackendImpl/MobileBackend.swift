@@ -60,3 +60,5 @@ public enum MobileBackend {
         live(dataSource: MockReader())
     }
 }
+
+extension CupertinoDataEngine: SourceIDProviding {}

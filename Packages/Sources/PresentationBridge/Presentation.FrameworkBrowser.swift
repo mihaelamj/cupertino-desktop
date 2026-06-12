@@ -35,6 +35,7 @@ public extension Presentation {
     protocol FrameworkBrowserViewModelProtocol: AnyObject, Observable, DocumentPageReader {
         var state: Presentation.FrameworkBrowser.LoadState { get }
         var frameworks: [Model.Framework] { get }
+        var sources: [Model.Source] { get }
         var isLoading: Bool { get }
         var errorMessage: String? { get }
         var connectionState: Presentation.FrameworkBrowser.ConnectionState { get }
@@ -56,5 +57,6 @@ public extension Presentation {
         func selectFramework(_ id: String?)
         func selectDocument(_ uri: Model.DocURI)
         func openDocument(_ uri: Model.DocURI)
+        func listSources() async throws -> [Model.Source]
     }
 }

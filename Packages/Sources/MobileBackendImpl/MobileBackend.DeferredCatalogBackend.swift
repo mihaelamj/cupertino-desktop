@@ -35,6 +35,14 @@ extension MobileBackend {
             try await backend().listFrameworks()
         }
 
+        func listSources() async throws -> [Model.Source] {
+            try await backend().listSources()
+        }
+
+        func listSourceHierarchy(source: Model.Source, level: Int, parent: String?) async throws -> [Model.HierarchyItem] {
+            try await backend().listSourceHierarchy(source: source, level: level, parent: parent)
+        }
+
         func readDocument(_ uri: Model.DocURI) async throws -> Model.DocPage {
             try await backend().readDocument(uri)
         }

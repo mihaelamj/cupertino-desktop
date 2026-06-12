@@ -239,16 +239,9 @@ import PresentationBridge
             private let tableView = UITableView(frame: .zero, style: .insetGrouped)
             private static let cellID = "databaseCell"
 
-            private let sources: [Model.Source] = [
-                .appleDocs,
-                .hig,
-                .swiftEvolution,
-                .swiftOrg,
-                .swiftBook,
-                .appleArchive,
-                .samples,
-                .packages,
-            ]
+            private var sources: [Model.Source] {
+                frameworks.sources
+            }
 
             init(model: RootModel, frameworks: any Presentation.FrameworkBrowserViewModelProtocol) {
                 self.model = model
@@ -261,8 +254,21 @@ import PresentationBridge
                 fatalError("init(coder:) is unsupported; this app uses no storyboards.")
             }
 
+            private func trackState() {
+                withObservationTracking {
+                    _ = frameworks.sources
+                } onChange: { [weak self] in
+                    Task { @MainActor in
+                        guard let self else { return }
+                        self.tableView.reloadData()
+                        self.trackState()
+                    }
+                }
+            }
+
             override func viewDidLoad() {
                 super.viewDidLoad()
+                trackState()
                 title = "Databases"
                 view.backgroundColor = .systemBackground
 
@@ -290,16 +296,7 @@ import PresentationBridge
             }
 
             private func iconName(for source: Model.Source) -> String {
-                switch source {
-                case .appleDocs: "books.vertical"
-                case .hig: "sidebar.leading"
-                case .swiftEvolution: "arrow.up.forward.circle"
-                case .swiftOrg: "globe"
-                case .swiftBook: "book"
-                case .appleArchive: "archivebox"
-                case .samples: "shippingbox"
-                case .packages: "shippingbox.fill"
-                }
+                source.iconName
             }
 
             // MARK: - UITableViewDataSource / Delegate

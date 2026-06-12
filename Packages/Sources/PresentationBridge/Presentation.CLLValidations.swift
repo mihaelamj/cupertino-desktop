@@ -37,8 +37,7 @@ public extension Presentation {
                 detail: { _ in "Property not found" },
                 check: { context in
                     guard case let .assertUI(property, _, _) = context.subject else { return true }
-                    let valid = ["device", "orientation", "sizeClass", "showsSidebarList", "showsDetailPane", "navigationStackDepth", "activeView"]
-                    return valid.contains(property)
+                    return CLLProgram.UIProperty(rawValue: property) != nil
                 },
             )
         }

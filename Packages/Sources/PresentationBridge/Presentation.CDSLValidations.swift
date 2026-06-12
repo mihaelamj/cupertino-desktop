@@ -43,20 +43,7 @@ public extension Presentation {
                 detail: { _ in "Property not found" },
                 check: { context in
                     guard case let .assertVM(property, _, _) = context.subject else { return true }
-                    let valid = [
-                        "activeSource",
-                        "selectedFrameworkID",
-                        "isLoading",
-                        "isLoadingDocument",
-                        "errorMessage",
-                        "documentState",
-                        "selectedMarkdown",
-                        "results",
-                        "documents",
-                        "state",
-                        "text",
-                    ]
-                    return valid.contains(property)
+                    return CDSLProgram.VMProperty(rawValue: property) != nil
                 },
             )
         }

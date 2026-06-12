@@ -95,3 +95,4 @@ Apps/*/.spm/
 .claude/
 .ai-agent-rules
 test-reports/
+.derived-data-log-*

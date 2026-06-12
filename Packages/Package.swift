@@ -321,6 +321,11 @@ let targets: [Target] = {
         dependencies: [
             "AppModels",
             "PresentationBridge",
+            "FrameworkBrowserFeature",
+            "SearchFeature",
+            "MacBackendImpl",
+            "BackendAPI",
+            "AppCore",
         ],
     )
 

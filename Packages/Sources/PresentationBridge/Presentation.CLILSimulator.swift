@@ -149,6 +149,8 @@ public extension Presentation {
 
         public private(set) var ui = UIState()
 
+        public var onStepExecuted: (@MainActor @Sendable () async -> Void)?
+
         private let frameworksVM: (any FrameworkBrowserViewModelProtocol)?
         private let searchVM: (any SearchViewModelProtocol)?
 
@@ -172,6 +174,9 @@ public extension Presentation {
 
             for stmt in program.statements {
                 try await execute(stmt)
+                if let onStepExecuted {
+                    await onStepExecuted()
+                }
             }
         }
 
@@ -196,6 +201,9 @@ public extension Presentation {
 
             for stmt in program.statements {
                 try await executeCDSL(stmt)
+                if let onStepExecuted {
+                    await onStepExecuted()
+                }
             }
         }
 
@@ -220,6 +228,9 @@ public extension Presentation {
 
             for stmt in program.statements {
                 try await executeCLL(stmt)
+                if let onStepExecuted {
+                    await onStepExecuted()
+                }
             }
         }
 

@@ -127,6 +127,14 @@ struct BackendScaffoldTests {
 
         let packages = try await backend.searchPackages(Model.PackageQuery(text: "swift", limit: 1))
         #expect(!packages.isEmpty)
+
+        // Test hierarchy listing (Level 1: Frameworks)
+        let level1 = try await backend.listSourceHierarchy(source: .appleDocs, level: 1, parent: nil)
+        #expect(level1.contains { $0.id == "swiftui" })
+
+        // Test hierarchy listing (Level 2: Documents within Framework)
+        let level2 = try await backend.listSourceHierarchy(source: .appleDocs, level: 2, parent: "swiftui")
+        #expect(level2.count > 100)
     }
 
     @Test("Backend.LocalSubprocess is testable with a fake client (no real transport)")
